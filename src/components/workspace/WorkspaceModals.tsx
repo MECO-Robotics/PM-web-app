@@ -38,44 +38,47 @@ export function TaskEditorModal({
 }: TaskEditorModalProps) {
   return (
     <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
-      <section aria-modal="true" className="modal-card" role="dialog">
+      <section aria-modal="true" className="modal-card" role="dialog" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}>
         <div className="panel-header compact-header">
           <div>
-            <p className="eyebrow">Task editor</p>
-            <h2>{taskModalMode === "create" ? "Create task" : activeTask?.title ?? "Edit task"}</h2>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>Task editor</p>
+            <h2 style={{ color: "var(--text-title)" }}>{taskModalMode === "create" ? "Create task" : activeTask?.title ?? "Edit task"}</h2>
           </div>
-          <button className="icon-button" onClick={closeTaskModal} type="button">
+          <button className="icon-button" onClick={closeTaskModal} type="button" style={{ color: "var(--text-copy)" }}>
             Close
           </button>
         </div>
-        <form className="modal-form" onSubmit={handleTaskSubmit}>
+        <form className="modal-form" onSubmit={handleTaskSubmit} style={{ color: "var(--text-copy)" }}>
           <label className="field modal-wide">
-            <span>Title</span>
+            <span style={{ color: "var(--text-title)" }}>Title</span>
             <input
               onChange={(event) =>
                 setTaskDraft((current) => ({ ...current, title: event.target.value }))
               }
               required
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraft.title}
             />
           </label>
           <label className="field modal-wide">
-            <span>Summary</span>
+            <span style={{ color: "var(--text-title)" }}>Summary</span>
             <textarea
               onChange={(event) =>
                 setTaskDraft((current) => ({ ...current, summary: event.target.value }))
               }
               required
               rows={3}
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraft.summary}
             />
           </label>
           <label className="field">
-            <span>Subsystem</span>
+            <span style={{ color: "var(--text-title)" }}>Subsystem</span>
             <select
               onChange={(event) =>
                 setTaskDraft((current) => ({ ...current, subsystemId: event.target.value }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraft.subsystemId}
             >
               {bootstrap.subsystems.map((subsystem) => (
@@ -86,7 +89,7 @@ export function TaskEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Owner</span>
+            <span style={{ color: "var(--text-title)" }}>Owner</span>
             <select
               onChange={(event) =>
                 setTaskDraft((current) => ({
@@ -94,6 +97,7 @@ export function TaskEditorModal({
                   ownerId: event.target.value || null,
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraft.ownerId ?? ""}
             >
               <option value="">Unassigned</option>
@@ -105,7 +109,7 @@ export function TaskEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Mentor</span>
+            <span style={{ color: "var(--text-title)" }}>Mentor</span>
             <select
               onChange={(event) =>
                 setTaskDraft((current) => ({
@@ -113,6 +117,7 @@ export function TaskEditorModal({
                   mentorId: event.target.value || null,
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraft.mentorId ?? ""}
             >
               <option value="">Unassigned</option>
@@ -124,7 +129,7 @@ export function TaskEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Status</span>
+            <span style={{ color: "var(--text-title)" }}>Status</span>
             <select
               onChange={(event) =>
                 setTaskDraft((current) => ({
@@ -132,6 +137,7 @@ export function TaskEditorModal({
                   status: event.target.value as TaskPayload["status"],
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraft.status}
             >
               <option value="not-started">Not started</option>
@@ -141,7 +147,7 @@ export function TaskEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Priority</span>
+            <span style={{ color: "var(--text-title)" }}>Priority</span>
             <select
               onChange={(event) =>
                 setTaskDraft((current) => ({
@@ -149,6 +155,7 @@ export function TaskEditorModal({
                   priority: event.target.value as TaskPayload["priority"],
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraft.priority}
             >
               <option value="critical">Critical</option>
@@ -158,27 +165,29 @@ export function TaskEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Start date</span>
+            <span style={{ color: "var(--text-title)" }}>Start date</span>
             <input
               onChange={(event) =>
                 setTaskDraft((current) => ({ ...current, startDate: event.target.value }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               type="date"
               value={taskDraft.startDate}
             />
           </label>
           <label className="field">
-            <span>Due date</span>
+            <span style={{ color: "var(--text-title)" }}>Due date</span>
             <input
               onChange={(event) =>
                 setTaskDraft((current) => ({ ...current, dueDate: event.target.value }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               type="date"
               value={taskDraft.dueDate}
             />
           </label>
           <label className="field">
-            <span>Estimated hours</span>
+            <span style={{ color: "var(--text-title)" }}>Estimated hours</span>
             <input
               min="0"
               onChange={(event) =>
@@ -187,12 +196,13 @@ export function TaskEditorModal({
                   estimatedHours: Number(event.target.value),
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               type="number"
               value={taskDraft.estimatedHours}
             />
           </label>
           <label className="field">
-            <span>Actual hours</span>
+            <span style={{ color: "var(--text-title)" }}>Actual hours</span>
             <input
               min="0"
               onChange={(event) =>
@@ -201,16 +211,18 @@ export function TaskEditorModal({
                   actualHours: Number(event.target.value),
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               step="0.5"
               type="number"
               value={taskDraft.actualHours}
             />
           </label>
           <label className="field modal-wide">
-            <span>Blockers</span>
+            <span style={{ color: "var(--text-title)" }}>Blockers</span>
             <input
               onChange={(event) => setTaskDraftBlockers(event.target.value)}
               placeholder="Comma-separated blockers"
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraftBlockers}
             />
           </label>
@@ -226,7 +238,7 @@ export function TaskEditorModal({
                 }
                 type="checkbox"
               />
-              <span>Requires documentation</span>
+              <span style={{ color: "var(--text-title)" }}>Requires documentation</span>
             </label>
             <label className="checkbox-field">
               <input
@@ -239,7 +251,7 @@ export function TaskEditorModal({
                 }
                 type="checkbox"
               />
-              <span>Documentation linked</span>
+              <span style={{ color: "var(--text-title)" }}>Documentation linked</span>
             </label>
           </div>
           <div className="modal-actions modal-wide">
@@ -285,23 +297,23 @@ export function PurchaseEditorModal({
 }: PurchaseEditorModalProps) {
   return (
     <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
-      <section aria-modal="true" className="modal-card" role="dialog">
+      <section aria-modal="true" className="modal-card" role="dialog" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}>
         <div className="panel-header compact-header">
           <div>
-            <p className="eyebrow">Purchase editor</p>
-            <h2>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>Purchase editor</p>
+            <h2 style={{ color: "var(--text-title)" }}>
               {purchaseModalMode === "create"
                 ? "Add purchase"
                 : "Edit purchase"}
             </h2>
           </div>
-          <button className="icon-button" onClick={closePurchaseModal} type="button">
+          <button className="icon-button" onClick={closePurchaseModal} type="button" style={{ color: "var(--text-copy)" }}>
             Close
           </button>
         </div>
-        <form className="modal-form" onSubmit={handlePurchaseSubmit}>
+        <form className="modal-form" onSubmit={handlePurchaseSubmit} style={{ color: "var(--text-copy)" }}>
           <label className="field modal-wide">
-            <span>Title</span>
+            <span style={{ color: "var(--text-title)" }}>Title</span>
             <input
               onChange={(event) =>
                 setPurchaseDraft((current) => ({
@@ -310,11 +322,12 @@ export function PurchaseEditorModal({
                 }))
               }
               required
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={purchaseDraft.title}
             />
           </label>
           <label className="field">
-            <span>Subsystem</span>
+            <span style={{ color: "var(--text-title)" }}>Subsystem</span>
             <select
               onChange={(event) =>
                 setPurchaseDraft((current) => ({
@@ -322,6 +335,7 @@ export function PurchaseEditorModal({
                   subsystemId: event.target.value,
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={purchaseDraft.subsystemId}
             >
               {bootstrap.subsystems.map((subsystem) => (
@@ -332,7 +346,7 @@ export function PurchaseEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Requester</span>
+            <span style={{ color: "var(--text-title)" }}>Requester</span>
             <select
               onChange={(event) =>
                 setPurchaseDraft((current) => ({
@@ -340,6 +354,7 @@ export function PurchaseEditorModal({
                   requestedById: event.target.value || null,
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={purchaseDraft.requestedById ?? ""}
             >
               <option value="">Unassigned</option>
@@ -351,7 +366,7 @@ export function PurchaseEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Vendor</span>
+            <span style={{ color: "var(--text-title)" }}>Vendor</span>
             <input
               onChange={(event) =>
                 setPurchaseDraft((current) => ({
@@ -360,11 +375,12 @@ export function PurchaseEditorModal({
                 }))
               }
               required
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={purchaseDraft.vendor}
             />
           </label>
           <label className="field">
-            <span>Link label</span>
+            <span style={{ color: "var(--text-title)" }}>Link label</span>
             <input
               onChange={(event) =>
                 setPurchaseDraft((current) => ({
@@ -373,11 +389,12 @@ export function PurchaseEditorModal({
                 }))
               }
               required
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={purchaseDraft.linkLabel}
             />
           </label>
           <label className="field">
-            <span>Quantity</span>
+            <span style={{ color: "var(--text-title)" }}>Quantity</span>
             <input
               min="1"
               onChange={(event) =>
@@ -386,12 +403,13 @@ export function PurchaseEditorModal({
                   quantity: Number(event.target.value),
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               type="number"
               value={purchaseDraft.quantity}
             />
           </label>
           <label className="field">
-            <span>Status</span>
+            <span style={{ color: "var(--text-title)" }}>Status</span>
             <select
               onChange={(event) =>
                 setPurchaseDraft((current) => ({
@@ -399,6 +417,7 @@ export function PurchaseEditorModal({
                   status: event.target.value as PurchaseItemPayload["status"],
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={purchaseDraft.status}
             >
               <option value="requested">Requested</option>
@@ -409,7 +428,7 @@ export function PurchaseEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Estimated cost</span>
+            <span style={{ color: "var(--text-title)" }}>Estimated cost</span>
             <input
               min="0"
               onChange={(event) =>
@@ -418,16 +437,18 @@ export function PurchaseEditorModal({
                   estimatedCost: Number(event.target.value),
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               type="number"
               value={purchaseDraft.estimatedCost}
             />
           </label>
           <label className="field">
-            <span>Final cost</span>
+            <span style={{ color: "var(--text-title)" }}>Final cost</span>
             <input
               min="0"
               onChange={(event) => setPurchaseFinalCost(event.target.value)}
               placeholder="Optional"
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               type="number"
               value={purchaseFinalCost}
             />
@@ -444,7 +465,7 @@ export function PurchaseEditorModal({
                 }
                 type="checkbox"
               />
-              <span>Mentor approved</span>
+              <span style={{ color: "var(--text-title)" }}>Mentor approved</span>
             </label>
           </div>
           <div className="modal-actions modal-wide">
@@ -492,11 +513,11 @@ export function ManufacturingEditorModal({
 
   return (
     <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
-      <section aria-modal="true" className="modal-card" role="dialog">
+      <section aria-modal="true" className="modal-card" role="dialog" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}>
         <div className="panel-header compact-header">
           <div>
-            <p className="eyebrow">Manufacturing editor</p>
-            <h2>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>Manufacturing editor</p>
+            <h2 style={{ color: "var(--text-title)" }}>
               {manufacturingModalMode === "create"
                 ? manufacturingDraft.process === "cnc"
                   ? "Add CNC job"
@@ -504,17 +525,13 @@ export function ManufacturingEditorModal({
                 : "Edit manufacturing job"}
             </h2>
           </div>
-          <button
-            className="icon-button"
-            onClick={closeManufacturingModal}
-            type="button"
-          >
+          <button className="icon-button" onClick={closeManufacturingModal} type="button" style={{ color: "var(--text-copy)" }}>
             Close
           </button>
         </div>
-        <form className="modal-form" onSubmit={handleManufacturingSubmit}>
+        <form className="modal-form" onSubmit={handleManufacturingSubmit} style={{ color: "var(--text-copy)" }}>
           <label className="field modal-wide">
-            <span>Title</span>
+            <span style={{ color: "var(--text-title)" }}>Title</span>
             <input
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
@@ -523,11 +540,12 @@ export function ManufacturingEditorModal({
                 }))
               }
               required
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={manufacturingDraft.title}
             />
           </label>
           <label className="field">
-            <span>Subsystem</span>
+            <span style={{ color: "var(--text-title)" }}>Subsystem</span>
             <select
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
@@ -535,6 +553,7 @@ export function ManufacturingEditorModal({
                   subsystemId: event.target.value,
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={manufacturingDraft.subsystemId}
             >
               {bootstrap.subsystems.map((subsystem) => (
@@ -545,7 +564,7 @@ export function ManufacturingEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Requester</span>
+            <span style={{ color: "var(--text-title)" }}>Requester</span>
             <select
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
@@ -553,6 +572,7 @@ export function ManufacturingEditorModal({
                   requestedById: event.target.value || null,
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={manufacturingDraft.requestedById ?? ""}
             >
               <option value="">Unassigned</option>
@@ -564,7 +584,7 @@ export function ManufacturingEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Process</span>
+            <span style={{ color: "var(--text-title)" }}>Process</span>
             <select
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
@@ -572,6 +592,7 @@ export function ManufacturingEditorModal({
                   process: event.target.value as ManufacturingItemPayload["process"],
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={manufacturingDraft.process}
             >
               <option value="cnc">CNC</option>
@@ -580,7 +601,7 @@ export function ManufacturingEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Due date</span>
+            <span style={{ color: "var(--text-title)" }}>Due date</span>
             <input
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
@@ -588,12 +609,13 @@ export function ManufacturingEditorModal({
                   dueDate: event.target.value,
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               type="date"
               value={manufacturingDraft.dueDate}
             />
           </label>
           <label className="field">
-            <span>Material</span>
+            <span style={{ color: "var(--text-title)" }}>Material</span>
             <select
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
@@ -602,6 +624,7 @@ export function ManufacturingEditorModal({
                 }))
               }
               required
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={manufacturingDraft.material}
             >
               <option value="">Select material...</option>
@@ -611,7 +634,7 @@ export function ManufacturingEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Quantity</span>
+            <span style={{ color: "var(--text-title)" }}>Quantity</span>
             <input
               min="1"
               onChange={(event) =>
@@ -620,12 +643,13 @@ export function ManufacturingEditorModal({
                   quantity: Number(event.target.value),
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               type="number"
               value={manufacturingDraft.quantity}
             />
           </label>
           <label className="field">
-            <span>Status</span>
+            <span style={{ color: "var(--text-title)" }}>Status</span>
             <select
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
@@ -633,6 +657,7 @@ export function ManufacturingEditorModal({
                   status: event.target.value as ManufacturingItemPayload["status"],
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={manufacturingDraft.status}
             >
               <option value="requested">Requested</option>
@@ -643,7 +668,7 @@ export function ManufacturingEditorModal({
             </select>
           </label>
           <label className="field">
-            <span>Batch label</span>
+            <span style={{ color: "var(--text-title)" }}>Batch label</span>
             <input
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
@@ -651,6 +676,7 @@ export function ManufacturingEditorModal({
                   batchLabel: event.target.value,
                 }))
               }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               placeholder="Optional"
               value={manufacturingDraft.batchLabel ?? ""}
             />
@@ -667,7 +693,7 @@ export function ManufacturingEditorModal({
                 }
                 type="checkbox"
               />
-              <span>Mentor reviewed</span>
+              <span style={{ color: "var(--text-title)" }}>Mentor reviewed</span>
             </label>
           </div>
           <div className="modal-actions modal-wide">

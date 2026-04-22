@@ -10,6 +10,8 @@ interface AppTopbarProps {
   loadWorkspace: () => Promise<void>;
   sessionUser: SessionUser | null;
   setActivePersonFilter: (value: string) => void;
+  isDarkMode: boolean;
+  toggleDarkMode: () => void;
 }
 
 export function AppTopbar({
@@ -20,6 +22,8 @@ export function AppTopbar({
   loadWorkspace,
   sessionUser,
   setActivePersonFilter,
+  isDarkMode,
+  toggleDarkMode,
 }: AppTopbarProps) {
   return (
     <header
@@ -36,15 +40,15 @@ export function AppTopbar({
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 24px",
-        background: "#ffffff",
-        borderBottom: "1px solid #e5e7eb",
+        background: "var(--bg-panel)",
+        borderBottom: "1px solid var(--border-base)",
       }}
     >
       <div className="app-topbar-title" style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-        <p className="eyebrow" style={{ fontSize: "0.65rem", margin: 0, color: "#16478e" }}>
+        <p className="eyebrow" style={{ fontSize: "0.65rem", margin: 0, color: "var(--meco-blue)" }}>
           MECO PM
         </p>
-        <h1 style={{ fontSize: "1.1rem", margin: 0, color: "#000000" }}>
+        <h1 style={{ fontSize: "1.1rem", margin: 0, color: "var(--text-title)" }}>
           Project workspace
         </h1>
       </div>
@@ -52,15 +56,20 @@ export function AppTopbar({
         <label
           aria-label="Filter person"
           className="toolbar-filter toolbar-filter-compact"
-          style={activePersonFilter !== "all" ? { background: "#eff6ff", borderColor: "#16478e" } : {}}
+          style={activePersonFilter !== "all" ? { background: "var(--meco-soft-blue)", borderColor: "var(--meco-blue)" } : { background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}
         >
-          <span aria-hidden="true" className="toolbar-filter-icon" style={activePersonFilter !== "all" ? { color: "#16478e" } : {}}>
+          <span aria-hidden="true" className="toolbar-filter-icon" style={activePersonFilter !== "all" ? { color: "var(--meco-blue)" } : {}}>
             <IconPerson />
           </span>
           <select
             onChange={(event) => setActivePersonFilter(event.target.value)}
             value={activePersonFilter}
-            style={activePersonFilter !== "all" ? { color: "#16478e", fontWeight: "600", background: "transparent" } : {}}
+            style={{
+              color: activePersonFilter !== "all" ? "var(--text-title)" : "var(--text-copy)",
+              fontWeight: activePersonFilter !== "all" ? "600" : "400",
+              background: "transparent",
+              colorScheme: isDarkMode ? "dark" : "light",
+            }}
           >
             <option value="all">All roster</option>
             {bootstrap.members.map((member) => (
@@ -105,9 +114,30 @@ export function AppTopbar({
           </div>
         ) : (
           <div className="user-chip" style={{ padding: "4px 12px", height: "34px" }}>
-            <strong style={{ fontSize: "0.85rem", color: "#000000" }}>Local access</strong>
+            <strong style={{ fontSize: "0.85rem", color: "var(--text-title)" }}>Local access</strong>
           </div>
         )}
+        <button
+          onClick={toggleDarkMode}
+          title="Toggle dark mode"
+          type="button"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--bg-panel)",
+            border: "1px solid var(--border-base)",
+            borderRadius: "8px",
+            width: "34px",
+            height: "34px",
+            color: isDarkMode ? "#fbbf24" : "#64748b",
+            cursor: "pointer",
+            padding: 0,
+            marginLeft: "8px",
+          }}
+        >
+          {isDarkMode ? "☀️" : "🌙"}
+        </button>
         <button
           aria-label="Refresh workspace"
           className={isLoadingData ? "icon-button refresh-button is-loading" : "icon-button refresh-button"}
@@ -118,12 +148,12 @@ export function AppTopbar({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "#eff6ff",
-            border: "1px solid #16478e",
+            background: "var(--meco-soft-blue)",
+            border: "1px solid var(--meco-blue)",
             borderRadius: "8px",
             width: "34px",
             height: "34px",
-            color: "#16478e",
+            color: "var(--meco-blue)",
             cursor: "pointer",
             padding: 0,
             marginLeft: "8px",

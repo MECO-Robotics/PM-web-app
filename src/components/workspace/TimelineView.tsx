@@ -126,11 +126,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     };
 
     return (
-        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
+        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)", color: "var(--text-copy)" }}>
             <div className="panel-header compact-header">
                 <div>
-                    <h2>Subsystem timeline</h2>
-                    <p className="section-copy filter-copy">
+                    <h2 style={{ color: "var(--text-title)" }}>Subsystem timeline</h2>
+                    <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                         {activePersonFilter === "all"
                             ? "Showing all roster-linked tasks."
                             : `Filtered to ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
@@ -140,7 +140,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     <select
                         className="toolbar-filter-select"
                         onChange={(e) => setViewInterval(e.target.value as "all" | "week" | "month")}
-                        style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #e2e8f0", fontSize: "0.85rem", background: "#fff", cursor: "pointer", marginRight: "8px" }}
+                        style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid var(--border-base)", fontSize: "0.85rem", background: "var(--bg-panel)", color: "var(--text-title)", cursor: "pointer", marginRight: "8px" }}
                         value={viewInterval}
                     >
                         <option value="all">Full scope</option>
@@ -152,7 +152,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             </div>
 
             {timeline.days.length ? (
-                <div className="timeline-shell" style={{ overflowX: "auto", padding: 0, background: "#fff", borderRadius: 0, border: "1px solid #e2e8f0" }}>
+                <div className="timeline-shell" style={{ overflowX: "auto", padding: 0, background: "var(--bg-panel)", borderRadius: 0, border: "1px solid var(--border-base)" }}>
                     <div style={{ display: "grid", width: "100%", minWidth: `${gridMinWidth}px`, gridTemplateColumns: timelineGridTemplate, boxSizing: "border-box" }}>
                         <div
                             className="sticky-label"
@@ -164,15 +164,15 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                 maxWidth: `${SUBSYSTEM_COLUMN_WIDTH + TASK_LABEL_COLUMN_WIDTH}px`,
                                 padding: "10px 12px",
                                 fontWeight: "bold",
-                                borderRight: "1px solid #e2e8f0",
-                                borderBottom: "1px solid #e2e8f0",
+                                borderRight: "1px solid var(--border-base)",
+                                borderBottom: "1px solid var(--border-base)",
                                 display: "flex",
                                 alignItems: "center",
                                 boxSizing: "border-box",
                                 position: "sticky",
                                 left: 0,
                                 zIndex: 15,
-                                background: "#fff",
+                                background: "var(--bg-panel)",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
@@ -187,7 +187,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                 const start = currentCol;
                                 currentCol += group.span;
                                 return (
-                                    <div key={`month-${idx}`} style={{ gridRow: "1", gridColumn: `${start} / span ${group.span}`, textAlign: "center", fontSize: "10px", fontWeight: "bold", padding: "6px 0", borderBottom: "1px solid #e2e8f0", borderRight: "1px solid #e2e8f0", textTransform: "uppercase", color: "var(--official-blue)", background: "#f1f5f9", position: "sticky", top: 0, zIndex: 12, boxSizing: "border-box" }}>
+                                    <div key={`month-${idx}`} style={{ gridRow: "1", gridColumn: `${start} / span ${group.span}`, textAlign: "center", fontSize: "10px", fontWeight: "bold", padding: "6px 0", borderBottom: "1px solid var(--border-base)", borderRight: "1px solid var(--border-base)", textTransform: "uppercase", color: "var(--meco-blue)", background: "var(--bg-row-alt)", position: "sticky", top: 0, zIndex: 12, boxSizing: "border-box" }}>
                                         {group.month}
                                     </div>
                                 );
@@ -197,9 +197,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         {timeline.days.map((day, dIdx) => {
                             const dateObj = new Date(`${day}T00:00:00`);
                             return (
-                                <div className="timeline-day" key={day} style={{ gridRow: "2", gridColumn: dIdx + 3, textAlign: "center", fontSize: "9px", padding: "6px 0", borderRight: "1px solid #e2e8f0", borderBottom: "2px solid #e2e8f0", color: "#58667d", textTransform: "uppercase", display: "flex", flexDirection: "column", justifyContent: "center", lineHeight: "1.1", minWidth: 0, overflow: "hidden", boxSizing: "border-box", position: "sticky", top: "27px", zIndex: 12, background: "#fff" }}>
+                                <div className="timeline-day" key={day} style={{ gridRow: "2", gridColumn: dIdx + 3, textAlign: "center", fontSize: "9px", padding: "6px 0", borderRight: "1px solid var(--border-base)", borderBottom: "2px solid var(--border-base)", color: "var(--text-copy)", textTransform: "uppercase", display: "flex", flexDirection: "column", justifyContent: "center", lineHeight: "1.1", minWidth: 0, overflow: "hidden", boxSizing: "border-box", position: "sticky", top: "27px", zIndex: 12, background: "var(--bg-panel)" }}>
                                     <span style={{ whiteSpace: "nowrap", fontSize: "8px" }}>{dateObj.toLocaleDateString(undefined, { weekday: "short" })}</span>
-                                    <strong style={{ fontSize: "11px", color: "var(--official-black)" }}>{dateObj.toLocaleDateString(undefined, { day: "numeric" })}</strong>
+                                    <strong style={{ fontSize: "11px", color: "var(--text-title)" }}>{dateObj.toLocaleDateString(undefined, { day: "numeric" })}</strong>
                                 </div>
                             );
                         })}
@@ -208,10 +208,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     {timeline.subsystemRows.map((subsystem, sIdx) => {
                         const collapsed = collapsedSubsystems[subsystem.id] ?? false;
                         const taskCount = Math.max(1, subsystem.tasks.length);
-                        const groupBg = sIdx % 2 === 0 ? "#ffffff" : "#f8fafc";
+                        const groupBg = sIdx % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
 
                         return (
-                            <div className="subsystem-group" key={subsystem.id} style={{ display: "grid", width: "100%", minWidth: `${gridMinWidth}px`, gridTemplateColumns: timelineGridTemplate, background: groupBg, borderBottom: "1px solid #e2e8f0" }}>
+                            <div className="subsystem-group" key={subsystem.id} style={{ display: "grid", width: "100%", minWidth: `${gridMinWidth}px`, gridTemplateColumns: timelineGridTemplate, background: groupBg, borderBottom: "1px solid var(--border-base)" }}>
                                 <div
                                     style={{
                                         gridRow: collapsed ? "1" : `1 / span ${taskCount}`,
@@ -220,7 +220,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                         left: 0,
                                         zIndex: 8,
                                         background: groupBg,
-                                        borderRight: "1px solid #e2e8f0",
+                                        borderRight: "1px solid var(--border-base)",
                                         display: "flex",
                                         flexDirection: "row",
                                         justifyContent: "flex-start",
@@ -235,13 +235,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                         className="subsystem-toggle"
                                         onClick={() => toggleSubsystem(subsystem.id)}
                                         type="button"
-                                        style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", fontSize: "12px", color: "#94a3b8", marginRight: "6px", flexShrink: 0 }}
+                                        style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", fontSize: "12px", color: "var(--text-copy)", marginRight: "6px", flexShrink: 0 }}
                                     >
                                         {collapsed ? "▶" : "▼"}
                                     </button>
                                     <div style={{ minWidth: 0 }}>
-                                        <div style={{ fontWeight: "bold", fontSize: "0.85rem", color: "#334155", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subsystem.name}</div>
-                                        <div style={{ fontSize: "0.65rem", fontWeight: "normal", color: "#94a3b8" }}>{subsystem.completeCount}/{subsystem.taskCount}</div>
+                                        <div style={{ fontWeight: "bold", fontSize: "0.85rem", color: "var(--text-title)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subsystem.name}</div>
+                                        <div style={{ fontSize: "0.65rem", fontWeight: "normal", color: "var(--text-copy)" }}>{subsystem.completeCount}/{subsystem.taskCount}</div>
                                     </div>
                                 </div>
 
@@ -254,7 +254,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                             left: `${SUBSYSTEM_COLUMN_WIDTH}px`,
                                             zIndex: 7,
                                             background: groupBg,
-                                            borderRight: "1px solid #e2e8f0",
+                                            borderRight: "1px solid var(--border-base)",
                                             boxSizing: "border-box",
                                         }}
                                     />
@@ -262,7 +262,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
                                 {collapsed
                                     ? timeline.days.map((day, dIdx) => (
-                                        <div key={day} style={{ gridRow: "1", gridColumn: dIdx + 3, borderRight: "1px solid #e2e8f0", minHeight: "44px" }} />
+                                        <div key={day} style={{ gridRow: "1", gridColumn: dIdx + 3, borderRight: "1px solid var(--border-base)", minHeight: "44px" }} />
                                     ))
                                     : null}
 
@@ -300,7 +300,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                                 minHeight: "44px",
                                                 padding: "0 12px",
                                                 fontSize: "0.8rem",
-                                                borderRight: "1px solid #e2e8f0",
+                                                borderRight: "1px solid var(--border-base)",
                                                 boxSizing: "border-box",
                                                 display: "flex",
                                                 flexDirection: "column",
@@ -310,14 +310,14 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                                 zIndex: 7,
                                                 background: groupBg,
                                                 overflow: "hidden",
-                                                borderTop: tIdx === 0 ? "none" : "1px solid #f1f5f9",
+                                                borderTop: tIdx === 0 ? "none" : "1px solid var(--border-base)",
                                             }}
                                         >
-                                            <strong style={{ display: "block", color: "#475569", lineHeight: "1.2" }}>{task.title}</strong>
-                                            <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>
+                                            <strong style={{ display: "block", color: "var(--text-title)", lineHeight: "1.2" }}>{task.title}</strong>
+                                            <span style={{ fontSize: "0.7rem", color: "var(--text-copy)" }}>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>
                                         </div>
                                         {timeline.days.map((day, dIdx) => (
-                                            <div key={day} style={{ gridRow: tIdx + 1, gridColumn: dIdx + 3, borderRight: "1px solid #e2e8f0", borderTop: tIdx === 0 ? "none" : "1px solid #f1f5f9", minHeight: "44px" }} />
+                                            <div key={day} style={{ gridRow: tIdx + 1, gridColumn: dIdx + 3, borderRight: "1px solid var(--border-base)", borderTop: tIdx === 0 ? "none" : "1px solid var(--border-base)", minHeight: "44px" }} />
                                         ))}
                                         <button
                                             className={`timeline-bar timeline-${task.status}`}

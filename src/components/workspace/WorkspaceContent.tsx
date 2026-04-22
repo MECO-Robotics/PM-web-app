@@ -75,10 +75,18 @@ function FilterDropdown({
   return (
     <label
       className="toolbar-filter toolbar-filter-compact"
-      style={isActive ? { background: "#eff6ff", borderColor: "#16478e" } : {}}
+      style={isActive ? { background: "var(--meco-soft-blue)", borderColor: "var(--meco-blue)" } : { background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}
     >
-      <span className="toolbar-filter-icon" style={isActive ? { color: "#16478e" } : {}}>{icon}</span>
-      <select onChange={(e) => onChange(e.target.value)} value={value} style={isActive ? { color: "#16478e", fontWeight: "600", background: "transparent" } : {}}>
+      <span className="toolbar-filter-icon" style={isActive ? { color: "var(--meco-blue)" } : { color: "var(--text-copy)" }}>{icon}</span>
+      <select
+        onChange={(e) => onChange(e.target.value)}
+        value={value}
+        style={{
+          color: isActive ? "var(--text-title)" : "var(--text-copy)",
+          fontWeight: isActive ? "600" : "400",
+          background: "transparent",
+        }}
+      >
         <option value="all">{allLabel}</option>
         {options.map((opt) => (
           <option key={opt.id} value={opt.id}>{opt.name}</option>
@@ -308,13 +316,13 @@ export function WorkspaceContent({
           display: "flex",
           alignItems: "center",
           padding: "0 8px",
-          background: isActive ? "#eff6ff" : "#fff",
-          border: isActive ? "1px solid #16478e" : "1px solid #e2e8f0",
+          background: isActive ? "var(--meco-soft-blue)" : "var(--bg-panel)",
+          border: isActive ? "1px solid var(--meco-blue)" : "1px solid var(--border-base)",
           borderRadius: "6px"
         }}
       >
-        <span style={{ color: isActive ? "#16478e" : "#64748b", display: "flex", alignItems: "center", marginRight: "4px" }}><IconTasks /></span>
-        <input onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={{ border: "none", outline: "none", fontSize: "0.85rem", padding: "6px 0", width: "120px", background: "transparent", color: isActive ? "#16478e" : "inherit" }} type="text" value={value} />
+        <span style={{ color: isActive ? "var(--meco-blue)" : "var(--text-copy)", display: "flex", alignItems: "center", marginRight: "4px" }}><IconTasks /></span>
+        <input onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={{ border: "none", outline: "none", fontSize: "0.85rem", padding: "6px 0", width: "120px", background: "transparent", color: isActive ? "var(--text-title)" : "var(--text-copy)" }} type="text" value={value} />
       </div>
     );
   };
@@ -350,11 +358,11 @@ export function WorkspaceContent({
       ) : null}
 
       {activeTab === "queue" ? (
-        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
+        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
             <div>
-              <h2>Task queue</h2>
-              <p className="section-copy filter-copy">
+              <h2 style={{ color: "var(--text-title)" }}>Task queue</h2>
+              <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                 {activePersonFilter === "all"
                   ? "All tasks in queue."
                   : `Only tasks owned by or mentored by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
@@ -409,7 +417,7 @@ export function WorkspaceContent({
             </div>
           </div>
           <div className="table-shell">
-            <div className="queue-table queue-table-header" style={{ gridTemplateColumns: queueGridTemplate }}>
+            <div className="queue-table queue-table-header" style={{ gridTemplateColumns: queueGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)" }}>
               <span onClick={() => toggleSort("title")} style={{ cursor: "pointer" }}>Task{getSortIcon("title")}</span>
               {showSubsystemCol && <span onClick={() => toggleSort("subsystemId")} style={{ cursor: "pointer" }}>Subsystem{getSortIcon("subsystemId")}</span>}
               {showOwnerCol && <span onClick={() => toggleSort("ownerId")} style={{ cursor: "pointer" }}>Owner{getSortIcon("ownerId")}</span>}
@@ -422,15 +430,15 @@ export function WorkspaceContent({
                 className="queue-table queue-row"
                 key={task.id}
                 onClick={() => openEditTaskModal(task)}
-                style={{ gridTemplateColumns: queueGridTemplate }}
+                style={{ gridTemplateColumns: queueGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)", marginBottom: "1px" }}
                 type="button"
               >
-                <span className="queue-title">
-                  <strong>{task.title}</strong>
-                  <small>{task.summary}</small>
+                <span className="queue-title" style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+                  <strong style={{ color: "var(--text-title)" }}>{task.title}</strong>
+                  <small style={{ color: "var(--text-copy)" }}>{task.summary}</small>
                 </span>
-                {showSubsystemCol && <span>{(task.subsystemId ? subsystemsById[task.subsystemId]?.name : null) ?? "Unknown"}</span>}
-                {showOwnerCol && <span>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>}
+                {showSubsystemCol && <span style={{ color: "var(--text-copy)" }}>{(task.subsystemId ? subsystemsById[task.subsystemId]?.name : null) ?? "Unknown"}</span>}
+                {showOwnerCol && <span style={{ color: "var(--text-copy)" }}>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>}
                 {showStatusCol && <span className={`pill status-${task.status}`}>{task.status}</span>}
                 <span>{formatDate(task.dueDate)}</span>
                 {showPriorityCol && <span className={`pill priority-${task.priority}`}>{task.priority}</span>}
@@ -441,11 +449,11 @@ export function WorkspaceContent({
       ) : null}
 
       {activeTab === "purchases" ? (
-        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
+        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
             <div>
-              <h2>Purchase list</h2>
-              <p className="section-copy filter-copy">
+              <h2 style={{ color: "var(--text-title)" }}>Purchase list</h2>
+              <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                 {activePersonFilter === "all"
                   ? "All purchase requests."
                   : `Only requests submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
@@ -503,14 +511,14 @@ export function WorkspaceContent({
                 value={purchaseApproval}
               />
 
-              <div className="mini-summary-row">
-                <div className="mini-chip">
-                  <span>Estimated</span>
-                  <strong>{formatCurrency(purchaseSummary.totalEstimated)}</strong>
+              <div className="mini-summary-row" style={{ gap: "8px" }}>
+                <div className="mini-chip" style={{ background: "var(--meco-soft-blue)", border: "1px solid var(--meco-blue)" }}>
+                  <span style={{ color: "var(--meco-blue)" }}>Estimated</span>
+                  <strong style={{ color: "var(--text-title)" }}>{formatCurrency(purchaseSummary.totalEstimated)}</strong>
                 </div>
-                <div className="mini-chip">
-                  <span>Delivered</span>
-                  <strong>{purchaseSummary.delivered}</strong>
+                <div className="mini-chip" style={{ background: "var(--bg-row-alt)", border: "1px solid var(--border-base)" }}>
+                  <span style={{ color: "var(--text-copy)" }}>Delivered</span>
+                  <strong style={{ color: "var(--text-title)" }}>{purchaseSummary.delivered}</strong>
                 </div>
               </div>
               <button
@@ -523,7 +531,7 @@ export function WorkspaceContent({
             </div>
           </div>
           <div className="table-shell">
-            <div className="ops-table ops-table-header purchase-table" style={{ gridTemplateColumns: purchaseGridTemplate }}>
+            <div className="ops-table ops-table-header purchase-table" style={{ gridTemplateColumns: purchaseGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)" }}>
               <span style={{ textAlign: "left" }}>Item</span>
               {purchaseVendor === "all" && <span>Vendor</span>}
               <span>Qty</span>
@@ -537,16 +545,16 @@ export function WorkspaceContent({
                 className="ops-table ops-row purchase-table ops-button-row"
                 key={item.id}
                 onClick={() => openEditPurchaseModal(item)}
-                style={{ gridTemplateColumns: purchaseGridTemplate }}
+                style={{ gridTemplateColumns: purchaseGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)", marginBottom: "1px" }}
                 type="button"
               >
                 <span className="queue-title" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                {purchaseVendor === "all" && <span>{item.vendor}</span>}
-                <span>{item.quantity}</span>
+                {purchaseVendor === "all" && <span style={{ color: "var(--text-copy)" }}>{item.vendor}</span>}
+                <span style={{ color: "var(--text-copy)" }}>{item.quantity}</span>
                 {purchaseStatus === "all" && <span className={`pill purchase-${item.status}`}>{item.status}</span>}
-                {purchaseApproval === "all" && <span>{item.approvedByMentor ? "Approved" : "Waiting"}</span>}
+                {purchaseApproval === "all" && <span style={{ color: "var(--text-copy)" }}>{item.approvedByMentor ? "Approved" : "Waiting"}</span>}
                 <span>{formatCurrency(item.estimatedCost)}</span>
                 <span>{formatCurrency(item.finalCost)}</span>
               </button>
@@ -556,11 +564,11 @@ export function WorkspaceContent({
       ) : null}
 
       {activeTab === "cnc" ? (
-        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
+        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
             <div>
-              <h2>CNC queue</h2>
-              <p className="section-copy filter-copy">
+              <h2 style={{ color: "var(--text-title)" }}>CNC queue</h2>
+              <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                 {activePersonFilter === "all"
                   ? "All CNC jobs."
                   : `Only CNC jobs submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
@@ -600,9 +608,9 @@ export function WorkspaceContent({
               />
 
               <div className="mini-summary-row">
-                <div className="mini-chip">
-                  <span>Open jobs</span>
-                  <strong>{cncItems.length}</strong>
+                <div className="mini-chip" style={{ background: "var(--meco-soft-blue)", border: "1px solid var(--meco-blue)" }}>
+                  <span style={{ color: "var(--meco-blue)" }}>Open jobs</span>
+                  <strong style={{ color: "var(--text-title)" }}>{cncItems.length}</strong>
                 </div>
               </div>
               <button
@@ -615,7 +623,7 @@ export function WorkspaceContent({
             </div>
           </div>
           <div className="table-shell">
-            <div className="ops-table ops-table-header manufacturing-table" style={{ gridTemplateColumns: mfgGridTemplate }}>
+            <div className="ops-table ops-table-header manufacturing-table" style={{ gridTemplateColumns: mfgGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)" }}>
               <span style={{ textAlign: "left" }}>Part</span>
               {mfgMaterial === "all" && <span>Material</span>}
               <span>Qty</span>
@@ -629,18 +637,18 @@ export function WorkspaceContent({
                 className="ops-table ops-row manufacturing-table ops-button-row"
                 key={item.id}
                 onClick={() => openEditManufacturingModal(item)}
-                style={{ gridTemplateColumns: mfgGridTemplate }}
+                style={{ gridTemplateColumns: mfgGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)", marginBottom: "1px" }}
                 type="button"
               >
                 <span className="queue-title" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                {mfgMaterial === "all" && <span>{item.material}</span>}
-                <span>{item.quantity}</span>
-                <span>{item.batchLabel ?? "Unbatched"}</span>
-                <span>{formatDate(item.dueDate)}</span>
+                {mfgMaterial === "all" && <span style={{ color: "var(--text-copy)" }}>{item.material}</span>}
+                <span style={{ color: "var(--text-copy)" }}>{item.quantity}</span>
+                <span style={{ color: "var(--text-copy)" }}>{item.batchLabel ?? "Unbatched"}</span>
+                <span style={{ color: "var(--text-copy)" }}>{formatDate(item.dueDate)}</span>
                 {mfgStatus === "all" && <span className={`pill manufacturing-${item.status}`}>{item.status}</span>}
-                <span>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
+                <span style={{ color: "var(--text-copy)" }}>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
               </button>
             ))}
           </div>
@@ -648,11 +656,11 @@ export function WorkspaceContent({
       ) : null}
 
       {activeTab === "prints" ? (
-        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
+        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
             <div>
-              <h2>3D print queue</h2>
-              <p className="section-copy filter-copy">
+              <h2 style={{ color: "var(--text-title)" }}>3D print queue</h2>
+              <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                 {activePersonFilter === "all"
                   ? "All 3D print jobs."
                   : `Only print jobs submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
@@ -692,9 +700,9 @@ export function WorkspaceContent({
               />
 
               <div className="mini-summary-row">
-                <div className="mini-chip">
-                  <span>Open jobs</span>
-                  <strong>{printItems.length}</strong>
+                <div className="mini-chip" style={{ background: "var(--meco-soft-blue)", border: "1px solid var(--meco-blue)" }}>
+                  <span style={{ color: "var(--meco-blue)" }}>Open jobs</span>
+                  <strong style={{ color: "var(--text-title)" }}>{printItems.length}</strong>
                 </div>
               </div>
               <button
@@ -707,7 +715,7 @@ export function WorkspaceContent({
             </div>
           </div>
           <div className="table-shell">
-            <div className="ops-table ops-table-header manufacturing-table" style={{ gridTemplateColumns: mfgGridTemplate }}>
+            <div className="ops-table ops-table-header manufacturing-table" style={{ gridTemplateColumns: mfgGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)" }}>
               <span style={{ textAlign: "left" }}>Part</span>
               {mfgMaterial === "all" && <span>Material</span>}
               <span>Qty</span>
@@ -721,18 +729,18 @@ export function WorkspaceContent({
                 className="ops-table ops-row manufacturing-table ops-button-row"
                 key={item.id}
                 onClick={() => openEditManufacturingModal(item)}
-                style={{ gridTemplateColumns: mfgGridTemplate }}
+                style={{ gridTemplateColumns: mfgGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)", marginBottom: "1px" }}
                 type="button"
               >
                 <span className="queue-title" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                {mfgMaterial === "all" && <span>{item.material}</span>}
-                <span>{item.quantity}</span>
-                <span>{item.batchLabel ?? "Unbatched"}</span>
-                <span>{formatDate(item.dueDate)}</span>
+                {mfgMaterial === "all" && <span style={{ color: "var(--text-copy)" }}>{item.material}</span>}
+                <span style={{ color: "var(--text-copy)" }}>{item.quantity}</span>
+                <span style={{ color: "var(--text-copy)" }}>{item.batchLabel ?? "Unbatched"}</span>
+                <span style={{ color: "var(--text-copy)" }}>{formatDate(item.dueDate)}</span>
                 {mfgStatus === "all" && <span className={`pill manufacturing-${item.status}`}>{item.status}</span>}
-                <span>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
+                <span style={{ color: "var(--text-copy)" }}>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
               </button>
             ))}
           </div>
@@ -763,18 +771,18 @@ export function WorkspaceContent({
       ) : null}
 
       {activeTab === "materials" ? (
-        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
+        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
             <div>
-              <h2>Materials inventory</h2>
-              <p className="section-copy">Tracking materials currently assigned to manufacturing jobs.</p>
+              <h2 style={{ color: "var(--text-title)" }}>Materials inventory</h2>
+              <p className="section-copy" style={{ color: "var(--text-copy)" }}>Tracking materials currently assigned to manufacturing jobs.</p>
             </div>
             <div className="panel-actions">
               {renderSearchInput(materialSearch, setMaterialSearch, "Search materials...")}
             </div>
           </div>
           <div className="table-shell">
-            <div className="ops-table ops-table-header" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+            <div className="ops-table ops-table-header" style={{ gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)" }}>
               <span>Material Name</span>
               <span>Job usage</span>
               <span>Status</span>
@@ -785,10 +793,10 @@ export function WorkspaceContent({
                 <div
                   className="ops-table ops-row"
                   key={material}
-                  style={{ gridTemplateColumns: "1fr 1fr 1fr", padding: "12px 16px" }}
+                  style={{ gridTemplateColumns: "1fr 1fr 1fr", padding: "12px 16px", borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)" }}
                 >
-                  <strong>{material}</strong>
-                  <span>{jobCount} active jobs</span>
+                  <strong style={{ color: "var(--text-title)" }}>{material}</strong>
+                  <span style={{ color: "var(--text-copy)" }}>{jobCount} active jobs</span>
                   <span className="pill status-complete" style={{ width: "fit-content" }}>
                     Available
                   </span>

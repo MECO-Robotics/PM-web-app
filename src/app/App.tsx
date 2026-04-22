@@ -81,18 +81,30 @@ function renderItemMeta(
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>,
 ) {
   return (
-    <>
-      <strong>{item.title}</strong>
-      <small>
+    <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+      <strong style={{ color: "var(--text-title)" }}>{item.title}</strong>
+      <small style={{ color: "var(--text-copy)" }}>
         {(item.subsystemId ? subsystemsById[item.subsystemId]?.name : null) ?? "Unknown subsystem"} /{" "}
         {(item.requestedById ? membersById[item.requestedById]?.name : null) ?? "Unassigned"}
       </small>
-    </>
+    </div>
   );
 }
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ViewTab>("timeline");
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem("meco-theme") === "dark";
+  });
+
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      localStorage.setItem("meco-theme", next ? "dark" : "light");
+      return next;
+    });
+  };
+
   const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [authBooting, setAuthBooting] = useState(true);
@@ -792,8 +804,20 @@ export default function App() {
 
   return (
     <main
-      className="page-shell with-sidebar"
-      style={{ background: "#ffffff", paddingTop: "64px" }}
+      className={`page-shell with-sidebar ${isDarkMode ? "dark-mode" : ""}`}
+      style={{
+        background: isDarkMode ? "#0f172a" : "#ffffff",
+        paddingTop: "64px",
+        "--bg-panel": isDarkMode ? "#1e293b" : "#ffffff",
+        "--border-base": isDarkMode ? "#334155" : "#e5e7eb",
+        "--text-title": isDarkMode ? "#f8fafc" : "#000000",
+        "--text-copy": isDarkMode ? "#cbd5e1" : "#64748b",
+        "--meco-blue": isDarkMode ? "#3b82f6" : "#16478e",
+        "--meco-soft-blue": isDarkMode ? "#1e3a8a" : "#eff6ff",
+        "--bg-row-alt": isDarkMode ? "#0f172a" : "#f8fafc",
+        "--official-black": isDarkMode ? "#f8fafc" : "#000000",
+        colorScheme: isDarkMode ? "dark" : "light",
+      } as React.CSSProperties}
     >
       <AppTopbar
         activePersonFilter={activePersonFilter}
@@ -803,6 +827,8 @@ export default function App() {
         loadWorkspace={loadWorkspace}
         sessionUser={sessionUser}
         setActivePersonFilter={setActivePersonFilter}
+        isDarkMode={isDarkMode}
+        toggleDarkMode={toggleDarkMode}
       />
 
       <AppSidebar
