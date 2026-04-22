@@ -1,6 +1,20 @@
-import { useState } from "react";
+import { startTransition, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import "./App.css";
+import {
+  clearStoredSessionToken,
+  exchangeGoogleCredential,
+  fetchAuthConfig,
+  fetchCurrentUser,
+  loadGoogleIdentityScript,
+  loadStoredSessionToken,
+  signOutFromGoogle,
+  type AuthConfig,
+  type GoogleCredentialResponse,
+  type SessionUser,
+  storeSessionToken,
+  validateSession,
+} from "./auth";
 import { operationsSnapshot } from "./data/mockData";
 import type { RoleFilter } from "./types";
 
@@ -11,19 +25,307 @@ const roleFilters: { key: RoleFilter; label: string }[] = [
   { key: "admins", label: "Admins" },
 ];
 
+function toErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Something went wrong while checking your session.";
+}
+
 export default function App() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+  const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [authBooting, setAuthBooting] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   const visiblePortals = operationsSnapshot.portals.filter((portal) => {
     return roleFilter === "all" || portal.roles.includes(roleFilter);
   });
+  const enforcedAuthConfig = authConfig?.enabled ? authConfig : null;
+  const googleClientId = enforcedAuthConfig?.googleClientId ?? null;
+  const hostedDomain = enforcedAuthConfig?.hostedDomain ?? "";
 
   const completionRate = Math.round(
     (operationsSnapshot.metrics.completionRate / 1) * 100,
   );
 
+  const handleGoogleCredential = useEffectEvent(
+    async (response: GoogleCredentialResponse) => {
+      if (!response.credential) {
+        setAuthMessage("Google did not return a credential to verify.");
+        return;
+      }
+
+      setIsSigningIn(true);
+      setAuthMessage(null);
+
+      try {
+        const session = await exchangeGoogleCredential(response.credential);
+        storeSessionToken(session.token);
+        startTransition(() => {
+          setSessionUser(session.user);
+        });
+      } catch (error) {
+        clearStoredSessionToken();
+        setAuthMessage(toErrorMessage(error));
+      } finally {
+        setIsSigningIn(false);
+      }
+    },
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrapAuth() {
+      try {
+        const config = await fetchAuthConfig();
+        if (cancelled) {
+          return;
+        }
+
+        setAuthConfig(config);
+
+        if (!config.enabled) {
+          return;
+        }
+
+        const storedToken = loadStoredSessionToken();
+        if (!storedToken) {
+          return;
+        }
+
+        try {
+          const user = await fetchCurrentUser(storedToken);
+          if (cancelled) {
+            return;
+          }
+
+          startTransition(() => {
+            setSessionUser(user);
+          });
+        } catch {
+          clearStoredSessionToken();
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAuthMessage(toErrorMessage(error));
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthBooting(false);
+        }
+      }
+    }
+
+    void bootstrapAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sessionUser || !enforcedAuthConfig) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void (async () => {
+        const isValid = await validateSession();
+        if (!isValid) {
+          clearStoredSessionToken();
+          signOutFromGoogle();
+          startTransition(() => {
+            setSessionUser(null);
+          });
+          setAuthMessage("Your session expired. Please sign in again.");
+        }
+      })();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [enforcedAuthConfig, sessionUser]);
+
+  useEffect(() => {
+    if (authBooting || sessionUser || !googleClientId) {
+      return;
+    }
+
+    const activeGoogleClientId = googleClientId;
+    const activeHostedDomain = hostedDomain;
+    const buttonSlot = googleButtonRef.current;
+    if (!buttonSlot) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function setupGoogleButton() {
+      try {
+        await loadGoogleIdentityScript();
+        const activeButtonSlot = googleButtonRef.current;
+        if (cancelled || !window.google || !activeButtonSlot) {
+          return;
+        }
+
+        activeButtonSlot.innerHTML = "";
+        window.google.accounts.id.initialize({
+          client_id: activeGoogleClientId,
+          callback: (response) => {
+            void handleGoogleCredential(response);
+          },
+          hd: activeHostedDomain,
+          ux_mode: "popup",
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+        window.google.accounts.id.renderButton(activeButtonSlot, {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          text: "continue_with",
+          shape: "pill",
+          width: 320,
+          logo_alignment: "left",
+        });
+      } catch (error) {
+        if (!cancelled) {
+          setAuthMessage(toErrorMessage(error));
+        }
+      }
+    }
+
+    void setupGoogleButton();
+
+    return () => {
+      cancelled = true;
+      buttonSlot.innerHTML = "";
+    };
+  }, [authBooting, googleClientId, hostedDomain, sessionUser]);
+
+  const handleSignOut = () => {
+    clearStoredSessionToken();
+    signOutFromGoogle();
+    startTransition(() => {
+      setSessionUser(null);
+    });
+    setAuthMessage(null);
+  };
+
+  if (authBooting) {
+    return (
+      <main className="page-shell auth-shell">
+        <section className="auth-card">
+          <p className="eyebrow">Google SSO</p>
+          <h1>Loading sign-in requirements for MECO Robotics.</h1>
+          <p className="auth-body">
+            Checking the server-side auth configuration before the dashboard opens.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!authConfig) {
+    return (
+      <main className="page-shell auth-shell">
+        <section className="auth-card">
+          <p className="eyebrow">Google SSO</p>
+          <h1>Couldn&apos;t load the authentication configuration.</h1>
+          <p className="auth-body">
+            The web app could not confirm the server-side sign-in rules, so access is
+            paused until the API is reachable again.
+          </p>
+          {authMessage ? <p className="auth-error">{authMessage}</p> : null}
+        </section>
+      </main>
+    );
+  }
+
+  if (enforcedAuthConfig && !sessionUser) {
+    return (
+      <main className="page-shell auth-shell">
+        <section className="auth-card">
+          <p className="eyebrow">Google SSO</p>
+          <h1>
+            Sign in with your {enforcedAuthConfig.hostedDomain} Google account.
+          </h1>
+          <p className="auth-body">
+            The browser dashboard is restricted to verified MECO Robotics members.
+            Google verifies the account, and the API then issues a short-lived app
+            session for the dashboard.
+          </p>
+          <div className="auth-chip-row">
+            <span className="auth-chip">
+              Hosted domain: {enforcedAuthConfig.hostedDomain}
+            </span>
+            <span className="auth-chip">Google ID token + API session</span>
+          </div>
+          <div className="google-button-slot" ref={googleButtonRef} />
+          <p className="auth-note">
+            {isSigningIn
+              ? "Verifying your Google identity..."
+              : `Choose a Google Workspace account from the ${enforcedAuthConfig.hostedDomain} domain.`}
+          </p>
+          {authMessage ? <p className="auth-error">{authMessage}</p> : null}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="page-shell">
+      <section className="session-strip">
+        {sessionUser ? (
+          <div className="session-card">
+            <div className="session-identity">
+              {sessionUser.picture ? (
+                <img
+                  alt={sessionUser.name}
+                  className="session-avatar"
+                  referrerPolicy="no-referrer"
+                  src={sessionUser.picture}
+                />
+              ) : (
+                <div className="session-avatar session-avatar-fallback">
+                  {sessionUser.name.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="session-title">Signed in as {sessionUser.name}</p>
+                <p className="session-copy">{sessionUser.email}</p>
+              </div>
+            </div>
+            <button
+              className="secondary-action session-action"
+              onClick={handleSignOut}
+              type="button"
+            >
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <div className="session-card session-card-warning">
+            <div>
+              <p className="session-title">Google SSO is ready in code.</p>
+              <p className="session-copy">
+                Add the Google OAuth client ID on the server to turn on
+                {authConfig.hostedDomain ? ` ${authConfig.hostedDomain}` : ""} sign-in
+                enforcement.
+              </p>
+            </div>
+            <span className="auth-chip">Configuration pending</span>
+          </div>
+        )}
+      </section>
+
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">MECO Robotics Browser Access</p>
@@ -175,7 +477,7 @@ export default function App() {
         <div className="board-column">
           <article className="stack-card">
             <p className="eyebrow">Escalations</p>
-            <h3>Today's issues that need leadership attention.</h3>
+            <h3>Today&apos;s issues that need leadership attention.</h3>
             <ul className="bullet-list">
               {operationsSnapshot.escalations.map((item) => (
                 <li key={item.title}>

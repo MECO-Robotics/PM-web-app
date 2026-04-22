@@ -4,6 +4,127 @@
   padding: 2rem 0 4rem;
 }
 
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card,
+.session-card {
+  border: 1px solid rgba(17, 33, 61, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(255, 153, 102, 0.16), transparent 38%),
+    linear-gradient(145deg, rgba(252, 247, 240, 0.98), rgba(242, 235, 223, 0.98));
+  box-shadow: 0 26px 60px rgba(18, 26, 49, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.auth-card {
+  width: min(560px, 100%);
+  border-radius: 32px;
+  padding: 2rem;
+}
+
+.auth-body,
+.auth-note,
+.auth-error,
+.session-copy,
+.session-title {
+  line-height: 1.6;
+}
+
+.auth-body,
+.auth-note,
+.session-copy {
+  color: #445067;
+}
+
+.auth-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.auth-chip {
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  background: rgba(17, 33, 61, 0.08);
+  color: #11213d;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.google-button-slot {
+  margin-top: 1.5rem;
+  min-height: 44px;
+}
+
+.auth-note {
+  margin: 1rem 0 0;
+}
+
+.auth-error {
+  margin: 1rem 0 0;
+  color: #8d2d12;
+  font-weight: 700;
+}
+
+.session-strip {
+  margin-bottom: 1rem;
+}
+
+.session-card {
+  border-radius: 24px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.session-card-warning {
+  border-color: rgba(178, 79, 34, 0.18);
+}
+
+.session-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.session-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: rgba(17, 33, 61, 0.08);
+}
+
+.session-avatar-fallback {
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #11213d;
+}
+
+.session-title {
+  margin: 0;
+  color: #11213d;
+  font-weight: 700;
+}
+
+.session-copy {
+  margin: 0.15rem 0 0;
+}
+
+.session-action {
+  border: 0;
+  cursor: pointer;
+}
+
 .hero {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
@@ -494,6 +615,14 @@
   .page-shell {
     width: min(100% - 1rem, 1180px);
     padding-top: 1rem;
+  }
+
+  .session-card {
+    display: block;
+  }
+
+  .session-action {
+    margin-top: 1rem;
   }
 
   .hero-copy,

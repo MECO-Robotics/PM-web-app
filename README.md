@@ -48,6 +48,16 @@ npm run build
 - `deploy/pm-web.nginx.conf`: nginx config for the shared VPS
 - `.env.production.example`: recommended production API base for future frontend API calls
 
+## Google SSO
+
+The web app reads its sign-in requirements from `PM-server` at `/api/auth/config`.
+
+- If the server has `GOOGLE_CLIENT_ID` and `AUTH_JWT_SECRET`, the app requires Google sign-in.
+- If the server is not configured yet, the dashboard stays visible with a configuration-pending banner.
+- The frontend does not need a Google client secret. Do not add one to this repo or to frontend env files.
+
+For production, Google Identity Services expects a secure origin. Plan to use a real domain with HTTPS and add that exact origin in the Google Cloud Console OAuth client before turning SSO on for the live site.
+
 ## Required GitHub secrets
 
 Add these secrets to `MECO-Robotics/PM-web-app`:
