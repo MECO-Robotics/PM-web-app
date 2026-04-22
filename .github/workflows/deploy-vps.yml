@@ -118,6 +118,17 @@ jobs:
           rm -f /etc/nginx/sites-enabled/default
           nginx -t
           systemctl reload nginx || systemctl restart nginx
-          curl --fail --silent http://127.0.0.1/ > /dev/null
-          curl --fail --silent http://127.0.0.1/health > /dev/null
+          for attempt in $(seq 1 10); do
+            if curl --fail --silent http://127.0.0.1/ > /dev/null && curl --fail --silent http://127.0.0.1/health > /dev/null; then
+              echo "Web checks passed."
+              exit 0
+            fi
+            echo "Waiting for nginx routes (${attempt}/10)..."
+            sleep 2
+          done
+          echo "Web checks never passed."
+          curl -i http://127.0.0.1/ || true
+          echo "---"
+          curl -i http://127.0.0.1/health || true
+          exit 1
           EOF
