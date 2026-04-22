@@ -1,7 +1,11 @@
 import type {
   BootstrapPayload,
+  ManufacturingItemPayload,
+  ManufacturingItemRecord,
   MemberPayload,
   MemberRecord,
+  PurchaseItemPayload,
+  PurchaseItemRecord,
   TaskPayload,
   TaskRecord,
 } from "./types";
@@ -196,6 +200,84 @@ export async function updateMemberRecord(
 ) {
   const response = await requestApi<{ item: MemberRecord }>(
     `/members/${memberId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createPurchaseItemRecord(
+  payload: PurchaseItemPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: PurchaseItemRecord }>(
+    "/purchases",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updatePurchaseItemRecord(
+  itemId: string,
+  payload: Partial<PurchaseItemPayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: PurchaseItemRecord }>(
+    `/purchases/${itemId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createManufacturingItemRecord(
+  payload: ManufacturingItemPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: ManufacturingItemRecord }>(
+    "/manufacturing",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updateManufacturingItemRecord(
+  itemId: string,
+  payload: Partial<ManufacturingItemPayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: ManufacturingItemRecord }>(
+    `/manufacturing/${itemId}`,
     {
       method: "PATCH",
       headers: {

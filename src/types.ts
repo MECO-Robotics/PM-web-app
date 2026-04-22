@@ -107,6 +107,32 @@ export interface PurchaseItemRecord {
   status: PurchaseStatus;
 }
 
+export interface PurchaseItemPayload {
+  title: string;
+  subsystemId: string;
+  requestedById: string;
+  quantity: number;
+  vendor: string;
+  linkLabel: string;
+  estimatedCost: number;
+  finalCost?: number;
+  approvedByMentor: boolean;
+  status: PurchaseStatus;
+}
+
+export interface ManufacturingItemPayload {
+  title: string;
+  subsystemId: string;
+  requestedById: string;
+  process: ManufacturingProcess;
+  dueDate: string;
+  material: string;
+  quantity: number;
+  status: ManufacturingStatus;
+  mentorReviewed: boolean;
+  batchLabel?: string;
+}
+
 export interface BootstrapPayload {
   members: MemberRecord[];
   subsystems: SubsystemRecord[];
