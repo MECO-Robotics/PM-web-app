@@ -10,6 +10,14 @@ import {
 
 import "./App.css";
 import {
+  IconEdit, IconManufacturing, IconPlus, IconPurchases, IconRefresh, IconRoster, IconTasks, IconTrash
+} from "./Icons";
+import { RosterView } from "./RosterView";
+import { TimelineView } from "./TimelineView";
+import {
+  buildEmptyManufacturingPayload, buildEmptyPurchasePayload, buildEmptyTaskPayload, formatCurrency, formatDate, joinList, manufacturingToPayload, purchaseToPayload, splitList, taskToPayload, toErrorMessage
+} from "./appUtils";
+import {
   clearStoredSessionToken,
   createManufacturingItemRecord,
   createMemberRecord,
@@ -57,179 +65,6 @@ const EMPTY_BOOTSTRAP: BootstrapPayload = {
   manufacturingItems: [],
 };
 
-function toErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Something went wrong while checking your session.";
-}
-
-function formatDate(value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatCurrency(value: number | undefined) {
-  if (typeof value !== "number") {
-    return "Pending";
-  }
-
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function dateDiffInDays(start: string, end: string) {
-  const startDate = new Date(`${start}T00:00:00`);
-  const endDate = new Date(`${end}T00:00:00`);
-  return Math.round(
-    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
-  );
-}
-
-function splitList(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function joinList(values: string[]) {
-  return values.join(", ");
-}
-
-function buildEmptyTaskPayload(bootstrap: BootstrapPayload): TaskPayload {
-  const firstSubsystem = bootstrap.subsystems[0]?.id ?? "";
-  const firstStudent =
-    bootstrap.members.find((member) => member.role === "student")?.id ??
-    bootstrap.members[0]?.id ??
-    null;
-  const firstMentor =
-    bootstrap.members.find((member) => member.role === "mentor")?.id ??
-    bootstrap.members[0]?.id ??
-    null;
-  const today = new Date().toISOString().slice(0, 10);
-
-  return {
-    title: "",
-    summary: "",
-    subsystemId: firstSubsystem,
-    ownerId: firstStudent,
-    mentorId: firstMentor,
-    startDate: today,
-    dueDate: today,
-    priority: "medium",
-    status: "not-started",
-    estimatedHours: 4,
-    actualHours: 0,
-    blockers: [],
-    dependencyIds: [],
-    linkedManufacturingIds: [],
-    linkedPurchaseIds: [],
-    requiresDocumentation: false,
-    documentationLinked: false,
-  };
-}
-
-function buildEmptyPurchasePayload(bootstrap: BootstrapPayload): PurchaseItemPayload {
-  const firstSubsystem = bootstrap.subsystems[0]?.id ?? "";
-  const requester = bootstrap.members[0]?.id ?? null;
-
-  return {
-    title: "",
-    subsystemId: firstSubsystem,
-    requestedById: requester,
-    quantity: 1,
-    vendor: "",
-    linkLabel: "",
-    estimatedCost: 0,
-    finalCost: undefined,
-    approvedByMentor: false,
-    status: "requested",
-  };
-}
-
-function buildEmptyManufacturingPayload(
-  bootstrap: BootstrapPayload,
-  process: ManufacturingItemPayload["process"],
-): ManufacturingItemPayload {
-  const firstSubsystem = bootstrap.subsystems[0]?.id ?? "";
-  const requester = bootstrap.members[0]?.id ?? null;
-  const today = new Date().toISOString().slice(0, 10);
-
-  return {
-    title: "",
-    subsystemId: firstSubsystem,
-    requestedById: requester,
-    process,
-    dueDate: today,
-    material: "",
-    quantity: 1,
-    status: "requested",
-    mentorReviewed: false,
-    batchLabel: "",
-  };
-}
-
-function taskToPayload(task: TaskRecord): TaskPayload {
-  return {
-    title: task.title,
-    summary: task.summary,
-    subsystemId: task.subsystemId,
-    ownerId: task.ownerId,
-    mentorId: task.mentorId,
-    startDate: task.startDate,
-    dueDate: task.dueDate,
-    priority: task.priority,
-    status: task.status,
-    estimatedHours: task.estimatedHours,
-    actualHours: task.actualHours,
-    blockers: task.blockers,
-    dependencyIds: task.dependencyIds,
-    linkedManufacturingIds: task.linkedManufacturingIds,
-    linkedPurchaseIds: task.linkedPurchaseIds,
-    requiresDocumentation: task.requiresDocumentation,
-    documentationLinked: task.documentationLinked,
-  };
-}
-
-function purchaseToPayload(item: PurchaseItemRecord): PurchaseItemPayload {
-  return {
-    title: item.title,
-    subsystemId: item.subsystemId,
-    requestedById: item.requestedById,
-    quantity: item.quantity,
-    vendor: item.vendor,
-    linkLabel: item.linkLabel,
-    estimatedCost: item.estimatedCost,
-    finalCost: item.finalCost,
-    approvedByMentor: item.approvedByMentor,
-    status: item.status,
-  };
-}
-
-function manufacturingToPayload(
-  item: ManufacturingItemRecord,
-): ManufacturingItemPayload {
-  return {
-    title: item.title,
-    subsystemId: item.subsystemId,
-    requestedById: item.requestedById,
-    process: item.process,
-    dueDate: item.dueDate,
-    material: item.material,
-    quantity: item.quantity,
-    status: item.status,
-    mentorReviewed: item.mentorReviewed,
-    batchLabel: item.batchLabel ?? "",
-  };
-}
-
 function renderItemMeta(
   item: PurchaseItemRecord | ManufacturingItemRecord,
   membersById: Record<string, BootstrapPayload["members"][number]>,
@@ -245,22 +80,6 @@ function renderItemMeta(
     </>
   );
 }
-
-const IconTasks = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-);
-const IconPurchases = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-);
-const IconManufacturing = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path></svg>
-);
-const IconRoster = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-);
-const IconRefresh = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M21 2v6h-6"></path><path d="M3 22v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.13-3.36L21 8"></path><path d="M20.49 15a9 9 0 0 1-14.13 3.36L3 16"></path></svg>
-);
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ViewTab>("timeline");
@@ -327,6 +146,13 @@ export default function App() {
     () => bootstrap.members.filter((member) => member.role === "mentor"),
     [bootstrap.members],
   );
+  const rosterMentors = useMemo(
+    () =>
+      bootstrap.members.filter(
+        (member) => member.role === "mentor" || member.role === "admin",
+      ),
+    [bootstrap.members],
+  );
   const membersById = useMemo(
     () => Object.fromEntries(bootstrap.members.map((member) => [member.id, member])),
     [bootstrap.members],
@@ -342,84 +168,6 @@ export default function App() {
     () => bootstrap.tasks.find((task) => task.id === activeTaskId) ?? null,
     [bootstrap.tasks, activeTaskId],
   );
-
-  const timeline = useMemo(() => {
-    if (!bootstrap.tasks.length) {
-      return {
-        days: [] as string[],
-        subsystemRows: [] as Array<{
-          id: string;
-          name: string;
-          taskCount: number;
-          completeCount: number;
-          tasks: Array<TaskRecord & { offset: number; span: number }>;
-        }>,
-      };
-    }
-
-    const sortedByStart = [...bootstrap.tasks].sort((left, right) => {
-      return left.startDate.localeCompare(right.startDate);
-    });
-    const startDate = sortedByStart[0].startDate;
-    const endDate = [...bootstrap.tasks].sort((left, right) => {
-      return right.dueDate.localeCompare(left.dueDate);
-    })[0].dueDate;
-    const totalDays = dateDiffInDays(startDate, endDate) + 1;
-    const days = Array.from({ length: totalDays }, (_, index) => {
-      const date = new Date(`${startDate}T00:00:00`);
-      date.setDate(date.getDate() + index);
-      return date.toISOString().slice(0, 10);
-    });
-
-    const subsystemRows = bootstrap.subsystems.map((subsystem) => {
-      const subsystemTasks = bootstrap.tasks
-        .filter((task) => task.subsystemId === subsystem.id)
-        .sort((left, right) => left.startDate.localeCompare(right.startDate))
-        .map((task) => ({
-          ...task,
-          offset: dateDiffInDays(startDate, task.startDate),
-          span: Math.max(1, dateDiffInDays(task.startDate, task.dueDate) + 1),
-        }));
-
-      return {
-        id: subsystem.id,
-        name: subsystem.name,
-        taskCount: subsystemTasks.length,
-        completeCount: subsystemTasks.filter((task) => task.status === "complete")
-          .length,
-        tasks: subsystemTasks,
-      };
-    });
-
-    return {
-      days,
-      subsystemRows,
-    };
-  }, [bootstrap.subsystems, bootstrap.tasks]);
-
-  const monthGroups = useMemo(() => {
-    const groups: { month: string; span: number }[] = [];
-    if (!timeline.days.length) return groups;
-
-    let lastMonth = "";
-    let currentSpan = 0;
-
-    timeline.days.forEach((day) => {
-      const d = new Date(`${day}T00:00:00`);
-      const monthName = d.toLocaleDateString(undefined, { month: "long" });
-      if (monthName !== lastMonth) {
-        if (lastMonth !== "") {
-          groups.push({ month: lastMonth, span: currentSpan });
-        }
-        lastMonth = monthName;
-        currentSpan = 1;
-      } else {
-        currentSpan++;
-      }
-    });
-    groups.push({ month: lastMonth, span: currentSpan });
-    return groups;
-  }, [timeline.days]);
 
   const purchaseSummary = useMemo(() => {
     const totalEstimated = bootstrap.purchaseItems.reduce(
@@ -854,6 +602,18 @@ export default function App() {
     setBootstrap(EMPTY_BOOTSTRAP);
   };
 
+  const openAddPersonPanel = (role: MemberPayload["role"]) => {
+    setMemberForm({ name: "", role });
+    setIsAddPersonOpen(true);
+    setIsEditPersonOpen(false);
+  };
+
+  const openEditPersonPanel = (memberId: string) => {
+    selectMember(memberId, bootstrap);
+    setIsEditPersonOpen(true);
+    setIsAddPersonOpen(false);
+  };
+
   const handleTaskSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSavingTask(true);
@@ -978,8 +738,8 @@ export default function App() {
     }
   };
 
-  const handleDeleteMember = async () => {
-    if (!selectedMemberId) {
+  const handleDeleteMember = async (memberId: string) => {
+    if (!memberId) {
       return;
     }
 
@@ -987,13 +747,15 @@ export default function App() {
     setDataMessage(null);
 
     try {
-      await deleteMemberRecord(selectedMemberId, handleUnauthorized);
-      if (activePersonFilter === selectedMemberId) {
+      await deleteMemberRecord(memberId, handleUnauthorized);
+      if (activePersonFilter === memberId) {
         setActivePersonFilter("all");
       }
-      setSelectedMemberId(null);
-      setMemberEditDraft(null);
-      setIsEditPersonOpen(false);
+      if (selectedMemberId === memberId) {
+        setSelectedMemberId(null);
+        setMemberEditDraft(null);
+        setIsEditPersonOpen(false);
+      }
       await loadWorkspace();
     } catch (error) {
       setDataMessage(toErrorMessage(error));
@@ -1172,172 +934,19 @@ export default function App() {
         {isLoadingData ? <p className="banner">Refreshing workspace data...</p> : null}
 
         {activeTab === "timeline" ? (
-          <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
-            <div className="panel-header compact-header">
-              <div>
-                <p className="eyebrow">Schedule</p>
-                <h2>Subsystem timeline</h2>
-                <p className="section-copy filter-copy">
-                  {activePersonFilter === "all"
-                    ? "Showing all roster-linked tasks."
-                    : `Filtered to ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
-                </p>
-              </div>
-              <div className="panel-actions">
-                <button className="primary-action" onClick={openCreateTaskModal} type="button">
-                  New task
-                </button>
-              </div>
-            </div>
-            {timeline.days.length ? (
-              <div className="timeline-shell" style={{ overflowX: "auto", padding: 0, background: "#fff", borderRadius: 0 }}>
-                <div
-                  className="timeline-grid header-grid"
-                  style={{
-                    display: "grid",
-                    width: "max-content",
-                    minWidth: "100%",
-                    gridTemplateColumns: `40px 200px repeat(${timeline.days.length}, minmax(44px, 1fr))`,
-                    background: "#f9f9f9",
-                    borderBottom: "2px solid #eee",
-                    position: "sticky",
-                    top: 0,
-                    zIndex: 10
-                  }}
-                >
-                  <div style={{ gridRow: "1 / span 2", borderRight: "1px solid #eee", borderBottom: "1px solid #eee" }} />
-                  <div className="sticky-label" style={{ gridRow: "1 / span 2", padding: "10px 16px", fontWeight: "bold", borderRight: "1px solid #eee", borderBottom: "1px solid #eee", display: "flex", alignItems: "center" }}>Subsystem / Task</div>
-
-                  {monthGroups.map((group, idx) => (
-                    <div
-                      key={`month-${idx}`}
-                      style={{
-                        gridColumn: `span ${group.span}`,
-                        textAlign: "center",
-                        fontSize: "10px",
-                        fontWeight: "bold",
-                        padding: "6px 0",
-                        borderBottom: "1px solid #eee",
-                        borderRight: "1px solid #f0f0f0",
-                        textTransform: "uppercase",
-                        color: "var(--official-blue)",
-                        background: "#f4f4f4"
-                      }}
-                    >
-                      {group.month}
-                    </div>
-                  ))}
-
-                  {timeline.days.map((day) => {
-                    const dateObj = new Date(`${day}T00:00:00`);
-                    return (
-                      <div
-                        className="timeline-day"
-                        key={day}
-                        style={{ textAlign: "center", fontSize: "9px", padding: "4px 0", borderRight: "1px solid #f0f0f0", color: "#58667d", textTransform: "uppercase", display: "flex", flexDirection: "column", justifyContent: "center", gap: "1px", lineHeight: "1.1" }}
-                      >
-                        <span>{dateObj.toLocaleDateString(undefined, { weekday: "short" })}</span>
-                        <strong style={{ fontSize: "13px", color: "var(--official-black)" }}>{dateObj.toLocaleDateString(undefined, { day: "numeric" })}</strong>
-                      </div>
-                    );
-                  })}
-                </div>
-                {timeline.subsystemRows.map((subsystem) => {
-                  const collapsed = collapsedSubsystems[subsystem.id] ?? false;
-                  return (
-                    <div className="subsystem-block" key={subsystem.id} style={{
-                      display: "flex",
-                      width: "max-content",
-                      minWidth: "100%",
-                      margin: "12px 0",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      background: "#fff",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.02)"
-                    }}>
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                        <div style={{
-                          display: "grid",
-                          gridTemplateColumns: `40px 200px repeat(${timeline.days.length}, minmax(44px, 1fr))`,
-                          background: "#fcfcfc",
-                          borderBottom: collapsed ? "none" : "1px solid #f1f5f9"
-                        }}>
-                          <div className="subsystem-sidebar" style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            borderRight: "1px solid #f1f5f9",
-                            background: "#f8fafc"
-                          }}>
-                            <button className="subsystem-toggle" onClick={() => toggleSubsystem(subsystem.id)} type="button" style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", fontSize: "12px", color: "#94a3b8" }}>
-                              {collapsed ? "▶" : "▼"}
-                            </button>
-                          </div>
-                          <div style={{ width: "200px", padding: "10px 12px", fontWeight: "bold", fontSize: "0.9rem", color: "#334155" }}>
-                            {subsystem.name}
-                            <span style={{ fontSize: "0.7rem", fontWeight: "normal", color: "#94a3b8", marginLeft: "8px" }}>
-                              {subsystem.completeCount}/{subsystem.taskCount}
-                            </span>
-                          </div>
-                          {timeline.days.map(day => <div key={day} style={{ borderLeft: "1px solid #f1f5f9" }} />)}
-                        </div>
-
-                        {!collapsed && subsystem.tasks.map((task) => (
-                          <div key={task.id} style={{
-                            display: "grid",
-                            gridTemplateColumns: `40px 200px repeat(${timeline.days.length}, minmax(44px, 1fr))`,
-                            borderBottom: "1px solid #f1f5f9",
-                            minHeight: "40px"
-                          }}>
-                            <div style={{ borderRight: "1px solid #f1f5f9", background: "#f8fafc" }} />
-                            <div className="task-label" style={{ width: "200px", padding: "8px 12px", fontSize: "0.8rem", borderRight: "1px solid #f1f5f9" }}>
-                              <strong style={{ display: "block", color: "#475569" }}>{task.title}</strong>
-                              <span style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>
-                            </div>
-                            {timeline.days.map(day => <div key={day} style={{ borderLeft: "1px solid #f8fafc" }} />)}
-                            <button
-                              className={`timeline-bar timeline-${task.status}`}
-                              onClick={() => openEditTaskModal(task)}
-                              style={{
-                                gridColumn: `${task.offset + 3} / span ${task.span}`,
-                                margin: "6px 4px",
-                                zIndex: 5,
-                                borderRadius: "4px",
-                                border: "none",
-                                color: "#fff",
-                                fontSize: "0.7rem",
-                                textAlign: "left",
-                                padding: "0 8px",
-                                cursor: "pointer",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                                alignSelf: "center"
-                              }}
-                              type="button"
-                            >
-                              {task.title}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="section-copy">Create a task to populate the subsystem timeline.</p>
-            )}
-          </section>
+          <TimelineView
+            activePersonFilter={activePersonFilter}
+            bootstrap={bootstrap}
+            membersById={membersById}
+            openCreateTaskModal={openCreateTaskModal}
+            openEditTaskModal={openEditTaskModal}
+          />
         ) : null}
 
         {activeTab === "queue" ? (
           <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
             <div className="panel-header compact-header">
               <div>
-                <p className="eyebrow">Execution</p>
                 <h2>Task queue</h2>
                 <p className="section-copy filter-copy">
                   {activePersonFilter === "all"
@@ -1386,7 +995,6 @@ export default function App() {
           <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
             <div className="panel-header compact-header">
               <div>
-                <p className="eyebrow">Procurement</p>
                 <h2>Purchase list</h2>
                 <p className="section-copy filter-copy">
                   {activePersonFilter === "all"
@@ -1450,7 +1058,6 @@ export default function App() {
           <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
             <div className="panel-header compact-header">
               <div>
-                <p className="eyebrow">Manufacturing</p>
                 <h2>CNC queue</h2>
                 <p className="section-copy filter-copy">
                   {activePersonFilter === "all"
@@ -1510,7 +1117,6 @@ export default function App() {
           <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
             <div className="panel-header compact-header">
               <div>
-                <p className="eyebrow">Manufacturing</p>
                 <h2>3D print queue</h2>
                 <p className="section-copy filter-copy">
                   {activePersonFilter === "all"
@@ -1567,143 +1173,26 @@ export default function App() {
         ) : null}
 
         {activeTab === "roster" ? (
-          <section className="panel dense-panel roster-layout" style={{ margin: 0, borderRadius: 0, border: "none" }}>
-            <div className="panel-header compact-header">
-              <div>
-                <p className="eyebrow">People</p>
-                <h2>Roster editor</h2>
-              </div>
-            </div>
-            <div className="roster-columns">
-              <div className="panel-subsection">
-                <h3>Current roster</h3>
-                <div className="roster-list">
-                  {bootstrap.members.map((member) => (
-                    <button
-                      className={member.id === selectedMemberId ? "member-row active" : "member-row"}
-                      key={member.id}
-                      onClick={() => selectMember(member.id, bootstrap)}
-                      type="button"
-                    >
-                      <strong>{member.name}</strong>
-                      <span>{member.role}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="panel-subsection">
-                <div className="compact-form">
-                  <button
-                    aria-expanded={isAddPersonOpen}
-                    className="secondary-action roster-toggle-button"
-                    onClick={() => setIsAddPersonOpen((current) => !current)}
-                    type="button"
-                  >
-                    {isAddPersonOpen ? "Hide add person" : "Add person"}
-                  </button>
-                  {isAddPersonOpen ? (
-                    <form className="compact-form roster-inline-form" onSubmit={handleCreateMember}>
-                      <h3>Add person</h3>
-                      <label className="field">
-                        <span>Name</span>
-                        <input
-                          onChange={(event) =>
-                            setMemberForm((current) => ({ ...current, name: event.target.value }))
-                          }
-                          required
-                          value={memberForm.name}
-                        />
-                      </label>
-                      <label className="field">
-                        <span>Role</span>
-                        <select
-                          onChange={(event) =>
-                            setMemberForm((current) => ({
-                              ...current,
-                              role: event.target.value as MemberPayload["role"],
-                            }))
-                          }
-                          value={memberForm.role}
-                        >
-                          <option value="student">Student</option>
-                          <option value="mentor">Mentor</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </label>
-                      <button className="primary-action" disabled={isSavingMember} type="submit">
-                        {isSavingMember ? "Saving..." : "Add person"}
-                      </button>
-                    </form>
-                  ) : null}
-                </div>
-
-                <div className="compact-form">
-                  <button
-                    aria-expanded={isEditPersonOpen}
-                    className="secondary-action roster-toggle-button"
-                    disabled={!memberEditDraft}
-                    onClick={() => setIsEditPersonOpen((current) => !current)}
-                    type="button"
-                  >
-                    {isEditPersonOpen ? "Hide edit person" : "Edit selected person"}
-                  </button>
-                  {memberEditDraft ? (
-                    isEditPersonOpen ? (
-                      <form className="compact-form roster-inline-form" onSubmit={handleUpdateMember}>
-                        <h3>Edit selected person</h3>
-                        <label className="field">
-                          <span>Name</span>
-                          <input
-                            onChange={(event) =>
-                              setMemberEditDraft((current) =>
-                                current ? { ...current, name: event.target.value } : current,
-                              )
-                            }
-                            value={memberEditDraft.name}
-                          />
-                        </label>
-                        <label className="field">
-                          <span>Role</span>
-                          <select
-                            onChange={(event) =>
-                              setMemberEditDraft((current) =>
-                                current
-                                  ? {
-                                    ...current,
-                                    role: event.target.value as MemberPayload["role"],
-                                  }
-                                  : current,
-                              )
-                            }
-                            value={memberEditDraft.role}
-                          >
-                            <option value="student">Student</option>
-                            <option value="mentor">Mentor</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </label>
-                        <button className="secondary-action" disabled={isSavingMember} type="submit">
-                          {isSavingMember ? "Saving..." : "Update person"}
-                        </button>
-                        <button
-                          className="danger-action"
-                          disabled={isDeletingMember}
-                          onClick={handleDeleteMember}
-                          type="button"
-                        >
-                          {isDeletingMember ? "Removing..." : "Remove person"}
-                        </button>
-                      </form>
-                    ) : null
-                  ) : (
-                    <div className="empty-state">
-                      <p>Select someone from the roster to edit their role or name.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
+          <RosterView
+            bootstrap={bootstrap}
+            handleCreateMember={handleCreateMember}
+            handleDeleteMember={handleDeleteMember}
+            handleUpdateMember={handleUpdateMember}
+            isAddPersonOpen={isAddPersonOpen}
+            isDeletingMember={isDeletingMember}
+            isEditPersonOpen={isEditPersonOpen}
+            isSavingMember={isSavingMember}
+            memberEditDraft={memberEditDraft}
+            memberForm={memberForm}
+            rosterMentors={rosterMentors}
+            selectMember={selectMember}
+            selectedMemberId={selectedMemberId}
+            setIsAddPersonOpen={setIsAddPersonOpen}
+            setIsEditPersonOpen={setIsEditPersonOpen}
+            setMemberEditDraft={setMemberEditDraft}
+            setMemberForm={setMemberForm}
+            students={students}
+          />
         ) : null}
 
         {taskModalMode ? (
