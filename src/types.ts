@@ -30,6 +30,19 @@ export type TaskStatus =
   | "in-progress"
   | "waiting-for-qa"
   | "complete";
+export type ManufacturingProcess = "3d-print" | "cnc" | "fabrication";
+export type ManufacturingStatus =
+  | "requested"
+  | "approved"
+  | "in-progress"
+  | "qa"
+  | "complete";
+export type PurchaseStatus =
+  | "requested"
+  | "approved"
+  | "purchased"
+  | "shipped"
+  | "delivered";
 
 export interface MemberRecord {
   id: string;
@@ -66,10 +79,40 @@ export interface TaskRecord {
   documentationLinked: boolean;
 }
 
+export interface ManufacturingItemRecord {
+  id: string;
+  title: string;
+  subsystemId: string;
+  requestedById: string;
+  process: ManufacturingProcess;
+  dueDate: string;
+  material: string;
+  quantity: number;
+  status: ManufacturingStatus;
+  mentorReviewed: boolean;
+  batchLabel?: string;
+}
+
+export interface PurchaseItemRecord {
+  id: string;
+  title: string;
+  subsystemId: string;
+  requestedById: string;
+  quantity: number;
+  vendor: string;
+  linkLabel: string;
+  estimatedCost: number;
+  finalCost?: number;
+  approvedByMentor: boolean;
+  status: PurchaseStatus;
+}
+
 export interface BootstrapPayload {
   members: MemberRecord[];
   subsystems: SubsystemRecord[];
   tasks: TaskRecord[];
+  purchaseItems: PurchaseItemRecord[];
+  manufacturingItems: ManufacturingItemRecord[];
 }
 
 export interface MemberPayload {

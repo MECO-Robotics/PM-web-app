@@ -168,6 +168,36 @@
   gap: 0.5rem;
 }
 
+.mini-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.mini-chip {
+  border: 1px solid rgba(15, 28, 52, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 0.45rem 0.7rem;
+}
+
+.mini-chip span,
+.mini-chip strong {
+  display: block;
+}
+
+.mini-chip span {
+  color: #58667d;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.68rem;
+}
+
+.mini-chip strong {
+  color: #11213d;
+  font-size: 1rem;
+}
+
 .section-copy {
   margin: 0;
   line-height: 1.45;
@@ -358,6 +388,24 @@
   align-items: center;
 }
 
+.ops-table {
+  display: grid;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.purchase-table {
+  grid-template-columns: 2.4fr 1fr 0.5fr 0.8fr 0.8fr 0.8fr 0.8fr;
+}
+
+.manufacturing-table {
+  grid-template-columns: 2.5fr 1fr 0.45fr 0.7fr 0.75fr 0.8fr 0.8fr;
+}
+
+.print-table {
+  grid-template-columns: 2.5fr 1fr 0.45fr 0.75fr 0.8fr 0.8fr;
+}
+
 .queue-table-header {
   padding: 0 0.55rem 0.25rem;
 }
@@ -370,6 +418,13 @@
   padding: 0.55rem;
   text-align: left;
   cursor: pointer;
+}
+
+.ops-row {
+  border: 1px solid rgba(15, 28, 52, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 0.55rem;
 }
 
 .queue-title {
@@ -419,6 +474,32 @@
 
 .priority-low,
 .status-complete {
+  background: rgba(61, 153, 108, 0.16);
+  color: #246847;
+}
+
+.purchase-requested,
+.manufacturing-requested {
+  background: rgba(112, 128, 154, 0.16);
+  color: #54627b;
+}
+
+.purchase-approved,
+.manufacturing-approved,
+.purchase-shipped,
+.manufacturing-qa {
+  background: rgba(76, 121, 207, 0.12);
+  color: #275098;
+}
+
+.purchase-purchased,
+.manufacturing-in-progress {
+  background: rgba(233, 131, 53, 0.14);
+  color: #a84712;
+}
+
+.purchase-delivered,
+.manufacturing-complete {
   background: rgba(61, 153, 108, 0.16);
   color: #246847;
 }
@@ -544,11 +625,19 @@
   gap: 0.55rem;
 }
 
+.auth-chip-row,
+.google-button-slot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 @media (max-width: 980px) {
   .topbar,
   .panel-header.compact-header,
   .roster-columns,
-  .queue-table {
+  .queue-table,
+  .ops-table {
     grid-template-columns: 1fr;
   }
 
@@ -564,7 +653,16 @@
     display: none;
   }
 
+  .ops-table.ops-table-header {
+    display: none;
+  }
+
   .queue-row {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .ops-row {
     display: grid;
     gap: 0.35rem;
   }

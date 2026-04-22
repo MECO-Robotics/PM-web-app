@@ -1,4 +1,12 @@
-import { startTransition, useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import "./App.css";
 import {
@@ -20,15 +28,24 @@ import {
   updateTaskRecord,
   validateSession,
 } from "./auth";
-import type { BootstrapPayload, MemberPayload, TaskPayload, TaskRecord } from "./types";
+import type {
+  BootstrapPayload,
+  ManufacturingItemRecord,
+  MemberPayload,
+  PurchaseItemRecord,
+  TaskPayload,
+  TaskRecord,
+} from "./types";
 
-type ViewTab = "timeline" | "queue" | "roster";
+type ViewTab = "timeline" | "queue" | "purchases" | "cnc" | "prints" | "roster";
 type TaskModalMode = "create" | "edit" | null;
 
 const EMPTY_BOOTSTRAP: BootstrapPayload = {
   members: [],
   subsystems: [],
   tasks: [],
+  purchaseItems: [],
+  manufacturingItems: [],
 };
 
 function toErrorMessage(error: unknown) {
@@ -46,10 +63,24 @@ function formatDate(value: string) {
   });
 }
 
+function formatCurrency(value: number | undefined) {
+  if (typeof value !== "number") {
+    return "Pending";
+  }
+
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 function dateDiffInDays(start: string, end: string) {
   const startDate = new Date(`${start}T00:00:00`);
   const endDate = new Date(`${end}T00:00:00`);
-  return Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.round(
+    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
 }
 
 function splitList(value: string) {
@@ -118,6 +149,22 @@ function taskToPayload(task: TaskRecord): TaskPayload {
   };
 }
 
+function renderItemMeta(
+  item: PurchaseItemRecord | ManufacturingItemRecord,
+  membersById: Record<string, BootstrapPayload["members"][number]>,
+  subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>,
+) {
+  return (
+    <>
+      <strong>{item.title}</strong>
+      <small>
+        {subsystemsById[item.subsystemId]?.name ?? "Unknown subsystem"} /{" "}
+        {membersById[item.requestedById]?.name ?? "Unassigned"}
+      </small>
+    </>
+  );
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<ViewTab>("timeline");
   const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null);
@@ -130,14 +177,23 @@ export default function App() {
   const [dataMessage, setDataMessage] = useState<string | null>(null);
   const [taskModalMode, setTaskModalMode] = useState<TaskModalMode>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const [taskDraft, setTaskDraft] = useState<TaskPayload>(buildEmptyTaskPayload(EMPTY_BOOTSTRAP));
+  const [taskDraft, setTaskDraft] = useState<TaskPayload>(
+    buildEmptyTaskPayload(EMPTY_BOOTSTRAP),
+  );
   const [taskDraftBlockers, setTaskDraftBlockers] = useState("");
   const [isSavingTask, setIsSavingTask] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  const [memberForm, setMemberForm] = useState<MemberPayload>({ name: "", role: "student" });
-  const [memberEditDraft, setMemberEditDraft] = useState<MemberPayload | null>(null);
+  const [memberForm, setMemberForm] = useState<MemberPayload>({
+    name: "",
+    role: "student",
+  });
+  const [memberEditDraft, setMemberEditDraft] = useState<MemberPayload | null>(
+    null,
+  );
   const [isSavingMember, setIsSavingMember] = useState(false);
-  const [collapsedSubsystems, setCollapsedSubsystems] = useState<Record<string, boolean>>({});
+  const [collapsedSubsystems, setCollapsedSubsystems] = useState<
+    Record<string, boolean>
+  >({});
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
 
   const students = useMemo(
@@ -153,7 +209,10 @@ export default function App() {
     [bootstrap.members],
   );
   const subsystemsById = useMemo(
-    () => Object.fromEntries(bootstrap.subsystems.map((subsystem) => [subsystem.id, subsystem])),
+    () =>
+      Object.fromEntries(
+        bootstrap.subsystems.map((subsystem) => [subsystem.id, subsystem]),
+      ),
     [bootstrap.subsystems],
   );
   const activeTask = useMemo(
@@ -202,7 +261,8 @@ export default function App() {
         id: subsystem.id,
         name: subsystem.name,
         taskCount: subsystemTasks.length,
-        completeCount: subsystemTasks.filter((task) => task.status === "complete").length,
+        completeCount: subsystemTasks.filter((task) => task.status === "complete")
+          .length,
         tasks: subsystemTasks,
       };
     });
@@ -212,6 +272,32 @@ export default function App() {
       subsystemRows,
     };
   }, [bootstrap.subsystems, bootstrap.tasks]);
+
+  const purchaseSummary = useMemo(() => {
+    const totalEstimated = bootstrap.purchaseItems.reduce(
+      (sum, item) => sum + item.estimatedCost,
+      0,
+    );
+    const delivered = bootstrap.purchaseItems.filter(
+      (item) => item.status === "delivered",
+    ).length;
+
+    return {
+      totalEstimated,
+      delivered,
+    };
+  }, [bootstrap.purchaseItems]);
+
+  const cncItems = useMemo(
+    () =>
+      bootstrap.manufacturingItems.filter((item) => item.process === "cnc"),
+    [bootstrap.manufacturingItems],
+  );
+  const printItems = useMemo(
+    () =>
+      bootstrap.manufacturingItems.filter((item) => item.process === "3d-print"),
+    [bootstrap.manufacturingItems],
+  );
 
   const enforcedAuthConfig = authConfig?.enabled ? authConfig : null;
   const googleClientId = enforcedAuthConfig?.googleClientId ?? null;
@@ -578,8 +664,8 @@ export default function App() {
           <p className="eyebrow">Google SSO</p>
           <h1>Couldn&apos;t load the authentication configuration.</h1>
           <p className="auth-body">
-            The app could not confirm the server-side sign-in rules, so access is paused
-            until the API is reachable again.
+            The app could not confirm the server-side sign-in rules, so access is
+            paused until the API is reachable again.
           </p>
           {authMessage ? <p className="auth-error">{authMessage}</p> : null}
         </section>
@@ -598,7 +684,9 @@ export default function App() {
             session for the project-management workspace.
           </p>
           <div className="auth-chip-row">
-            <span className="auth-chip">Hosted domain: {enforcedAuthConfig.hostedDomain}</span>
+            <span className="auth-chip">
+              Hosted domain: {enforcedAuthConfig.hostedDomain}
+            </span>
             <span className="auth-chip">Google ID token + app session</span>
           </div>
           <div className="google-button-slot" ref={googleButtonRef} />
@@ -624,6 +712,14 @@ export default function App() {
           <div className="summary-chip">
             <span>Tasks</span>
             <strong>{bootstrap.tasks.length}</strong>
+          </div>
+          <div className="summary-chip">
+            <span>Purchases</span>
+            <strong>{bootstrap.purchaseItems.length}</strong>
+          </div>
+          <div className="summary-chip">
+            <span>Manufacturing</span>
+            <strong>{bootstrap.manufacturingItems.length}</strong>
           </div>
           <div className="summary-chip">
             <span>Roster</span>
@@ -660,6 +756,27 @@ export default function App() {
           Task queue
         </button>
         <button
+          className={activeTab === "purchases" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("purchases")}
+          type="button"
+        >
+          Purchases
+        </button>
+        <button
+          className={activeTab === "cnc" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("cnc")}
+          type="button"
+        >
+          CNC
+        </button>
+        <button
+          className={activeTab === "prints" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("prints")}
+          type="button"
+        >
+          3D print
+        </button>
+        <button
           className={activeTab === "roster" ? "tab active" : "tab"}
           onClick={() => setActiveTab("roster")}
           type="button"
@@ -688,7 +805,9 @@ export default function App() {
             <div className="timeline-shell">
               <div
                 className="timeline-grid header-grid"
-                style={{ gridTemplateColumns: `220px repeat(${timeline.days.length}, minmax(34px, 1fr))` }}
+                style={{
+                  gridTemplateColumns: `220px repeat(${timeline.days.length}, minmax(34px, 1fr))`,
+                }}
               >
                 <div className="sticky-label">Subsystem / Task</div>
                 {timeline.days.map((day) => (
@@ -703,7 +822,9 @@ export default function App() {
                   <div className="subsystem-block" key={subsystem.id}>
                     <div
                       className="subsystem-row"
-                      style={{ gridTemplateColumns: `220px repeat(${timeline.days.length}, minmax(34px, 1fr))` }}
+                      style={{
+                        gridTemplateColumns: `220px repeat(${timeline.days.length}, minmax(34px, 1fr))`,
+                      }}
                     >
                       <button
                         className="subsystem-toggle"
@@ -716,7 +837,10 @@ export default function App() {
                         </span>
                       </button>
                       {timeline.days.map((day) => (
-                        <div className="timeline-day-slot subsystem-slot" key={`${subsystem.id}-${day}`} />
+                        <div
+                          className="timeline-day-slot subsystem-slot"
+                          key={`${subsystem.id}-${day}`}
+                        />
                       ))}
                     </div>
                     {!collapsed &&
@@ -781,7 +905,12 @@ export default function App() {
               <span>Priority</span>
             </div>
             {bootstrap.tasks.map((task) => (
-              <button className="queue-table queue-row" key={task.id} onClick={() => openEditTaskModal(task)} type="button">
+              <button
+                className="queue-table queue-row"
+                key={task.id}
+                onClick={() => openEditTaskModal(task)}
+                type="button"
+              >
                 <span className="queue-title">
                   <strong>{task.title}</strong>
                   <small>{task.summary}</small>
@@ -792,6 +921,131 @@ export default function App() {
                 <span>{formatDate(task.dueDate)}</span>
                 <span className={`pill priority-${task.priority}`}>{task.priority}</span>
               </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "purchases" ? (
+        <section className="panel dense-panel">
+          <div className="panel-header compact-header">
+            <div>
+              <p className="eyebrow">Procurement</p>
+              <h2>Purchase list</h2>
+            </div>
+            <div className="mini-summary-row">
+              <div className="mini-chip">
+                <span>Estimated</span>
+                <strong>{formatCurrency(purchaseSummary.totalEstimated)}</strong>
+              </div>
+              <div className="mini-chip">
+                <span>Delivered</span>
+                <strong>{purchaseSummary.delivered}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="table-shell">
+            <div className="ops-table ops-table-header purchase-table">
+              <span>Item</span>
+              <span>Vendor</span>
+              <span>Qty</span>
+              <span>Status</span>
+              <span>Mentor</span>
+              <span>Est.</span>
+              <span>Final</span>
+            </div>
+            {bootstrap.purchaseItems.map((item) => (
+              <div className="ops-table ops-row purchase-table" key={item.id}>
+                <span className="queue-title">
+                  {renderItemMeta(item, membersById, subsystemsById)}
+                </span>
+                <span>{item.vendor}</span>
+                <span>{item.quantity}</span>
+                <span className={`pill purchase-${item.status}`}>{item.status}</span>
+                <span>{item.approvedByMentor ? "Approved" : "Waiting"}</span>
+                <span>{formatCurrency(item.estimatedCost)}</span>
+                <span>{formatCurrency(item.finalCost)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "cnc" ? (
+        <section className="panel dense-panel">
+          <div className="panel-header compact-header">
+            <div>
+              <p className="eyebrow">Manufacturing</p>
+              <h2>CNC queue</h2>
+            </div>
+            <div className="mini-summary-row">
+              <div className="mini-chip">
+                <span>Open jobs</span>
+                <strong>{cncItems.length}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="table-shell">
+            <div className="ops-table ops-table-header manufacturing-table">
+              <span>Part</span>
+              <span>Material</span>
+              <span>Qty</span>
+              <span>Batch</span>
+              <span>Due</span>
+              <span>Status</span>
+              <span>Mentor</span>
+            </div>
+            {cncItems.map((item) => (
+              <div className="ops-table ops-row manufacturing-table" key={item.id}>
+                <span className="queue-title">
+                  {renderItemMeta(item, membersById, subsystemsById)}
+                </span>
+                <span>{item.material}</span>
+                <span>{item.quantity}</span>
+                <span>{item.batchLabel ?? "Unbatched"}</span>
+                <span>{formatDate(item.dueDate)}</span>
+                <span className={`pill manufacturing-${item.status}`}>{item.status}</span>
+                <span>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "prints" ? (
+        <section className="panel dense-panel">
+          <div className="panel-header compact-header">
+            <div>
+              <p className="eyebrow">Manufacturing</p>
+              <h2>3D print queue</h2>
+            </div>
+            <div className="mini-summary-row">
+              <div className="mini-chip">
+                <span>Open jobs</span>
+                <strong>{printItems.length}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="table-shell">
+            <div className="ops-table ops-table-header manufacturing-table">
+              <span>Part</span>
+              <span>Material</span>
+              <span>Qty</span>
+              <span>Due</span>
+              <span>Status</span>
+              <span>Mentor</span>
+            </div>
+            {printItems.map((item) => (
+              <div className="ops-table ops-row print-table" key={item.id}>
+                <span className="queue-title">
+                  {renderItemMeta(item, membersById, subsystemsById)}
+                </span>
+                <span>{item.material}</span>
+                <span>{item.quantity}</span>
+                <span>{formatDate(item.dueDate)}</span>
+                <span className={`pill manufacturing-${item.status}`}>{item.status}</span>
+                <span>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
+              </div>
             ))}
           </div>
         </section>
