@@ -1,6 +1,6 @@
 import React from "react";
-import type { BootstrapPayload, MemberPayload } from "./types";
-import { IconPlus, IconEdit, IconTrash } from "./Icons";
+import { IconEdit, IconPlus, IconTrash } from "../shared/Icons";
+import type { BootstrapPayload, MemberPayload } from "../../types";
 
 interface RosterViewProps {
     bootstrap: BootstrapPayload;

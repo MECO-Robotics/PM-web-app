@@ -54,9 +54,14 @@ Example local frontend env:
 ```env
 VITE_API_BASE_URL=/api
 VITE_DEV_PROXY_TARGET=http://localhost:8080
+# Optional if the server's Google client is not authorized for localhost:
+# VITE_LOCAL_GOOGLE_CLIENT_ID=your-localhost-web-client-id.apps.googleusercontent.com
 ```
 
-To test Google sign-in from localhost, the Google OAuth web client also needs `http://localhost:5173` added as an authorized JavaScript origin.
+To test Google sign-in from localhost, either:
+
+- add `http://localhost:5173` as an authorized JavaScript origin on the same Google OAuth web client the API returns from `/api/auth/config`
+- or set `VITE_LOCAL_GOOGLE_CLIENT_ID` so the frontend uses a separate localhost-safe Google OAuth web client during local development only
 
 ## Production files
 

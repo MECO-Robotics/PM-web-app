@@ -6,7 +6,7 @@ import type {
     PurchaseItemRecord,
     TaskPayload,
     TaskRecord,
-} from "./types";
+} from "../types";
 
 export function toErrorMessage(error: unknown) {
     if (error instanceof Error) return error.message;

@@ -8,7 +8,7 @@ import type {
   PurchaseItemRecord,
   TaskPayload,
   TaskRecord,
-} from "./types";
+} from "../types";
 
 const DEFAULT_API_BASE_URL = "/api";
 const SESSION_STORAGE_KEY = "meco.session.token";
@@ -55,20 +55,61 @@ class ApiError extends Error {
 
 let googleScriptPromise: Promise<void> | null = null;
 
+function isLocalHostname(hostname: string) {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1"
+  );
+}
+
+function readLocalGoogleClientIdOverride() {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return null;
+  }
+
+  if (!isLocalHostname(window.location.hostname)) {
+    return null;
+  }
+
+  const override = import.meta.env.VITE_LOCAL_GOOGLE_CLIENT_ID?.trim();
+  return override ? override : null;
+}
+
 function buildApiUrl(path: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${apiBaseUrl}${normalizedPath}`;
 }
 
 async function readJson<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => null)) as
-    | { message?: string }
-    | null;
+  const rawBody = await response.text().catch(() => "");
+  let payload: { message?: string } | null = null;
+
+  if (rawBody) {
+    try {
+      payload = JSON.parse(rawBody) as { message?: string };
+    } catch {
+      payload = null;
+    }
+  }
 
   if (!response.ok) {
+    const statusText = response.statusText ? `: ${response.statusText}` : "";
+    const textMessage = rawBody.trim();
+    const fallbackMessage =
+      payload?.message ??
+      (textMessage.length > 0 ? textMessage : null) ??
+      `Server Error (${response.status})${statusText}`;
     throw new ApiError(
-      payload?.message ?? `Request failed with status ${response.status}.`,
+      fallbackMessage,
       response.status,
+    );
+  }
+
+  if (payload === null) {
+    throw new ApiError(
+      "The server returned an empty or invalid response.",
+      502,
     );
   }
 
@@ -129,6 +170,22 @@ export async function fetchAuthConfig() {
   }
 
   return payload;
+}
+
+export function resolveGoogleClientId(config: AuthConfig | null) {
+  if (!config?.enabled) {
+    return null;
+  }
+
+  return readLocalGoogleClientIdOverride() ?? config.googleClientId;
+}
+
+export function isUsingLocalGoogleClientIdOverride() {
+  return readLocalGoogleClientIdOverride() !== null;
+}
+
+export function isLocalGoogleAuthHost() {
+  return typeof window !== "undefined" && isLocalHostname(window.location.hostname);
 }
 
 export async function fetchBootstrap(
@@ -372,7 +429,8 @@ export async function validateSession(): Promise<boolean> {
       return false;
     }
 
-    return true;
+    // If we can't verify the user (network error or server error), return false to be safe
+    return false;
   }
 }
 
@@ -404,8 +462,11 @@ export function loadGoogleIdentityScript() {
     script.async = true;
     script.defer = true;
     script.onload = () => resolve();
-    script.onerror = () =>
+    script.onerror = () => {
+      // Clear the promise so subsequent attempts can retry loading the script
+      googleScriptPromise = null;
       reject(new Error("Google Identity Services failed to load."));
+    };
     document.head.appendChild(script);
   });
 
