@@ -62,7 +62,7 @@ import type {
   TaskRecord,
 } from "../types";
 
-type ViewTab = "timeline" | "queue" | "purchases" | "cnc" | "prints" | "roster";
+type ViewTab = "timeline" | "queue" | "purchases" | "cnc" | "prints" | "roster" | "materials";
 type TaskModalMode = "create" | "edit" | null;
 type PurchaseModalMode = "create" | "edit" | null;
 type ManufacturingModalMode = "create" | "edit" | null;
@@ -243,6 +243,12 @@ export default function App() {
       label: "Roster editor",
       icon: <IconRoster />,
       count: bootstrap.members.length,
+    },
+    {
+      value: "materials" as ViewTab,
+      label: "Materials",
+      icon: <IconManufacturing />,
+      count: Array.from(new Set(bootstrap.manufacturingItems.map(i => i.material))).length,
     },
   ];
 

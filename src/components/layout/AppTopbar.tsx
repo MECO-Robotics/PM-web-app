@@ -49,13 +49,18 @@ export function AppTopbar({
         </h1>
       </div>
       <div className="topbar-right app-topbar-right">
-        <label aria-label="Filter person" className="toolbar-filter toolbar-filter-compact">
-          <span aria-hidden="true" className="toolbar-filter-icon">
+        <label
+          aria-label="Filter person"
+          className="toolbar-filter toolbar-filter-compact"
+          style={activePersonFilter !== "all" ? { background: "#eff6ff", borderColor: "#16478e" } : {}}
+        >
+          <span aria-hidden="true" className="toolbar-filter-icon" style={activePersonFilter !== "all" ? { color: "#16478e" } : {}}>
             <IconPerson />
           </span>
           <select
             onChange={(event) => setActivePersonFilter(event.target.value)}
             value={activePersonFilter}
+            style={activePersonFilter !== "all" ? { color: "#16478e", fontWeight: "600", background: "transparent" } : {}}
           >
             <option value="all">All roster</option>
             {bootstrap.members.map((member) => (
@@ -109,6 +114,20 @@ export function AppTopbar({
           onClick={() => void loadWorkspace()}
           title="Refresh workspace"
           type="button"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#eff6ff",
+            border: "1px solid #16478e",
+            borderRadius: "8px",
+            width: "34px",
+            height: "34px",
+            color: "#16478e",
+            cursor: "pointer",
+            padding: 0,
+            marginLeft: "8px",
+          }}
         >
           <IconRefresh />
         </button>

@@ -1,6 +1,7 @@
-import type { Dispatch, FormEvent, ReactNode, SetStateAction } from "react";
+import { useState, useMemo, type Dispatch, type FormEvent, type ReactNode, type SetStateAction } from "react";
 import { RosterView } from "./RosterView";
 import { TimelineView } from "./TimelineView";
+import { IconManufacturing, IconPerson, IconTasks } from "../shared/Icons";
 import { formatCurrency, formatDate } from "../../lib/appUtils";
 import type {
   BootstrapPayload,
@@ -54,6 +55,39 @@ interface WorkspaceContentProps {
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
 }
 
+/**
+ * Reusable component for the "dropdown styled as label" pattern.
+ */
+function FilterDropdown({
+  icon,
+  value,
+  onChange,
+  options,
+  allLabel,
+}: {
+  icon: ReactNode;
+  value: string;
+  onChange: (val: string) => void;
+  options: { id: string; name: string }[];
+  allLabel: string;
+}) {
+  const isActive = value !== "all";
+  return (
+    <label
+      className="toolbar-filter toolbar-filter-compact"
+      style={isActive ? { background: "#eff6ff", borderColor: "#16478e" } : {}}
+    >
+      <span className="toolbar-filter-icon" style={isActive ? { color: "#16478e" } : {}}>{icon}</span>
+      <select onChange={(e) => onChange(e.target.value)} value={value} style={isActive ? { color: "#16478e", fontWeight: "600", background: "transparent" } : {}}>
+        <option value="all">{allLabel}</option>
+        {options.map((opt) => (
+          <option key={opt.id} value={opt.id}>{opt.name}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function WorkspaceContent({
   activePersonFilter,
   activeTab,
@@ -90,6 +124,206 @@ export function WorkspaceContent({
   students,
   subsystemsById,
 }: WorkspaceContentProps) {
+  const [queueSortField, setQueueSortField] = useState<string>("dueDate");
+  const [queueSortOrder, setQueueSortOrder] = useState<"asc" | "desc">("asc");
+  const [queueStatusFilter, setQueueStatusFilter] = useState<string>("all");
+  const [queueSubsystemFilter, setQueueSubsystemFilter] = useState<string>("all");
+  const [queueOwnerFilter, setQueueOwnerFilter] = useState<string>("all");
+  const [queuePriorityFilter, setQueuePriorityFilter] = useState<string>("all");
+  const [queueSearchFilter, setQueueSearchFilter] = useState<string>("");
+
+  // Purchase Filters
+  const [purchaseSearch, setPurchaseSearch] = useState("");
+  const [purchaseSubsystem, setPurchaseSubsystem] = useState("all");
+  const [purchaseRequester, setPurchaseRequester] = useState("all");
+  const [purchaseStatus, setPurchaseStatus] = useState("all");
+  const [purchaseVendor, setPurchaseVendor] = useState("all");
+  const [purchaseApproval, setPurchaseApproval] = useState("all");
+
+  // Manufacturing Filters (CNC & Prints)
+  const [mfgSearch, setMfgSearch] = useState("");
+  const [mfgSubsystem, setMfgSubsystem] = useState("all");
+  const [mfgRequester, setMfgRequester] = useState("all");
+  const [mfgStatus, setMfgStatus] = useState("all");
+  const [mfgMaterial, setMfgMaterial] = useState("all");
+  const [materialSearch, setMaterialSearch] = useState("");
+
+  const uniqueMaterials = useMemo(() => {
+    const materials = bootstrap.manufacturingItems.map((item) => item.material);
+    return Array.from(new Set(materials)).sort();
+  }, [bootstrap.manufacturingItems]);
+
+  const uniqueVendors = useMemo(() => {
+    const vendors = bootstrap.purchaseItems.map((item) => item.vendor);
+    return Array.from(new Set(vendors)).sort();
+  }, [bootstrap.purchaseItems]);
+
+  // Visibility logic for columns based on active filters
+  const showSubsystemCol = queueSubsystemFilter === "all";
+  const showOwnerCol = queueOwnerFilter === "all";
+  const showStatusCol = queueStatusFilter === "all";
+  const showPriorityCol = queuePriorityFilter === "all";
+
+  const queueGridTemplate = [
+    "minmax(200px, 2.5fr)", // Task column (always visible)
+    showSubsystemCol ? "1fr" : null,
+    showOwnerCol ? "1fr" : null,
+    showStatusCol ? "1fr" : null,
+    "1fr",                  // Due column (always visible)
+    showPriorityCol ? "1fr" : null,
+  ].filter(Boolean).join(" ");
+
+  const purchaseGridTemplate = [
+    "minmax(200px, 2.5fr)", // Item column
+    purchaseVendor === "all" ? "1fr" : null, // Vendor
+    "0.6fr",                // Qty
+    purchaseStatus === "all" ? "1fr" : null,
+    purchaseApproval === "all" ? "1fr" : null, // Mentor
+    "1fr",                  // Est
+    "1fr",                  // Final
+  ].filter(Boolean).join(" ");
+
+  const mfgGridTemplate = [
+    "minmax(200px, 2.5fr)", // Part column
+    mfgMaterial === "all" ? "1fr" : null,
+    "0.6fr",                // Qty
+    "1fr",                  // Batch
+    "1fr",                  // Due
+    mfgStatus === "all" ? "1fr" : null,
+    "1fr",                  // Mentor
+  ].filter(Boolean).join(" ");
+
+  const toggleSort = (field: string) => {
+    if (queueSortField === field) {
+      setQueueSortOrder(queueSortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setQueueSortField(field);
+      setQueueSortOrder("asc");
+    }
+  };
+
+  const processedTasks = useMemo(() => {
+    let result = [...bootstrap.tasks];
+
+    if (queueStatusFilter !== "all") {
+      result = result.filter((t) => t.status === queueStatusFilter);
+    }
+    if (queueSubsystemFilter !== "all") {
+      result = result.filter((t) => t.subsystemId === queueSubsystemFilter);
+    }
+    if (queueOwnerFilter !== "all") {
+      result = result.filter((t) => t.ownerId === queueOwnerFilter);
+    }
+    if (queuePriorityFilter !== "all") {
+      result = result.filter((t) => t.priority === queuePriorityFilter);
+    }
+    if (queueSearchFilter.trim() !== "") {
+      const search = queueSearchFilter.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(search) ||
+          t.summary.toLowerCase().includes(search)
+      );
+    }
+
+    const PRIORITY_VALS: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+    const STATUS_VALS: Record<string, number> = { "not-started": 1, "in-progress": 2, "waiting-for-qa": 3, complete: 4 };
+
+    return result.sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+
+      if (queueSortField === "priority") {
+        aVal = PRIORITY_VALS[a.priority] || 0;
+        bVal = PRIORITY_VALS[b.priority] || 0;
+      } else if (queueSortField === "status") {
+        aVal = STATUS_VALS[a.status] || 0;
+        bVal = STATUS_VALS[b.status] || 0;
+      } else if (queueSortField === "subsystemId") {
+        aVal = subsystemsById[a.subsystemId ?? ""]?.name ?? "";
+        bVal = subsystemsById[b.subsystemId ?? ""]?.name ?? "";
+      } else if (queueSortField === "ownerId") {
+        aVal = membersById[a.ownerId ?? ""]?.name ?? "";
+        bVal = membersById[b.ownerId ?? ""]?.name ?? "";
+      } else {
+        aVal = (a as any)[queueSortField] ?? "";
+        if (typeof aVal === "string") aVal = aVal.toLowerCase();
+        bVal = (b as any)[queueSortField] ?? "";
+        if (typeof bVal === "string") bVal = bVal.toLowerCase();
+      }
+
+      if (aVal < bVal) return queueSortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return queueSortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [bootstrap.tasks, queueStatusFilter, queueSubsystemFilter, queueOwnerFilter, queuePriorityFilter, queueSearchFilter, queueSortField, queueSortOrder, subsystemsById, membersById]);
+
+  const filteredPurchases = useMemo(() => {
+    return bootstrap.purchaseItems.filter((item) => {
+      const matchesSearch = !purchaseSearch ||
+        item.title.toLowerCase().includes(purchaseSearch.toLowerCase()) ||
+        item.vendor.toLowerCase().includes(purchaseSearch.toLowerCase());
+      const matchesSubsystem = purchaseSubsystem === "all" || item.subsystemId === purchaseSubsystem;
+      const matchesRequester = purchaseRequester === "all" || item.requestedById === purchaseRequester;
+      const matchesStatus = purchaseStatus === "all" || item.status === purchaseStatus;
+      const matchesVendor = purchaseVendor === "all" || item.vendor === purchaseVendor;
+      const matchesApproval = purchaseApproval === "all" ||
+        (purchaseApproval === "approved" ? item.approvedByMentor : !item.approvedByMentor);
+      return matchesSearch && matchesSubsystem && matchesRequester && matchesStatus && matchesVendor && matchesApproval;
+    });
+  }, [bootstrap.purchaseItems, purchaseSearch, purchaseSubsystem, purchaseRequester, purchaseStatus, purchaseVendor, purchaseApproval]);
+
+  const filteredCnc = useMemo(() => {
+    return cncItems.filter((item) => {
+      const matchesSearch = !mfgSearch || item.title.toLowerCase().includes(mfgSearch.toLowerCase());
+      const matchesSubsystem = mfgSubsystem === "all" || item.subsystemId === mfgSubsystem;
+      const matchesRequester = mfgRequester === "all" || item.requestedById === mfgRequester;
+      const matchesStatus = mfgStatus === "all" || item.status === mfgStatus;
+      const matchesMaterial = mfgMaterial === "all" || item.material === mfgMaterial;
+      return matchesSearch && matchesSubsystem && matchesRequester && matchesStatus && matchesMaterial;
+    });
+  }, [cncItems, mfgSearch, mfgSubsystem, mfgRequester, mfgStatus, mfgMaterial]);
+
+  const filteredPrints = useMemo(() => {
+    return printItems.filter((item) => {
+      const matchesSearch = !mfgSearch || item.title.toLowerCase().includes(mfgSearch.toLowerCase());
+      const matchesSubsystem = mfgSubsystem === "all" || item.subsystemId === mfgSubsystem;
+      const matchesRequester = mfgRequester === "all" || item.requestedById === mfgRequester;
+      const matchesStatus = mfgStatus === "all" || item.status === mfgStatus;
+      const matchesMaterial = mfgMaterial === "all" || item.material === mfgMaterial;
+      return matchesSearch && matchesSubsystem && matchesRequester && matchesStatus && matchesMaterial;
+    });
+  }, [printItems, mfgSearch, mfgSubsystem, mfgRequester, mfgStatus, mfgMaterial]);
+
+  const filteredMaterials = useMemo(() => {
+    return uniqueMaterials.filter(m => !materialSearch || m.toLowerCase().includes(materialSearch.toLowerCase()));
+  }, [uniqueMaterials, materialSearch]);
+
+  const renderSearchInput = (value: string, onChange: (val: string) => void, placeholder: string) => {
+    const isActive = value.trim() !== "";
+    return (
+      <div
+        className="toolbar-filter toolbar-filter-compact"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          padding: "0 8px",
+          background: isActive ? "#eff6ff" : "#fff",
+          border: isActive ? "1px solid #16478e" : "1px solid #e2e8f0",
+          borderRadius: "6px"
+        }}
+      >
+        <span style={{ color: isActive ? "#16478e" : "#64748b", display: "flex", alignItems: "center", marginRight: "4px" }}><IconTasks /></span>
+        <input onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={{ border: "none", outline: "none", fontSize: "0.85rem", padding: "6px 0", width: "120px", background: "transparent", color: isActive ? "#16478e" : "inherit" }} type="text" value={value} />
+      </div>
+    );
+  };
+
+  const getSortIcon = (field: string) => {
+    if (queueSortField !== field) return null;
+    return queueSortOrder === "asc" ? " ↑" : " ↓";
+  };
+
   return (
     <div
       className="dense-shell with-sidebar"
@@ -126,37 +360,80 @@ export function WorkspaceContent({
                   : `Only tasks owned by or mentored by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
               </p>
             </div>
-            <div className="panel-actions">
+            <div
+              className="panel-actions"
+              style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}
+            >
+              {renderSearchInput(queueSearchFilter, setQueueSearchFilter, "Search tasks...")}
+
+              <FilterDropdown
+                allLabel="All subsystems"
+                icon={<IconManufacturing />}
+                onChange={setQueueSubsystemFilter}
+                options={bootstrap.subsystems}
+                value={queueSubsystemFilter}
+              />
+
+              <FilterDropdown
+                allLabel="All owners"
+                icon={<IconPerson />}
+                onChange={setQueueOwnerFilter}
+                options={bootstrap.members}
+                value={queueOwnerFilter}
+              />
+
+              <FilterDropdown
+                allLabel="All statuses"
+                icon={<IconTasks />}
+                onChange={setQueueStatusFilter}
+                options={[
+                  { id: "not-started", name: "Not started" },
+                  { id: "in-progress", name: "In progress" },
+                  { id: "waiting-for-qa", name: "Waiting for QA" },
+                  { id: "complete", name: "Complete" },
+                ]}
+                value={queueStatusFilter}
+              />
+
+              <FilterDropdown
+                allLabel="All priorities"
+                icon={<IconTasks />}
+                onChange={setQueuePriorityFilter}
+                options={["critical", "high", "medium", "low"].map(p => ({ id: p, name: p }))}
+                value={queuePriorityFilter}
+              />
+
               <button className="primary-action" onClick={openCreateTaskModal} type="button">
                 New task
               </button>
             </div>
           </div>
           <div className="table-shell">
-            <div className="queue-table queue-table-header">
-              <span>Task</span>
-              <span>Subsystem</span>
-              <span>Owner</span>
-              <span>Status</span>
-              <span>Due</span>
-              <span>Priority</span>
+            <div className="queue-table queue-table-header" style={{ gridTemplateColumns: queueGridTemplate }}>
+              <span onClick={() => toggleSort("title")} style={{ cursor: "pointer" }}>Task{getSortIcon("title")}</span>
+              {showSubsystemCol && <span onClick={() => toggleSort("subsystemId")} style={{ cursor: "pointer" }}>Subsystem{getSortIcon("subsystemId")}</span>}
+              {showOwnerCol && <span onClick={() => toggleSort("ownerId")} style={{ cursor: "pointer" }}>Owner{getSortIcon("ownerId")}</span>}
+              {showStatusCol && <span onClick={() => toggleSort("status")} style={{ cursor: "pointer" }}>Status{getSortIcon("status")}</span>}
+              <span onClick={() => toggleSort("dueDate")} style={{ cursor: "pointer" }}>Due{getSortIcon("dueDate")}</span>
+              {showPriorityCol && <span onClick={() => toggleSort("priority")} style={{ cursor: "pointer" }}>Priority{getSortIcon("priority")}</span>}
             </div>
-            {bootstrap.tasks.map((task) => (
+            {processedTasks.map((task) => (
               <button
                 className="queue-table queue-row"
                 key={task.id}
                 onClick={() => openEditTaskModal(task)}
+                style={{ gridTemplateColumns: queueGridTemplate }}
                 type="button"
               >
                 <span className="queue-title">
                   <strong>{task.title}</strong>
                   <small>{task.summary}</small>
                 </span>
-                <span>{(task.subsystemId ? subsystemsById[task.subsystemId]?.name : null) ?? "Unknown"}</span>
-                <span>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>
-                <span className={`pill status-${task.status}`}>{task.status}</span>
+                {showSubsystemCol && <span>{(task.subsystemId ? subsystemsById[task.subsystemId]?.name : null) ?? "Unknown"}</span>}
+                {showOwnerCol && <span>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>}
+                {showStatusCol && <span className={`pill status-${task.status}`}>{task.status}</span>}
                 <span>{formatDate(task.dueDate)}</span>
-                <span className={`pill priority-${task.priority}`}>{task.priority}</span>
+                {showPriorityCol && <span className={`pill priority-${task.priority}`}>{task.priority}</span>}
               </button>
             ))}
           </div>
@@ -174,7 +451,58 @@ export function WorkspaceContent({
                   : `Only requests submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
               </p>
             </div>
-            <div className="panel-actions">
+            <div className="panel-actions" style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
+              {renderSearchInput(purchaseSearch, setPurchaseSearch, "Search items...")}
+
+              <FilterDropdown
+                allLabel="All subsystems"
+                icon={<IconManufacturing />}
+                onChange={setPurchaseSubsystem}
+                options={bootstrap.subsystems}
+                value={purchaseSubsystem}
+              />
+
+              <FilterDropdown
+                allLabel="All requesters"
+                icon={<IconPerson />}
+                onChange={setPurchaseRequester}
+                options={bootstrap.members}
+                value={purchaseRequester}
+              />
+
+              <FilterDropdown
+                allLabel="All statuses"
+                icon={<IconTasks />}
+                onChange={setPurchaseStatus}
+                options={[
+                  { id: "requested", name: "Requested" },
+                  { id: "approved", name: "Approved" },
+                  { id: "purchased", name: "Purchased" },
+                  { id: "shipped", name: "Shipped" },
+                  { id: "delivered", name: "Delivered" },
+                ]}
+                value={purchaseStatus}
+              />
+
+              <FilterDropdown
+                allLabel="All vendors"
+                icon={<IconManufacturing />}
+                onChange={setPurchaseVendor}
+                options={uniqueVendors.map(v => ({ id: v, name: v }))}
+                value={purchaseVendor}
+              />
+
+              <FilterDropdown
+                allLabel="All approvals"
+                icon={<IconTasks />}
+                onChange={setPurchaseApproval}
+                options={[
+                  { id: "approved", name: "Approved" },
+                  { id: "waiting", name: "Waiting" },
+                ]}
+                value={purchaseApproval}
+              />
+
               <div className="mini-summary-row">
                 <div className="mini-chip">
                   <span>Estimated</span>
@@ -195,29 +523,30 @@ export function WorkspaceContent({
             </div>
           </div>
           <div className="table-shell">
-            <div className="ops-table ops-table-header purchase-table">
-              <span>Item</span>
-              <span>Vendor</span>
+            <div className="ops-table ops-table-header purchase-table" style={{ gridTemplateColumns: purchaseGridTemplate }}>
+              <span style={{ textAlign: "left" }}>Item</span>
+              {purchaseVendor === "all" && <span>Vendor</span>}
               <span>Qty</span>
-              <span>Status</span>
-              <span>Mentor</span>
+              {purchaseStatus === "all" && <span>Status</span>}
+              {purchaseApproval === "all" && <span>Mentor</span>}
               <span>Est.</span>
               <span>Final</span>
             </div>
-            {bootstrap.purchaseItems.map((item) => (
+            {filteredPurchases.map((item) => (
               <button
                 className="ops-table ops-row purchase-table ops-button-row"
                 key={item.id}
                 onClick={() => openEditPurchaseModal(item)}
+                style={{ gridTemplateColumns: purchaseGridTemplate }}
                 type="button"
               >
-                <span className="queue-title">
+                <span className="queue-title" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                <span>{item.vendor}</span>
+                {purchaseVendor === "all" && <span>{item.vendor}</span>}
                 <span>{item.quantity}</span>
-                <span className={`pill purchase-${item.status}`}>{item.status}</span>
-                <span>{item.approvedByMentor ? "Approved" : "Waiting"}</span>
+                {purchaseStatus === "all" && <span className={`pill purchase-${item.status}`}>{item.status}</span>}
+                {purchaseApproval === "all" && <span>{item.approvedByMentor ? "Approved" : "Waiting"}</span>}
                 <span>{formatCurrency(item.estimatedCost)}</span>
                 <span>{formatCurrency(item.finalCost)}</span>
               </button>
@@ -237,7 +566,39 @@ export function WorkspaceContent({
                   : `Only CNC jobs submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
               </p>
             </div>
-            <div className="panel-actions">
+            <div className="panel-actions" style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
+              {renderSearchInput(mfgSearch, setMfgSearch, "Search parts...")}
+
+              <FilterDropdown
+                allLabel="All subsystems"
+                icon={<IconManufacturing />}
+                onChange={setMfgSubsystem}
+                options={bootstrap.subsystems}
+                value={mfgSubsystem}
+              />
+
+              <FilterDropdown
+                allLabel="All materials"
+                icon={<IconManufacturing />}
+                onChange={setMfgMaterial}
+                options={uniqueMaterials.map(m => ({ id: m, name: m }))}
+                value={mfgMaterial}
+              />
+
+              <FilterDropdown
+                allLabel="All statuses"
+                icon={<IconTasks />}
+                onChange={setMfgStatus}
+                options={[
+                  { id: "requested", name: "Requested" },
+                  { id: "approved", name: "Approved" },
+                  { id: "in-progress", name: "In progress" },
+                  { id: "qa", name: "QA" },
+                  { id: "complete", name: "Complete" },
+                ]}
+                value={mfgStatus}
+              />
+
               <div className="mini-summary-row">
                 <div className="mini-chip">
                   <span>Open jobs</span>
@@ -254,30 +615,31 @@ export function WorkspaceContent({
             </div>
           </div>
           <div className="table-shell">
-            <div className="ops-table ops-table-header manufacturing-table">
-              <span>Part</span>
-              <span>Material</span>
+            <div className="ops-table ops-table-header manufacturing-table" style={{ gridTemplateColumns: mfgGridTemplate }}>
+              <span style={{ textAlign: "left" }}>Part</span>
+              {mfgMaterial === "all" && <span>Material</span>}
               <span>Qty</span>
               <span>Batch</span>
               <span>Due</span>
-              <span>Status</span>
+              {mfgStatus === "all" && <span>Status</span>}
               <span>Mentor</span>
             </div>
-            {cncItems.map((item) => (
+            {filteredCnc.map((item) => (
               <button
                 className="ops-table ops-row manufacturing-table ops-button-row"
                 key={item.id}
                 onClick={() => openEditManufacturingModal(item)}
+                style={{ gridTemplateColumns: mfgGridTemplate }}
                 type="button"
               >
-                <span className="queue-title">
+                <span className="queue-title" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                <span>{item.material}</span>
+                {mfgMaterial === "all" && <span>{item.material}</span>}
                 <span>{item.quantity}</span>
                 <span>{item.batchLabel ?? "Unbatched"}</span>
                 <span>{formatDate(item.dueDate)}</span>
-                <span className={`pill manufacturing-${item.status}`}>{item.status}</span>
+                {mfgStatus === "all" && <span className={`pill manufacturing-${item.status}`}>{item.status}</span>}
                 <span>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
               </button>
             ))}
@@ -296,7 +658,39 @@ export function WorkspaceContent({
                   : `Only print jobs submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
               </p>
             </div>
-            <div className="panel-actions">
+            <div className="panel-actions" style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
+              {renderSearchInput(mfgSearch, setMfgSearch, "Search parts...")}
+
+              <FilterDropdown
+                allLabel="All subsystems"
+                icon={<IconManufacturing />}
+                onChange={setMfgSubsystem}
+                options={bootstrap.subsystems}
+                value={mfgSubsystem}
+              />
+
+              <FilterDropdown
+                allLabel="All materials"
+                icon={<IconManufacturing />}
+                onChange={setMfgMaterial}
+                options={uniqueMaterials.map(m => ({ id: m, name: m }))}
+                value={mfgMaterial}
+              />
+
+              <FilterDropdown
+                allLabel="All statuses"
+                icon={<IconTasks />}
+                onChange={setMfgStatus}
+                options={[
+                  { id: "requested", name: "Requested" },
+                  { id: "approved", name: "Approved" },
+                  { id: "in-progress", name: "In progress" },
+                  { id: "qa", name: "QA" },
+                  { id: "complete", name: "Complete" },
+                ]}
+                value={mfgStatus}
+              />
+
               <div className="mini-summary-row">
                 <div className="mini-chip">
                   <span>Open jobs</span>
@@ -313,30 +707,31 @@ export function WorkspaceContent({
             </div>
           </div>
           <div className="table-shell">
-            <div className="ops-table ops-table-header manufacturing-table">
-              <span>Part</span>
-              <span>Material</span>
+            <div className="ops-table ops-table-header manufacturing-table" style={{ gridTemplateColumns: mfgGridTemplate }}>
+              <span style={{ textAlign: "left" }}>Part</span>
+              {mfgMaterial === "all" && <span>Material</span>}
               <span>Qty</span>
               <span>Batch</span>
               <span>Due</span>
-              <span>Status</span>
+              {mfgStatus === "all" && <span>Status</span>}
               <span>Mentor</span>
             </div>
-            {printItems.map((item) => (
+            {filteredPrints.map((item) => (
               <button
                 className="ops-table ops-row manufacturing-table ops-button-row"
                 key={item.id}
                 onClick={() => openEditManufacturingModal(item)}
+                style={{ gridTemplateColumns: mfgGridTemplate }}
                 type="button"
               >
-                <span className="queue-title">
+                <span className="queue-title" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                <span>{item.material}</span>
+                {mfgMaterial === "all" && <span>{item.material}</span>}
                 <span>{item.quantity}</span>
                 <span>{item.batchLabel ?? "Unbatched"}</span>
                 <span>{formatDate(item.dueDate)}</span>
-                <span className={`pill manufacturing-${item.status}`}>{item.status}</span>
+                {mfgStatus === "all" && <span className={`pill manufacturing-${item.status}`}>{item.status}</span>}
                 <span>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
               </button>
             ))}
@@ -365,6 +760,43 @@ export function WorkspaceContent({
           setMemberForm={setMemberForm}
           students={students}
         />
+      ) : null}
+
+      {activeTab === "materials" ? (
+        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none" }}>
+          <div className="panel-header compact-header">
+            <div>
+              <h2>Materials inventory</h2>
+              <p className="section-copy">Tracking materials currently assigned to manufacturing jobs.</p>
+            </div>
+            <div className="panel-actions">
+              {renderSearchInput(materialSearch, setMaterialSearch, "Search materials...")}
+            </div>
+          </div>
+          <div className="table-shell">
+            <div className="ops-table ops-table-header" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+              <span>Material Name</span>
+              <span>Job usage</span>
+              <span>Status</span>
+            </div>
+            {filteredMaterials.map((material) => {
+              const jobCount = bootstrap.manufacturingItems.filter(i => i.material === material).length;
+              return (
+                <div
+                  className="ops-table ops-row"
+                  key={material}
+                  style={{ gridTemplateColumns: "1fr 1fr 1fr", padding: "12px 16px" }}
+                >
+                  <strong>{material}</strong>
+                  <span>{jobCount} active jobs</span>
+                  <span className="pill status-complete" style={{ width: "fit-content" }}>
+                    Available
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       ) : null}
     </div>
   );

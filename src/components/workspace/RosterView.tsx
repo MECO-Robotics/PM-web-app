@@ -63,7 +63,10 @@ export const RosterView: React.FC<RosterViewProps> = ({
             <div className="roster-columns">
                 <div className="panel-subsection">
                     <div className="roster-section-header">
-                        <h3>Students</h3>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <h3>Students</h3>
+                            <span className="sidebar-tab-count" style={{ position: "static" }}>{students.length}</span>
+                        </div>
                         <button className="roster-section-add" onClick={() => openAddPersonPanel("student")} type="button"><IconPlus /></button>
                     </div>
                     <div className="roster-list">
@@ -83,7 +86,10 @@ export const RosterView: React.FC<RosterViewProps> = ({
 
                 <div className="panel-subsection">
                     <div className="roster-section-header">
-                        <h3>Mentors</h3>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <h3>Mentors</h3>
+                            <span className="sidebar-tab-count" style={{ position: "static" }}>{rosterMentors.length}</span>
+                        </div>
                         <button className="roster-section-add" onClick={() => openAddPersonPanel("mentor")} type="button"><IconPlus /></button>
                     </div>
                     <div className="roster-list">

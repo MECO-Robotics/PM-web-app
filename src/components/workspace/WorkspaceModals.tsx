@@ -37,7 +37,7 @@ export function TaskEditorModal({
   setTaskDraftBlockers,
 }: TaskEditorModalProps) {
   return (
-    <div className="modal-scrim" role="presentation">
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
       <section aria-modal="true" className="modal-card" role="dialog">
         <div className="panel-header compact-header">
           <div>
@@ -284,7 +284,7 @@ export function PurchaseEditorModal({
   setPurchaseFinalCost,
 }: PurchaseEditorModalProps) {
   return (
-    <div className="modal-scrim" role="presentation">
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
       <section aria-modal="true" className="modal-card" role="dialog">
         <div className="panel-header compact-header">
           <div>
@@ -484,8 +484,14 @@ export function ManufacturingEditorModal({
   manufacturingModalMode,
   setManufacturingDraft,
 }: ManufacturingEditorModalProps) {
+  const COMMON_MATERIALS = [
+    "Aluminum 6061", "Steel 4130", "Polycarbonate",
+    "PLA - Black", "PLA - Blue", "PETG", "TPU",
+    "Delrin", "Wood"
+  ];
+
   return (
-    <div className="modal-scrim" role="presentation">
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
       <section aria-modal="true" className="modal-card" role="dialog">
         <div className="panel-header compact-header">
           <div>
@@ -588,7 +594,7 @@ export function ManufacturingEditorModal({
           </label>
           <label className="field">
             <span>Material</span>
-            <input
+            <select
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
                   ...current,
@@ -597,7 +603,12 @@ export function ManufacturingEditorModal({
               }
               required
               value={manufacturingDraft.material}
-            />
+            >
+              <option value="">Select material...</option>
+              {COMMON_MATERIALS.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
           </label>
           <label className="field">
             <span>Quantity</span>
