@@ -24,12 +24,26 @@ export interface SubsystemCard {
 }
 
 export type MemberRole = "student" | "mentor" | "admin";
+export type EventType =
+  | "drive-practice"
+  | "competition"
+  | "deadline"
+  | "internal-review"
+  | "demo";
+export type DisciplineCode =
+  | "mechanical"
+  | "electrical"
+  | "software"
+  | "integration"
+  | "qa-test";
 export type TaskPriority = "critical" | "high" | "medium" | "low";
 export type TaskStatus =
   | "not-started"
   | "in-progress"
   | "waiting-for-qa"
   | "complete";
+export type MoscowPriority = "must" | "should" | "could" | "wont";
+export type RequirementStatus = "planned" | "in-progress" | "complete";
 export type ManufacturingProcess = "3d-print" | "cnc" | "fabrication";
 export type ManufacturingStatus =
   | "requested"
@@ -43,6 +57,14 @@ export type PurchaseStatus =
   | "purchased"
   | "shipped"
   | "delivered";
+export type MaterialCategory =
+  | "metal"
+  | "plastic"
+  | "filament"
+  | "electronics"
+  | "hardware"
+  | "consumable"
+  | "other";
 
 export interface MemberRecord {
   id: string;
@@ -53,9 +75,78 @@ export interface MemberRecord {
 export interface SubsystemRecord {
   id: string;
   name: string;
+  description: string;
+  isCore: boolean;
   responsibleEngineerId: string | null;
   mentorIds: string[];
   risks: string[];
+}
+
+export interface DisciplineRecord {
+  id: string;
+  code: DisciplineCode;
+  name: string;
+}
+
+export interface MechanismRecord {
+  id: string;
+  subsystemId: string;
+  name: string;
+  description: string;
+}
+
+export interface RequirementRecord {
+  id: string;
+  subsystemId: string;
+  title: string;
+  description: string;
+  moscowPriority: MoscowPriority;
+  status: RequirementStatus;
+}
+
+export interface MaterialRecord {
+  id: string;
+  name: string;
+  category: MaterialCategory;
+  unit: string;
+  onHandQuantity: number;
+  reorderPoint: number;
+  location: string;
+  vendor: string;
+  notes: string;
+}
+
+export interface PartDefinitionRecord {
+  id: string;
+  name: string;
+  partNumber: string;
+  revision: string;
+  type: string;
+  source: string;
+  materialId: string | null;
+  description: string;
+}
+
+export interface PartInstanceRecord {
+  id: string;
+  subsystemId: string;
+  mechanismId: string | null;
+  partDefinitionId: string;
+  name: string;
+  quantity: number;
+  trackIndividually: boolean;
+  status: "planned" | "needed" | "available" | "installed" | "retired";
+}
+
+export interface EventRecord {
+  id: string;
+  title: string;
+  type: EventType;
+  startDateTime: string;
+  endDateTime: string | null;
+  isExternal: boolean;
+  description: string;
+  relatedSubsystemIds: string[];
 }
 
 export interface TaskRecord {
@@ -63,6 +154,11 @@ export interface TaskRecord {
   title: string;
   summary: string;
   subsystemId: string;
+  disciplineId: string;
+  requirementId: string | null;
+  mechanismId: string | null;
+  partInstanceId: string | null;
+  targetEventId: string | null;
   ownerId: string | null;
   mentorId: string | null;
   startDate: string;
@@ -87,6 +183,8 @@ export interface ManufacturingItemRecord {
   process: ManufacturingProcess;
   dueDate: string;
   material: string;
+  materialId: string | null;
+  partInstanceId: string | null;
   quantity: number;
   status: ManufacturingStatus;
   mentorReviewed: boolean;
@@ -127,6 +225,8 @@ export interface ManufacturingItemPayload {
   process: ManufacturingProcess;
   dueDate: string;
   material: string;
+  materialId: string | null;
+  partInstanceId: string | null;
   quantity: number;
   status: ManufacturingStatus;
   mentorReviewed: boolean;
@@ -136,6 +236,13 @@ export interface ManufacturingItemPayload {
 export interface BootstrapPayload {
   members: MemberRecord[];
   subsystems: SubsystemRecord[];
+  disciplines: DisciplineRecord[];
+  mechanisms: MechanismRecord[];
+  requirements: RequirementRecord[];
+  materials: MaterialRecord[];
+  partDefinitions: PartDefinitionRecord[];
+  partInstances: PartInstanceRecord[];
+  events: EventRecord[];
   tasks: TaskRecord[];
   purchaseItems: PurchaseItemRecord[];
   manufacturingItems: ManufacturingItemRecord[];
@@ -146,10 +253,46 @@ export interface MemberPayload {
   role: MemberRole;
 }
 
+export interface MaterialPayload {
+  name: string;
+  category: MaterialCategory;
+  unit: string;
+  onHandQuantity: number;
+  reorderPoint: number;
+  location: string;
+  vendor: string;
+  notes: string;
+}
+
+export interface PartDefinitionPayload {
+  name: string;
+  partNumber: string;
+  revision: string;
+  type: string;
+  source: string;
+  materialId: string | null;
+  description: string;
+}
+
+export interface PartInstancePayload {
+  subsystemId: string;
+  mechanismId: string | null;
+  partDefinitionId: string;
+  name: string;
+  quantity: number;
+  trackIndividually: boolean;
+  status: PartInstanceRecord["status"];
+}
+
 export interface TaskPayload {
   title: string;
   summary: string;
   subsystemId: string;
+  disciplineId: string;
+  requirementId: string | null;
+  mechanismId: string | null;
+  partInstanceId: string | null;
+  targetEventId: string | null;
   ownerId: string | null;
   mentorId: string | null;
   startDate: string;

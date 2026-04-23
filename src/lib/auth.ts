@@ -2,8 +2,14 @@ import type {
   BootstrapPayload,
   ManufacturingItemPayload,
   ManufacturingItemRecord,
+  MaterialPayload,
+  MaterialRecord,
   MemberPayload,
   MemberRecord,
+  PartDefinitionPayload,
+  PartDefinitionRecord,
+  PartInstancePayload,
+  PartInstanceRecord,
   PurchaseItemPayload,
   PurchaseItemRecord,
   TaskPayload,
@@ -158,6 +164,37 @@ function isAuthConfig(payload: unknown): payload is AuthConfig {
   );
 }
 
+function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload {
+  const source = payload as Partial<BootstrapPayload>;
+
+  return {
+    members: source.members ?? [],
+    subsystems: source.subsystems ?? [],
+    disciplines: source.disciplines ?? [],
+    mechanisms: source.mechanisms ?? [],
+    requirements: source.requirements ?? [],
+    materials: source.materials ?? [],
+    partDefinitions: (source.partDefinitions ?? []).map((partDefinition) => ({
+      ...partDefinition,
+      materialId: partDefinition.materialId ?? null,
+      description: partDefinition.description ?? "",
+    })),
+    partInstances: (source.partInstances ?? []).map((partInstance) => ({
+      ...partInstance,
+      mechanismId: partInstance.mechanismId ?? null,
+      status: partInstance.status ?? "planned",
+    })),
+    events: source.events ?? [],
+    tasks: source.tasks ?? [],
+    purchaseItems: source.purchaseItems ?? [],
+    manufacturingItems: (source.manufacturingItems ?? []).map((item) => ({
+      ...item,
+      materialId: item.materialId ?? null,
+      partInstanceId: item.partInstanceId ?? null,
+    })),
+  };
+}
+
 export async function fetchAuthConfig() {
   const response = await fetch(buildApiUrl("/auth/config"));
   const payload = await readJson<unknown>(response);
@@ -193,7 +230,12 @@ export async function fetchBootstrap(
   onUnauthorized?: () => void,
 ) {
   const query = personId ? `?personId=${encodeURIComponent(personId)}` : "";
-  return requestApi<BootstrapPayload>(`/bootstrap${query}`, {}, onUnauthorized);
+  const payload = await requestApi<BootstrapPayload>(
+    `/bootstrap${query}`,
+    {},
+    onUnauthorized,
+  );
+  return normalizeBootstrapPayload(payload);
 }
 
 export async function createTask(
@@ -280,6 +322,168 @@ export async function deleteMemberRecord(
 ) {
   const response = await requestApi<{ item: MemberRecord }>(
     `/members/${memberId}`,
+    {
+      method: "DELETE",
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createMaterialRecord(
+  payload: MaterialPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: MaterialRecord }>(
+    "/materials",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updateMaterialRecord(
+  materialId: string,
+  payload: Partial<MaterialPayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: MaterialRecord }>(
+    `/materials/${materialId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function deleteMaterialRecord(
+  materialId: string,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: MaterialRecord }>(
+    `/materials/${materialId}`,
+    {
+      method: "DELETE",
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createPartDefinitionRecord(
+  payload: PartDefinitionPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: PartDefinitionRecord }>(
+    "/part-definitions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updatePartDefinitionRecord(
+  partDefinitionId: string,
+  payload: Partial<PartDefinitionPayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: PartDefinitionRecord }>(
+    `/part-definitions/${partDefinitionId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function deletePartDefinitionRecord(
+  partDefinitionId: string,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: PartDefinitionRecord }>(
+    `/part-definitions/${partDefinitionId}`,
+    {
+      method: "DELETE",
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createPartInstanceRecord(
+  payload: PartInstancePayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: PartInstanceRecord }>(
+    "/part-instances",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updatePartInstanceRecord(
+  partInstanceId: string,
+  payload: Partial<PartInstancePayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: PartInstanceRecord }>(
+    `/part-instances/${partInstanceId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function deletePartInstanceRecord(
+  partInstanceId: string,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: PartInstanceRecord }>(
+    `/part-instances/${partInstanceId}`,
     {
       method: "DELETE",
     },
