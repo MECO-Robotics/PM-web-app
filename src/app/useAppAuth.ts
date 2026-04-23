@@ -1,0 +1,230 @@
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  clearStoredSessionToken,
+  exchangeGoogleCredential,
+  fetchAuthConfig,
+  fetchCurrentUser,
+  isLocalGoogleAuthHost,
+  isUsingLocalGoogleClientIdOverride,
+  loadGoogleIdentityScript,
+  loadStoredSessionToken,
+  resolveGoogleClientId,
+  signOutFromGoogle,
+  storeSessionToken,
+  type AuthConfig,
+  type GoogleCredentialResponse,
+  type SessionUser,
+  validateSession,
+} from "../lib/auth";
+import { toErrorMessage } from "../lib/appUtils";
+
+interface UseAppAuthArgs {
+  resetWorkspace: () => void;
+}
+
+export function useAppAuth({ resetWorkspace }: UseAppAuthArgs) {
+  const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+  const [authBooting, setAuthBooting] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+
+  const enforcedAuthConfig = authConfig?.enabled ? authConfig : null;
+  const googleClientId = resolveGoogleClientId(authConfig);
+  const hostedDomain = enforcedAuthConfig?.hostedDomain ?? "";
+  const isLocalGoogleOverrideActive = isUsingLocalGoogleClientIdOverride();
+  const isLocalGoogleDevHost = isLocalGoogleAuthHost();
+
+  const expireSession = useCallback((message: string) => {
+    clearStoredSessionToken();
+    signOutFromGoogle();
+    startTransition(() => {
+      setSessionUser(null);
+    });
+    setAuthMessage(message);
+  }, []);
+
+  const handleGoogleCredential = useEffectEvent(
+    async (response: GoogleCredentialResponse) => {
+      if (!response.credential) {
+        setAuthMessage("Google did not return a credential to verify.");
+        return;
+      }
+
+      setIsSigningIn(true);
+      setAuthMessage(null);
+
+      try {
+        const session = await exchangeGoogleCredential(response.credential);
+        storeSessionToken(session.token);
+        startTransition(() => {
+          setSessionUser(session.user);
+        });
+      } catch (error) {
+        clearStoredSessionToken();
+        setAuthMessage(toErrorMessage(error));
+      } finally {
+        setIsSigningIn(false);
+      }
+    },
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrapAuth() {
+      try {
+        const config = await fetchAuthConfig();
+        if (cancelled) {
+          return;
+        }
+
+        setAuthConfig(config);
+
+        if (!config.enabled) {
+          return;
+        }
+
+        const storedToken = loadStoredSessionToken();
+        if (!storedToken) {
+          return;
+        }
+
+        try {
+          const user = await fetchCurrentUser(storedToken);
+          if (cancelled) {
+            return;
+          }
+
+          startTransition(() => {
+            setSessionUser(user);
+          });
+        } catch {
+          clearStoredSessionToken();
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAuthMessage(toErrorMessage(error));
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthBooting(false);
+        }
+      }
+    }
+
+    void bootstrapAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sessionUser || !enforcedAuthConfig) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void (async () => {
+        const isValid = await validateSession();
+        if (!isValid) {
+          expireSession("Your session expired. Please sign in again.");
+        }
+      })();
+    }, 5 * 60 * 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [enforcedAuthConfig, expireSession, sessionUser]);
+
+  useEffect(() => {
+    if (authBooting || sessionUser || !googleClientId) {
+      return;
+    }
+
+    const buttonSlot = googleButtonRef.current;
+    if (!buttonSlot) {
+      return;
+    }
+
+    let cancelled = false;
+    const activeGoogleClientId = googleClientId;
+
+    async function setupGoogleButton() {
+      try {
+        await loadGoogleIdentityScript();
+        const activeButtonSlot = googleButtonRef.current;
+        if (cancelled || !window.google || !activeButtonSlot) {
+          return;
+        }
+
+        activeButtonSlot.innerHTML = "";
+        window.google.accounts.id.initialize({
+          client_id: activeGoogleClientId,
+          callback: (response) => {
+            void handleGoogleCredential(response);
+          },
+          hd: hostedDomain || undefined,
+          ux_mode: "popup",
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+        window.google.accounts.id.renderButton(activeButtonSlot, {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          text: "continue_with",
+          shape: "pill",
+          width: 320,
+          logo_alignment: "left",
+        });
+      } catch (error) {
+        if (!cancelled) {
+          setAuthMessage(toErrorMessage(error));
+        }
+      }
+    }
+
+    void setupGoogleButton();
+
+    return () => {
+      cancelled = true;
+      buttonSlot.innerHTML = "";
+    };
+  }, [authBooting, googleClientId, handleGoogleCredential, hostedDomain, sessionUser]);
+
+  const handleSignOut = useCallback(() => {
+    clearStoredSessionToken();
+    signOutFromGoogle();
+    startTransition(() => {
+      setSessionUser(null);
+    });
+    setAuthMessage(null);
+    resetWorkspace();
+  }, [resetWorkspace]);
+
+  return {
+    authBooting,
+    authConfig,
+    authMessage,
+    enforcedAuthConfig,
+    expireSession,
+    googleButtonRef,
+    handleSignOut,
+    isLocalGoogleDevHost,
+    isLocalGoogleOverrideActive,
+    isSigningIn,
+    sessionUser,
+  };
+}

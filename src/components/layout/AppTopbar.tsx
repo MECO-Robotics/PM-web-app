@@ -25,73 +25,47 @@ export function AppTopbar({
   return (
     <header
       className="topbar app-topbar"
+      data-collapsed={isSidebarCollapsed ? "true" : "false"}
       style={{
-        width: "100%",
-        height: "64px",
         position: "fixed",
         top: 0,
         left: 0,
         zIndex: 1000,
-        boxSizing: "border-box",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 0,
         background: "var(--bg-panel)",
         borderBottom: "1px solid var(--border-base)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          height: "100%",
-          width: isSidebarCollapsed ? "64px" : "240px",
-          transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-          borderRight: "1px solid var(--border-base)",
-          flexShrink: 0,
-        }}
-      >
+      <div className="app-topbar-left">
         <button
+          aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="app-topbar-toggle"
           onClick={toggleSidebar}
-          style={{
-            background: "none",
-            border: "none",
-            color: "var(--text-copy)",
-            cursor: "pointer",
-            fontSize: "1.2rem",
-            transition: "all 0.2s ease",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: isSidebarCollapsed ? "100%" : "64px",
-            height: "100%",
-          }}
-          title="Toggle Sidebar"
+          title="Toggle sidebar"
+          type="button"
         >
-          ☰
+          <span aria-hidden="true">{"\u2630"}</span>
         </button>
-        {!isSidebarCollapsed && (
-          <div className="app-topbar-logo">
+        {!isSidebarCollapsed ? (
+          <div className="app-topbar-brand">
             <div className="app-topbar-logo-badge">
               <img
-                src="/meco-favicon.svg"
                 alt="3D printing icon"
-                style={{ height: "38px", width: "auto", maxWidth: "160px", objectFit: "contain" }}
+                className="app-topbar-brand-icon"
+                src="/meco-favicon.svg"
               />
             </div>
           </div>
-        )}
+        ) : null}
       </div>
-      <div className="topbar-right app-topbar-right" style={{ flex: 1, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px" }}>
+
+      <div className="topbar-right app-topbar-right">
         {sessionUser ? (
           <div className="profile-menu">
             <button
               aria-haspopup="menu"
               className="user-chip profile-trigger"
-              type="button"
-              style={{ padding: 0, height: "34px" }}
               title={sessionUser.name}
+              type="button"
             >
               {sessionUser.picture ? (
                 <img
@@ -106,22 +80,11 @@ export function AppTopbar({
                 </span>
               )}
             </button>
-            <div
-              aria-label="Profile menu"
-              className="profile-menu-popover"
-              role="menu"
-              style={{
-                background: "var(--bg-panel)",
-                border: "1px solid var(--border-base)",
-                boxShadow: isDarkMode ? "0 10px 15px -3px rgba(0, 0, 0, 0.5)" : "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                padding: "4px",
-              }}
-            >
+            <div aria-label="Profile menu" className="profile-menu-popover" role="menu">
               <button
                 className="profile-menu-item"
                 onClick={handleSignOut}
                 role="menuitem"
-                style={{ color: "var(--text-title)", background: "transparent" }}
                 type="button"
               >
                 Sign out
@@ -129,51 +92,31 @@ export function AppTopbar({
             </div>
           </div>
         ) : (
-          <div className="user-chip" style={{ padding: "4px 12px", height: "34px" }}>
-            <strong style={{ fontSize: "0.85rem", color: "var(--text-title)" }}>Local access</strong>
+          <div className="user-chip app-topbar-user-chip">
+            <strong>Local access</strong>
           </div>
         )}
+
         <button
+          aria-label="Toggle dark mode"
+          className="app-topbar-icon-button"
           onClick={toggleDarkMode}
           title="Toggle dark mode"
           type="button"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "var(--bg-panel)",
-            border: "1px solid var(--border-base)",
-            borderRadius: "8px",
-            width: "34px",
-            height: "34px",
-            color: isDarkMode ? "#fbbf24" : "#64748b",
-            cursor: "pointer",
-            padding: 0,
-            marginLeft: "8px",
-          }}
         >
-          {isDarkMode ? "☀️" : "🌙"}
+          <span aria-hidden="true">{isDarkMode ? "\u2600" : "\u263E"}</span>
         </button>
+
         <button
           aria-label="Refresh workspace"
-          className={isLoadingData ? "icon-button refresh-button is-loading" : "icon-button refresh-button"}
+          className={
+            isLoadingData
+              ? "icon-button refresh-button app-topbar-icon-button is-loading"
+              : "icon-button refresh-button app-topbar-icon-button"
+          }
           onClick={() => void loadWorkspace()}
           title="Refresh workspace"
           type="button"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "var(--meco-soft-blue)",
-            border: "1px solid var(--meco-blue)",
-            borderRadius: "8px",
-            width: "34px",
-            height: "34px",
-            color: "var(--meco-blue)",
-            cursor: "pointer",
-            padding: 0,
-            marginLeft: "8px",
-          }}
         >
           <IconRefresh />
         </button>

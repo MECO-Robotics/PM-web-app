@@ -918,19 +918,25 @@ export function ManufacturingEditorModal({
 
 interface MaterialEditorModalProps {
   closeMaterialModal: () => void;
+  handleDeleteMaterial: (id: string) => void;
   handleMaterialSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  isDeletingMaterial: boolean;
   isSavingMaterial: boolean;
   materialDraft: MaterialPayload;
   materialModalMode: "create" | "edit";
+  activeMaterialId: string | null;
   setMaterialDraft: Dispatch<SetStateAction<MaterialPayload>>;
 }
 
 export function MaterialEditorModal({
   closeMaterialModal,
+  handleDeleteMaterial,
   handleMaterialSubmit,
+  isDeletingMaterial,
   isSavingMaterial,
   materialDraft,
   materialModalMode,
+  activeMaterialId,
   setMaterialDraft,
 }: MaterialEditorModalProps) {
   return (
@@ -985,6 +991,16 @@ export function MaterialEditorModal({
             <textarea onChange={(event) => setMaterialDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={materialDraft.notes} />
           </label>
           <div className="modal-actions modal-wide">
+            {materialModalMode === "edit" && activeMaterialId ? (
+              <button
+                className="danger-action"
+                disabled={isDeletingMaterial || isSavingMaterial}
+                onClick={() => handleDeleteMaterial(activeMaterialId)}
+                type="button"
+              >
+                {isDeletingMaterial ? "Deleting..." : "Delete material"}
+              </button>
+            ) : null}
             <button className="secondary-action" onClick={closeMaterialModal} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="button">Cancel</button>
             <button className="primary-action" disabled={isSavingMaterial} type="submit">{isSavingMaterial ? "Saving..." : materialModalMode === "create" ? "Add material" : "Save changes"}</button>
           </div>

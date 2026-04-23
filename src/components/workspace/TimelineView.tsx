@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { IconPerson, IconTasks } from "../shared/Icons";
 import { dateDiffInDays } from "../../lib/appUtils";
 import type { BootstrapPayload, TaskRecord } from "../../types";
+import { EditableHoverIndicator } from "./WorkspaceViewShared";
+import { WORKSPACE_PANEL_STYLE } from "./workspaceTypes";
 
 interface TimelineViewProps {
     bootstrap: BootstrapPayload;
@@ -129,7 +131,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     };
 
     return (
-        <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)", color: "var(--text-copy)" }}>
+        <section className="panel dense-panel" style={{ ...WORKSPACE_PANEL_STYLE, color: "var(--text-copy)" }}>
             <div className="panel-header compact-header">
                 <div className="queue-section-header">
                     <h2 style={{ color: "var(--text-title)" }}>Subsystem timeline</h2>
@@ -139,7 +141,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             : `Filtered to ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
                     </p>
                 </div>
-                <div className="panel-actions filter-toolbar queue-toolbar" style={{ justifyContent: "flex-start" }}>
+                <div className="panel-actions filter-toolbar timeline-toolbar">
                     <label
                         aria-label="Filter person"
                         className={`toolbar-filter toolbar-filter-compact${activePersonFilter !== "all" ? " is-active" : ""}`}
@@ -260,7 +262,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                         type="button"
                                         style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", fontSize: "12px", color: "var(--text-copy)", marginRight: "6px", flexShrink: 0 }}
                                     >
-                                        {collapsed ? "▶" : "▼"}
+                                        {collapsed ? "\u25B6" : "\u25BC"}
                                     </button>
                                     <div style={{ minWidth: 0 }}>
                                         <div style={{ fontWeight: "bold", fontSize: "0.85rem", color: "var(--text-title)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subsystem.name}</div>
@@ -292,7 +294,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                 {collapsed && subsystem.tasks.map((task) => (
                                     <button
                                         key={task.id}
-                                        className={`timeline-bar timeline-${task.status}`}
+                                        className={`timeline-bar timeline-${task.status} editable-hover-target`}
                                         onClick={() => openEditTaskModal(task)}
                                         style={{
                                             gridRow: "1",
@@ -310,40 +312,49 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                         }}
                                         title={`${task.title} (${task.status})`}
                                         type="button"
-                                    />
+                                    >
+                                        <EditableHoverIndicator className="editable-hover-indicator-compact" />
+                                    </button>
                                 ))}
 
                                 {!collapsed && subsystem.tasks.map((task, tIdx) => (
                                     <React.Fragment key={task.id}>
-                                        <div
+                                        <button
                                             className="task-label"
+                                            onClick={() => openEditTaskModal(task)}
                                             style={{
                                                 gridRow: tIdx + 1,
                                                 gridColumn: "2",
                                                 minHeight: "44px",
                                                 padding: "0 12px",
                                                 fontSize: "0.8rem",
+                                                border: "none",
                                                 borderRight: "1px solid var(--border-base)",
                                                 boxSizing: "border-box",
                                                 display: "flex",
                                                 flexDirection: "column",
                                                 justifyContent: "center",
+                                                alignItems: "flex-start",
                                                 position: "sticky",
                                                 left: `${SUBSYSTEM_COLUMN_WIDTH}px`,
                                                 zIndex: 7,
                                                 background: groupBg,
                                                 overflow: "hidden",
                                                 borderTop: tIdx === 0 ? "none" : "1px solid var(--border-base)",
+                                                borderRadius: 0,
+                                                textAlign: "left",
+                                                cursor: "pointer",
                                             }}
+                                            type="button"
                                         >
                                             <strong style={{ display: "block", color: "var(--text-title)", lineHeight: "1.2" }}>{task.title}</strong>
                                             <span style={{ fontSize: "0.7rem", color: "var(--text-copy)" }}>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>
-                                        </div>
+                                        </button>
                                         {timeline.days.map((day, dIdx) => (
                                             <div key={day} style={{ gridRow: tIdx + 1, gridColumn: dIdx + 3, borderRight: "1px solid var(--border-base)", borderTop: tIdx === 0 ? "none" : "1px solid var(--border-base)", minHeight: "44px" }} />
                                         ))}
                                         <button
-                                            className={`timeline-bar timeline-${task.status}`}
+                                            className={`timeline-bar timeline-${task.status} editable-hover-target`}
                                             onClick={() => openEditTaskModal(task)}
                                             style={{
                                                 gridRow: tIdx + 1,
@@ -364,9 +375,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                                 alignSelf: "center",
                                                 minWidth: 0,
                                             }}
+                                            title={`Edit ${task.title}`}
                                             type="button"
                                         >
                                             {task.title}
+                                            <EditableHoverIndicator className="editable-hover-indicator-compact" />
                                         </button>
                                     </React.Fragment>
                                 ))}

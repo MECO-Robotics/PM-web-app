@@ -47,14 +47,14 @@ npm run build
 Use the Vite proxy so the browser can stay on `http://localhost:5173` while API calls still go through `/api`.
 
 - Default local API target: `http://localhost:8080`
-- Optional live API target for frontend-only testing: set `VITE_DEV_PROXY_TARGET=http://178.104.192.162`
+- Optional live API target for frontend-only testing: set `VITE_DEV_PROXY_TARGET` to the API host you want Vite to proxy to
 
 Example local frontend env:
 
 ```env
 VITE_API_BASE_URL=/api
 VITE_DEV_PROXY_TARGET=http://localhost:8080
-# Optional if the server's Google client is not authorized for localhost:
+# Optional if the server's Google client is not authorized for localhost:5173:
 # VITE_LOCAL_GOOGLE_CLIENT_ID=your-localhost-web-client-id.apps.googleusercontent.com
 ```
 
