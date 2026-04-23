@@ -62,7 +62,11 @@ export function buildEmptyTaskPayload(bootstrap: BootstrapPayload): TaskPayload 
         bootstrap.partInstances.find((partInstance) => partInstance.subsystemId === firstSubsystem)?.id ??
         null;
     const firstEvent = bootstrap.events[0]?.id ?? null;
-    const firstStudent = bootstrap.members.find((m) => m.role === "student")?.id ?? bootstrap.members[0]?.id ?? null;
+    const firstStudent =
+        bootstrap.members.find((m) => m.role === "lead")?.id ??
+        bootstrap.members.find((m) => m.role === "student")?.id ??
+        bootstrap.members[0]?.id ??
+        null;
     const firstMentor = bootstrap.members.find((m) => m.role === "mentor")?.id ?? bootstrap.members[0]?.id ?? null;
     const today = new Date().toISOString().slice(0, 10);
 

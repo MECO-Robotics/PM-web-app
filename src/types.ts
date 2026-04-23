@@ -23,7 +23,7 @@ export interface SubsystemCard {
   progress: number;
 }
 
-export type MemberRole = "student" | "mentor" | "admin";
+export type MemberRole = "student" | "lead" | "mentor" | "admin";
 export type EventType =
   | "drive-practice"
   | "competition"
