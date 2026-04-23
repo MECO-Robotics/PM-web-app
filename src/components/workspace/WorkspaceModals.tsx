@@ -2,6 +2,9 @@ import type { Dispatch, FormEvent, SetStateAction } from "react";
 import type {
   BootstrapPayload,
   ManufacturingItemPayload,
+  MaterialPayload,
+  PartDefinitionPayload,
+  PartInstancePayload,
   PurchaseItemPayload,
   TaskPayload,
   TaskRecord,
@@ -11,9 +14,15 @@ interface TaskEditorModalProps {
   activeTask: TaskRecord | null;
   bootstrap: BootstrapPayload;
   closeTaskModal: () => void;
+  disciplinesById: Record<string, BootstrapPayload["disciplines"][number]>;
+  eventsById: Record<string, BootstrapPayload["events"][number]>;
   handleTaskSubmit: (event: FormEvent<HTMLFormElement>) => void;
   isSavingTask: boolean;
+  mechanismsById: Record<string, BootstrapPayload["mechanisms"][number]>;
   mentors: BootstrapPayload["members"];
+  partDefinitionsById: Record<string, BootstrapPayload["partDefinitions"][number]>;
+  partInstancesById: Record<string, BootstrapPayload["partInstances"][number]>;
+  requirementsById: Record<string, BootstrapPayload["requirements"][number]>;
   students: BootstrapPayload["members"];
   taskDraft: TaskPayload;
   taskDraftBlockers: string;
@@ -26,9 +35,15 @@ export function TaskEditorModal({
   activeTask,
   bootstrap,
   closeTaskModal,
+  disciplinesById,
+  eventsById,
   handleTaskSubmit,
   isSavingTask,
+  mechanismsById,
   mentors,
+  partDefinitionsById,
+  partInstancesById,
+  requirementsById,
   students,
   taskDraft,
   taskDraftBlockers,
@@ -36,6 +51,16 @@ export function TaskEditorModal({
   setTaskDraft,
   setTaskDraftBlockers,
 }: TaskEditorModalProps) {
+  const filteredRequirements = bootstrap.requirements.filter(
+    (requirement) => requirement.subsystemId === taskDraft.subsystemId,
+  );
+  const filteredMechanisms = bootstrap.mechanisms.filter(
+    (mechanism) => mechanism.subsystemId === taskDraft.subsystemId,
+  );
+  const filteredPartInstances = bootstrap.partInstances.filter(
+    (partInstance) => partInstance.subsystemId === taskDraft.subsystemId,
+  );
+
   return (
     <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
       <section aria-modal="true" className="modal-card" role="dialog" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}>
@@ -76,7 +101,26 @@ export function TaskEditorModal({
             <span style={{ color: "var(--text-title)" }}>Subsystem</span>
             <select
               onChange={(event) =>
-                setTaskDraft((current) => ({ ...current, subsystemId: event.target.value }))
+                setTaskDraft((current) => {
+                  const subsystemId = event.target.value;
+                  const requirementId =
+                    bootstrap.requirements.find((requirement) => requirement.subsystemId === subsystemId)?.id ??
+                    null;
+                  const mechanismId =
+                    bootstrap.mechanisms.find((mechanism) => mechanism.subsystemId === subsystemId)?.id ??
+                    null;
+                  const partInstanceId =
+                    bootstrap.partInstances.find((partInstance) => partInstance.subsystemId === subsystemId)?.id ??
+                    null;
+
+                  return {
+                    ...current,
+                    subsystemId,
+                    requirementId,
+                    mechanismId,
+                    partInstanceId,
+                  };
+                })
               }
               style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={taskDraft.subsystemId}
@@ -84,6 +128,105 @@ export function TaskEditorModal({
               {bootstrap.subsystems.map((subsystem) => (
                 <option key={subsystem.id} value={subsystem.id}>
                   {subsystem.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Discipline</span>
+            <select
+              onChange={(event) =>
+                setTaskDraft((current) => ({ ...current, disciplineId: event.target.value }))
+              }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              value={taskDraft.disciplineId}
+            >
+              {bootstrap.disciplines.map((discipline) => (
+                <option key={discipline.id} value={discipline.id}>
+                  {discipline.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Requirement</span>
+            <select
+              onChange={(event) =>
+                setTaskDraft((current) => ({
+                  ...current,
+                  requirementId: event.target.value || null,
+                }))
+              }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              value={taskDraft.requirementId ?? ""}
+            >
+              <option value="">No requirement</option>
+              {filteredRequirements.map((requirement) => (
+                <option key={requirement.id} value={requirement.id}>
+                  {requirement.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Mechanism</span>
+            <select
+              onChange={(event) =>
+                setTaskDraft((current) => ({
+                  ...current,
+                  mechanismId: event.target.value || null,
+                }))
+              }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              value={taskDraft.mechanismId ?? ""}
+            >
+              <option value="">No mechanism</option>
+              {filteredMechanisms.map((mechanism) => (
+                <option key={mechanism.id} value={mechanism.id}>
+                  {mechanism.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Part instance</span>
+            <select
+              onChange={(event) =>
+                setTaskDraft((current) => ({
+                  ...current,
+                  partInstanceId: event.target.value || null,
+                }))
+              }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              value={taskDraft.partInstanceId ?? ""}
+            >
+              <option value="">No part instance</option>
+              {filteredPartInstances.map((partInstance) => (
+                <option key={partInstance.id} value={partInstance.id}>
+                  {partInstance.name}{" "}
+                  {partDefinitionsById[partInstance.partDefinitionId]
+                    ? `(${partDefinitionsById[partInstance.partDefinitionId].name})`
+                    : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Target event</span>
+            <select
+              onChange={(event) =>
+                setTaskDraft((current) => ({
+                  ...current,
+                  targetEventId: event.target.value || null,
+                }))
+              }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              value={taskDraft.targetEventId ?? ""}
+            >
+              <option value="">No event</option>
+              {bootstrap.events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.title}
                 </option>
               ))}
             </select>
@@ -108,6 +251,20 @@ export function TaskEditorModal({
               ))}
             </select>
           </label>
+          <div className="field modal-wide" style={{ gap: "6px" }}>
+            <span style={{ color: "var(--text-title)" }}>Task traceability</span>
+            <small style={{ color: "var(--text-copy)" }}>
+              {(taskDraft.disciplineId ? disciplinesById[taskDraft.disciplineId]?.name : null) ?? "No discipline"}
+              {" · "}
+              {(taskDraft.requirementId ? requirementsById[taskDraft.requirementId]?.moscowPriority : null) ?? "No requirement"}
+              {" · "}
+              {(taskDraft.mechanismId ? mechanismsById[taskDraft.mechanismId]?.name : null) ?? "No mechanism"}
+              {" · "}
+              {(taskDraft.partInstanceId ? partInstancesById[taskDraft.partInstanceId]?.name : null) ?? "No part instance"}
+              {" · "}
+              {(taskDraft.targetEventId ? eventsById[taskDraft.targetEventId]?.title : null) ?? "No event"}
+            </small>
+          </div>
           <label className="field">
             <span style={{ color: "var(--text-title)" }}>Mentor</span>
             <select
@@ -510,6 +667,12 @@ export function ManufacturingEditorModal({
     "PLA - Black", "PLA - Blue", "PETG", "TPU",
     "Delrin", "Wood"
   ];
+  const materialOptions = bootstrap.materials.length > 0
+    ? bootstrap.materials
+    : COMMON_MATERIALS.map((name) => ({ id: name, name }));
+  const filteredPartInstances = bootstrap.partInstances.filter(
+    (partInstance) => partInstance.subsystemId === manufacturingDraft.subsystemId,
+  );
 
   return (
     <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
@@ -548,10 +711,17 @@ export function ManufacturingEditorModal({
             <span style={{ color: "var(--text-title)" }}>Subsystem</span>
             <select
               onChange={(event) =>
-                setManufacturingDraft((current) => ({
-                  ...current,
-                  subsystemId: event.target.value,
-                }))
+                setManufacturingDraft((current) => {
+                  const subsystemId = event.target.value;
+                  return {
+                    ...current,
+                    subsystemId,
+                    partInstanceId:
+                      bootstrap.partInstances.find(
+                        (partInstance) => partInstance.subsystemId === subsystemId,
+                      )?.id ?? null,
+                  };
+                })
               }
               style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={manufacturingDraft.subsystemId}
@@ -617,19 +787,42 @@ export function ManufacturingEditorModal({
           <label className="field">
             <span style={{ color: "var(--text-title)" }}>Material</span>
             <select
+              onChange={(event) => {
+                const selectedId = event.target.value;
+                const material = bootstrap.materials.find((item) => item.id === selectedId);
+                setManufacturingDraft((current) => ({
+                  ...current,
+                  materialId: material?.id ?? null,
+                  material: material?.name ?? selectedId,
+                }));
+              }}
+              required
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              value={manufacturingDraft.materialId ?? manufacturingDraft.material}
+            >
+              <option value="">Select material...</option>
+              {materialOptions.map((material) => (
+                <option key={material.id} value={material.id}>{material.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Part instance</span>
+            <select
               onChange={(event) =>
                 setManufacturingDraft((current) => ({
                   ...current,
-                  material: event.target.value,
+                  partInstanceId: event.target.value || null,
                 }))
               }
-              required
               style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={manufacturingDraft.material}
+              value={manufacturingDraft.partInstanceId ?? ""}
             >
-              <option value="">Select material...</option>
-              {COMMON_MATERIALS.map(m => (
-                <option key={m} value={m}>{m}</option>
+              <option value="">No linked part</option>
+              {filteredPartInstances.map((partInstance) => (
+                <option key={partInstance.id} value={partInstance.id}>
+                  {partInstance.name}
+                </option>
               ))}
             </select>
           </label>
@@ -716,6 +909,251 @@ export function ManufacturingEditorModal({
                   ? "Add job"
                   : "Save changes"}
             </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+interface MaterialEditorModalProps {
+  closeMaterialModal: () => void;
+  handleMaterialSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  isSavingMaterial: boolean;
+  materialDraft: MaterialPayload;
+  materialModalMode: "create" | "edit";
+  setMaterialDraft: Dispatch<SetStateAction<MaterialPayload>>;
+}
+
+export function MaterialEditorModal({
+  closeMaterialModal,
+  handleMaterialSubmit,
+  isSavingMaterial,
+  materialDraft,
+  materialModalMode,
+  setMaterialDraft,
+}: MaterialEditorModalProps) {
+  return (
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
+      <section aria-modal="true" className="modal-card" role="dialog" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}>
+        <div className="panel-header compact-header">
+          <div>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>Material editor</p>
+            <h2 style={{ color: "var(--text-title)" }}>{materialModalMode === "create" ? "Add material" : "Edit material"}</h2>
+          </div>
+          <button className="icon-button" onClick={closeMaterialModal} type="button" style={{ color: "var(--text-copy)", background: "transparent" }}>Close</button>
+        </div>
+        <form className="modal-form" onSubmit={handleMaterialSubmit} style={{ color: "var(--text-copy)" }}>
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Name</span>
+            <input onChange={(event) => setMaterialDraft((current) => ({ ...current, name: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={materialDraft.name} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Category</span>
+            <select onChange={(event) => setMaterialDraft((current) => ({ ...current, category: event.target.value as MaterialPayload["category"] }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={materialDraft.category}>
+              <option value="metal">Metal</option>
+              <option value="plastic">Plastic</option>
+              <option value="filament">Filament</option>
+              <option value="electronics">Electronics</option>
+              <option value="hardware">Hardware</option>
+              <option value="consumable">Consumable</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Unit</span>
+            <input onChange={(event) => setMaterialDraft((current) => ({ ...current, unit: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={materialDraft.unit} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>On hand</span>
+            <input min="0" onChange={(event) => setMaterialDraft((current) => ({ ...current, onHandQuantity: Number(event.target.value) }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="number" value={materialDraft.onHandQuantity} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Reorder point</span>
+            <input min="0" onChange={(event) => setMaterialDraft((current) => ({ ...current, reorderPoint: Number(event.target.value) }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="number" value={materialDraft.reorderPoint} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Location</span>
+            <input onChange={(event) => setMaterialDraft((current) => ({ ...current, location: event.target.value }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={materialDraft.location} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Vendor</span>
+            <input onChange={(event) => setMaterialDraft((current) => ({ ...current, vendor: event.target.value }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={materialDraft.vendor} />
+          </label>
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Notes</span>
+            <textarea onChange={(event) => setMaterialDraft((current) => ({ ...current, notes: event.target.value }))} rows={3} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={materialDraft.notes} />
+          </label>
+          <div className="modal-actions modal-wide">
+            <button className="secondary-action" onClick={closeMaterialModal} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="button">Cancel</button>
+            <button className="primary-action" disabled={isSavingMaterial} type="submit">{isSavingMaterial ? "Saving..." : materialModalMode === "create" ? "Add material" : "Save changes"}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+interface PartDefinitionEditorModalProps {
+  bootstrap: BootstrapPayload;
+  closePartDefinitionModal: () => void;
+  handlePartDefinitionSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  isSavingPartDefinition: boolean;
+  partDefinitionDraft: PartDefinitionPayload;
+  partDefinitionModalMode: "create" | "edit";
+  setPartDefinitionDraft: Dispatch<SetStateAction<PartDefinitionPayload>>;
+}
+
+export function PartDefinitionEditorModal({
+  bootstrap,
+  closePartDefinitionModal,
+  handlePartDefinitionSubmit,
+  isSavingPartDefinition,
+  partDefinitionDraft,
+  partDefinitionModalMode,
+  setPartDefinitionDraft,
+}: PartDefinitionEditorModalProps) {
+  return (
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
+      <section aria-modal="true" className="modal-card" role="dialog" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}>
+        <div className="panel-header compact-header">
+          <div>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>Part definition editor</p>
+            <h2 style={{ color: "var(--text-title)" }}>{partDefinitionModalMode === "create" ? "Add part definition" : "Edit part definition"}</h2>
+          </div>
+          <button className="icon-button" onClick={closePartDefinitionModal} type="button" style={{ color: "var(--text-copy)", background: "transparent" }}>Close</button>
+        </div>
+        <form className="modal-form" onSubmit={handlePartDefinitionSubmit} style={{ color: "var(--text-copy)" }}>
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Name</span>
+            <input onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, name: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.name} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Part number</span>
+            <input onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, partNumber: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.partNumber} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Revision</span>
+            <input onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, revision: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.revision} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Type</span>
+            <input onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, type: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.type} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Source</span>
+            <input onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, source: event.target.value }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.source} />
+          </label>
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Default material</span>
+            <select onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, materialId: event.target.value || null }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.materialId ?? ""}>
+              <option value="">No material</option>
+              {bootstrap.materials.map((material) => <option key={material.id} value={material.id}>{material.name}</option>)}
+            </select>
+          </label>
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Description</span>
+            <textarea onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, description: event.target.value }))} rows={3} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.description} />
+          </label>
+          <div className="modal-actions modal-wide">
+            <button className="secondary-action" onClick={closePartDefinitionModal} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="button">Cancel</button>
+            <button className="primary-action" disabled={isSavingPartDefinition} type="submit">{isSavingPartDefinition ? "Saving..." : partDefinitionModalMode === "create" ? "Add part" : "Save changes"}</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+interface PartInstanceEditorModalProps {
+  bootstrap: BootstrapPayload;
+  closePartInstanceModal: () => void;
+  handlePartInstanceSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  isSavingPartInstance: boolean;
+  partDefinitionDraftsById: Record<string, BootstrapPayload["partDefinitions"][number]>;
+  partInstanceDraft: PartInstancePayload;
+  partInstanceModalMode: "create" | "edit";
+  setPartInstanceDraft: Dispatch<SetStateAction<PartInstancePayload>>;
+}
+
+export function PartInstanceEditorModal({
+  bootstrap,
+  closePartInstanceModal,
+  handlePartInstanceSubmit,
+  isSavingPartInstance,
+  partDefinitionDraftsById,
+  partInstanceDraft,
+  partInstanceModalMode,
+  setPartInstanceDraft,
+}: PartInstanceEditorModalProps) {
+  const filteredMechanisms = bootstrap.mechanisms.filter(
+    (mechanism) => mechanism.subsystemId === partInstanceDraft.subsystemId,
+  );
+
+  return (
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
+      <section aria-modal="true" className="modal-card" role="dialog" style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}>
+        <div className="panel-header compact-header">
+          <div>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>Part instance editor</p>
+            <h2 style={{ color: "var(--text-title)" }}>{partInstanceModalMode === "create" ? "Add part instance" : "Edit part instance"}</h2>
+          </div>
+          <button className="icon-button" onClick={closePartInstanceModal} type="button" style={{ color: "var(--text-copy)", background: "transparent" }}>Close</button>
+        </div>
+        <form className="modal-form" onSubmit={handlePartInstanceSubmit} style={{ color: "var(--text-copy)" }}>
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Name</span>
+            <input onChange={(event) => setPartInstanceDraft((current) => ({ ...current, name: event.target.value }))} placeholder={partDefinitionDraftsById[partInstanceDraft.partDefinitionId]?.name ?? "Installed part name"} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partInstanceDraft.name} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Part definition</span>
+            <select onChange={(event) => setPartInstanceDraft((current) => ({ ...current, partDefinitionId: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partInstanceDraft.partDefinitionId}>
+              {bootstrap.partDefinitions.map((partDefinition) => <option key={partDefinition.id} value={partDefinition.id}>{partDefinition.partNumber} - {partDefinition.name}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Subsystem</span>
+            <select onChange={(event) => setPartInstanceDraft((current) => {
+              const subsystemId = event.target.value;
+              return {
+                ...current,
+                subsystemId,
+                mechanismId: bootstrap.mechanisms.find((mechanism) => mechanism.subsystemId === subsystemId)?.id ?? null,
+              };
+            })} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partInstanceDraft.subsystemId}>
+              {bootstrap.subsystems.map((subsystem) => <option key={subsystem.id} value={subsystem.id}>{subsystem.name}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Mechanism</span>
+            <select onChange={(event) => setPartInstanceDraft((current) => ({ ...current, mechanismId: event.target.value || null }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partInstanceDraft.mechanismId ?? ""}>
+              <option value="">No mechanism</option>
+              {filteredMechanisms.map((mechanism) => <option key={mechanism.id} value={mechanism.id}>{mechanism.name}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Quantity</span>
+            <input min="1" onChange={(event) => setPartInstanceDraft((current) => ({ ...current, quantity: Number(event.target.value) }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="number" value={partInstanceDraft.quantity} />
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Status</span>
+            <select onChange={(event) => setPartInstanceDraft((current) => ({ ...current, status: event.target.value as PartInstancePayload["status"] }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partInstanceDraft.status}>
+              <option value="planned">Planned</option>
+              <option value="needed">Needed</option>
+              <option value="available">Available</option>
+              <option value="installed">Installed</option>
+              <option value="retired">Retired</option>
+            </select>
+          </label>
+          <div className="checkbox-row modal-wide">
+            <label className="checkbox-field">
+              <input checked={partInstanceDraft.trackIndividually} onChange={(event) => setPartInstanceDraft((current) => ({ ...current, trackIndividually: event.target.checked }))} type="checkbox" />
+              <span style={{ color: "var(--text-title)" }}>Track each physical part separately</span>
+            </label>
+          </div>
+          <div className="modal-actions modal-wide">
+            <button className="secondary-action" onClick={closePartInstanceModal} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="button">Cancel</button>
+            <button className="primary-action" disabled={isSavingPartInstance} type="submit">{isSavingPartInstance ? "Saving..." : partInstanceModalMode === "create" ? "Add instance" : "Save changes"}</button>
           </div>
         </form>
       </section>

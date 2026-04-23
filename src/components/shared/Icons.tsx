@@ -7,6 +7,38 @@ export const IconPurchases = () => (
 export const IconManufacturing = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"></path></svg>
 );
+export const IconCnc = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="8 8 112 112" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+        <line x1="16" y1="12" x2="112" y2="12"></line>
+        <rect x="44" y="14" width="40" height="18" rx="3"></rect>
+        <line x1="52" y1="32" x2="52" y2="48"></line>
+        <line x1="76" y1="32" x2="76" y2="48"></line>
+        <path d="M44 48 H84 V60 L72 74 H56 L44 60 Z"></path>
+        <line x1="64" y1="74" x2="64" y2="104"></line>
+        <line x1="26" y1="78" x2="38" y2="96"></line>
+        <line x1="102" y1="78" x2="90" y2="96"></line>
+        <rect x="8" y="104" width="112" height="12" rx="2"></rect>
+    </svg>
+);
+export const IconParts = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+        <path d="M12 2 4.5 6v8L12 18l7.5-4V6L12 2Z"></path>
+        <path d="M4.5 6 12 10l7.5-4"></path>
+        <path d="M12 10v8"></path>
+    </svg>
+);
+export const Icon3DPrint = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 64 64" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+        <g strokeWidth="3">
+            <rect x="16" y="8" width="32" height="16" rx="3"></rect>
+            <path d="M24 24 L40 24 L34 36 L30 36 Z"></path>
+            <line x1="32" y1="36" x2="32" y2="41"></line>
+        </g>
+        <g strokeWidth="6">
+            <path d="M32 41 C32 49, 20 49, 20 55 L48 55"></path>
+        </g>
+    </svg>
+);
 export const IconRoster = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
 );

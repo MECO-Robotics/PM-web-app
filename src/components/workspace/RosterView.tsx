@@ -1,6 +1,6 @@
 import React from "react";
 import { IconEdit, IconPlus, IconTrash } from "../shared/Icons";
-import type { BootstrapPayload, MemberPayload } from "../../types";
+import type { BootstrapPayload, MemberPayload, MemberRecord } from "../../types";
 
 interface RosterViewProps {
     bootstrap: BootstrapPayload;
@@ -19,8 +19,8 @@ interface RosterViewProps {
     handleDeleteMember: (id: string) => void;
     isSavingMember: boolean;
     isDeletingMember: boolean;
-    students: any[];
-    rosterMentors: any[];
+    students: MemberRecord[];
+    rosterMentors: MemberRecord[];
 }
 
 export const RosterView: React.FC<RosterViewProps> = ({
@@ -58,7 +58,10 @@ export const RosterView: React.FC<RosterViewProps> = ({
     return (
         <section className="panel dense-panel roster-layout" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)", color: "var(--text-copy)" }}>
             <div className="panel-header compact-header">
-                <div><h2 style={{ color: "var(--text-title)" }}>Roster editor</h2></div>
+                <div className="queue-section-header">
+                    <h2 style={{ color: "var(--text-title)" }}>Roster editor</h2>
+                    <p className="section-copy" style={{ color: "var(--text-copy)" }}>Manage team members, permissions, and roles.</p>
+                </div>
             </div>
             <div className="roster-columns">
                 <div className="panel-subsection">
@@ -118,7 +121,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                                 </label>
                                 <label className="field">
                                     <span style={{ color: "var(--text-title)" }}>Role</span>
-                                    <select onChange={(e) => setMemberForm(curr => ({ ...curr, role: e.target.value as any }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={memberForm.role}>
+                                    <select onChange={(e) => setMemberForm(curr => ({ ...curr, role: e.target.value as MemberPayload["role"] }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={memberForm.role}>
                                         <option value="student">Student</option>
                                         <option value="mentor">Mentor</option>
                                         <option value="admin">Admin</option>
@@ -141,7 +144,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                                     </label>
                                     <label className="field">
                                         <span style={{ color: "var(--text-title)" }}>Role</span>
-                                        <select onChange={(e) => setMemberEditDraft(curr => curr ? { ...curr, role: e.target.value as any } : null)} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={memberEditDraft.role}>
+                                        <select onChange={(e) => setMemberEditDraft(curr => curr ? { ...curr, role: e.target.value as MemberPayload["role"] } : null)} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={memberEditDraft.role}>
                                             <option value="student">Student</option>
                                             <option value="mentor">Mentor</option>
                                             <option value="admin">Admin</option>

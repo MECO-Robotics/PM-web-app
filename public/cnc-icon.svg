@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 8 112 112" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- top rail -->
+  <line x1="16" y1="12" x2="112" y2="12"></line>
+
+  <!-- carriage -->
+  <rect x="44" y="14" width="40" height="18"></rect>
+
+  <!-- vertical supports -->
+  <line x1="52" y1="32" x2="52" y2="48"></line>
+  <line x1="76" y1="32" x2="76" y2="48"></line>
+
+  <!-- nozzle block (centered + symmetric) -->
+  <path d="M44 48 H84 V60 L72 74 H56 L44 60 Z"></path>
+
+  <!-- filament (centered) -->
+  <line x1="64" y1="74" x2="64" y2="104"></line>
+
+  <!-- simplified motion lines -->
+  <line x1="26" y1="78" x2="38" y2="96"></line>
+  <line x1="102" y1="78" x2="90" y2="96"></line>
+
+  <!-- bed -->
+  <rect x="8" y="104" width="112" height="12" rx="2"></rect>
+</svg>

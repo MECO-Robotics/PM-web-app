@@ -1,15 +1,34 @@
 import { useState, useMemo, type Dispatch, type FormEvent, type ReactNode, type SetStateAction } from "react";
 import { RosterView } from "./RosterView";
 import { TimelineView } from "./TimelineView";
+import { PartsView } from "./PartsView";
 import { IconManufacturing, IconPerson, IconTasks } from "../shared/Icons";
 import { formatCurrency, formatDate } from "../../lib/appUtils";
 import type {
   BootstrapPayload,
   ManufacturingItemRecord,
+  MaterialRecord,
   MemberPayload,
+  PartDefinitionRecord,
   PurchaseItemRecord,
   TaskRecord,
 } from "../../types";
+
+function TableCell({
+  label,
+  valueClassName,
+  children,
+}: {
+  label: string;
+  valueClassName?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span className="table-cell" data-label={label}>
+      <span className={`table-cell-value${valueClassName ? ` ${valueClassName}` : ""}`}>{children}</span>
+    </span>
+  );
+}
 
 interface WorkspaceContentProps {
   activePersonFilter: string;
@@ -20,25 +39,34 @@ interface WorkspaceContentProps {
   handleCreateMember: (event: FormEvent<HTMLFormElement>) => void;
   handleDeleteMember: (id: string) => void;
   handleUpdateMember: (event: FormEvent<HTMLFormElement>) => void;
+  disciplinesById: Record<string, BootstrapPayload["disciplines"][number]>;
+  eventsById: Record<string, BootstrapPayload["events"][number]>;
   isAddPersonOpen: boolean;
+  isDeletingMaterial: boolean;
+  isDeletingPartDefinition: boolean;
   isDeletingMember: boolean;
   isEditPersonOpen: boolean;
   isLoadingData: boolean;
   isSavingMember: boolean;
+  handleDeleteMaterial: (id: string) => void;
+  handleDeletePartDefinition: (id: string) => void;
   memberEditDraft: MemberPayload | null;
   memberForm: MemberPayload;
   membersById: Record<string, BootstrapPayload["members"][number]>;
   openCreateManufacturingModal: (process: "cnc" | "3d-print" | "fabrication") => void;
+  openCreateMaterialModal: () => void;
+  openCreatePartDefinitionModal: () => void;
   openCreatePurchaseModal: () => void;
   openCreateTaskModal: () => void;
   openEditManufacturingModal: (item: ManufacturingItemRecord) => void;
+  openEditMaterialModal: (item: MaterialRecord) => void;
+  openEditPartDefinitionModal: (item: PartDefinitionRecord) => void;
   openEditPurchaseModal: (item: PurchaseItemRecord) => void;
   openEditTaskModal: (task: TaskRecord) => void;
   printItems: ManufacturingItemRecord[];
-  purchaseSummary: {
-    delivered: number;
-    totalEstimated: number;
-  };
+  mechanismsById: Record<string, BootstrapPayload["mechanisms"][number]>;
+  partDefinitionsById: Record<string, BootstrapPayload["partDefinitions"][number]>;
+  partInstancesById: Record<string, BootstrapPayload["partInstances"][number]>;
   renderItemMeta: (
     item: PurchaseItemRecord | ManufacturingItemRecord,
     membersById: Record<string, BootstrapPayload["members"][number]>,
@@ -51,7 +79,9 @@ interface WorkspaceContentProps {
   setIsEditPersonOpen: (open: boolean) => void;
   setMemberEditDraft: Dispatch<SetStateAction<MemberPayload | null>>;
   setMemberForm: Dispatch<SetStateAction<MemberPayload>>;
+  setActivePersonFilter: (value: string) => void;
   students: BootstrapPayload["members"];
+  requirementsById: Record<string, BootstrapPayload["requirements"][number]>;
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
 }
 
@@ -74,18 +104,12 @@ function FilterDropdown({
   const isActive = value !== "all";
   return (
     <label
-      className="toolbar-filter toolbar-filter-compact"
-      style={isActive ? { background: "var(--meco-soft-blue)", borderColor: "var(--meco-blue)" } : { background: "var(--bg-row-alt)", border: "1px solid var(--border-base)" }}
+      className={`toolbar-filter toolbar-filter-compact${isActive ? " is-active" : ""}`}
     >
-      <span className="toolbar-filter-icon" style={isActive ? { color: "var(--meco-blue)" } : { color: "var(--text-copy)" }}>{icon}</span>
+      <span className="toolbar-filter-icon">{icon}</span>
       <select
         onChange={(e) => onChange(e.target.value)}
         value={value}
-        style={{
-          color: isActive ? "var(--text-title)" : "var(--text-copy)",
-          fontWeight: isActive ? "600" : "400",
-          background: "inherit",
-        }}
       >
         <option value="all">{allLabel}</option>
         {options.map((opt) => (
@@ -105,22 +129,34 @@ export function WorkspaceContent({
   handleCreateMember,
   handleDeleteMember,
   handleUpdateMember,
+  disciplinesById,
+  eventsById,
   isAddPersonOpen,
+  isDeletingMaterial,
+  isDeletingPartDefinition,
   isDeletingMember,
   isEditPersonOpen,
   isLoadingData,
   isSavingMember,
+  handleDeleteMaterial,
+  handleDeletePartDefinition,
   memberEditDraft,
   memberForm,
   membersById,
   openCreateManufacturingModal,
+  openCreateMaterialModal,
+  openCreatePartDefinitionModal,
   openCreatePurchaseModal,
   openCreateTaskModal,
   openEditManufacturingModal,
+  openEditMaterialModal,
+  openEditPartDefinitionModal,
   openEditPurchaseModal,
   openEditTaskModal,
   printItems,
-  purchaseSummary,
+  mechanismsById,
+  partDefinitionsById,
+  partInstancesById,
   renderItemMeta,
   rosterMentors,
   selectMember,
@@ -129,7 +165,9 @@ export function WorkspaceContent({
   setIsEditPersonOpen,
   setMemberEditDraft,
   setMemberForm,
+  setActivePersonFilter,
   students,
+  requirementsById,
   subsystemsById,
 }: WorkspaceContentProps) {
   const [queueSortField, setQueueSortField] = useState<string>("dueDate");
@@ -155,11 +193,15 @@ export function WorkspaceContent({
   const [mfgStatus, setMfgStatus] = useState("all");
   const [mfgMaterial, setMfgMaterial] = useState("all");
   const [materialSearch, setMaterialSearch] = useState("");
+  const [materialCategory, setMaterialCategory] = useState("all");
+  const [materialStock, setMaterialStock] = useState("all");
 
   const uniqueMaterials = useMemo(() => {
-    const materials = bootstrap.manufacturingItems.map((item) => item.material);
+    const materials = bootstrap.materials.length > 0
+      ? bootstrap.materials.map((item) => item.name)
+      : bootstrap.manufacturingItems.map((item) => item.material);
     return Array.from(new Set(materials)).sort();
-  }, [bootstrap.manufacturingItems]);
+  }, [bootstrap.manufacturingItems, bootstrap.materials]);
 
   const uniqueVendors = useMemo(() => {
     const vendors = bootstrap.purchaseItems.map((item) => item.vendor);
@@ -264,29 +306,37 @@ export function WorkspaceContent({
 
     const PRIORITY_VALS: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
     const STATUS_VALS: Record<string, number> = { "not-started": 1, "in-progress": 2, "waiting-for-qa": 3, complete: 4 };
+    const readSortValue = (task: TaskRecord): string | number => {
+      if (queueSortField === "priority") {
+        return PRIORITY_VALS[task.priority] || 0;
+      }
+
+      if (queueSortField === "status") {
+        return STATUS_VALS[task.status] || 0;
+      }
+
+      if (queueSortField === "subsystemId") {
+        return subsystemsById[task.subsystemId]?.name ?? "";
+      }
+
+      if (queueSortField === "ownerId") {
+        return membersById[task.ownerId ?? ""]?.name ?? "";
+      }
+
+      if (queueSortField === "title") {
+        return task.title.toLowerCase();
+      }
+
+      if (queueSortField === "dueDate") {
+        return task.dueDate;
+      }
+
+      return "";
+    };
 
     return result.sort((a, b) => {
-      let aVal: any;
-      let bVal: any;
-
-      if (queueSortField === "priority") {
-        aVal = PRIORITY_VALS[a.priority] || 0;
-        bVal = PRIORITY_VALS[b.priority] || 0;
-      } else if (queueSortField === "status") {
-        aVal = STATUS_VALS[a.status] || 0;
-        bVal = STATUS_VALS[b.status] || 0;
-      } else if (queueSortField === "subsystemId") {
-        aVal = subsystemsById[a.subsystemId ?? ""]?.name ?? "";
-        bVal = subsystemsById[b.subsystemId ?? ""]?.name ?? "";
-      } else if (queueSortField === "ownerId") {
-        aVal = membersById[a.ownerId ?? ""]?.name ?? "";
-        bVal = membersById[b.ownerId ?? ""]?.name ?? "";
-      } else {
-        aVal = (a as any)[queueSortField] ?? "";
-        if (typeof aVal === "string") aVal = aVal.toLowerCase();
-        bVal = (b as any)[queueSortField] ?? "";
-        if (typeof bVal === "string") bVal = bVal.toLowerCase();
-      }
+      const aVal = readSortValue(a);
+      const bVal = readSortValue(b);
 
       if (aVal < bVal) return queueSortOrder === "asc" ? -1 : 1;
       if (aVal > bVal) return queueSortOrder === "asc" ? 1 : -1;
@@ -332,25 +382,29 @@ export function WorkspaceContent({
   }, [printItems, mfgSearch, mfgSubsystem, mfgRequester, mfgStatus, mfgMaterial]);
 
   const filteredMaterials = useMemo(() => {
-    return uniqueMaterials.filter(m => !materialSearch || m.toLowerCase().includes(materialSearch.toLowerCase()));
-  }, [uniqueMaterials, materialSearch]);
+    return bootstrap.materials.filter((material) => {
+      const search = materialSearch.toLowerCase();
+      const matchesSearch = !search ||
+        material.name.toLowerCase().includes(search) ||
+        material.vendor.toLowerCase().includes(search) ||
+        material.location.toLowerCase().includes(search);
+      const matchesCategory = materialCategory === "all" || material.category === materialCategory;
+      const matchesStock = materialStock === "all" ||
+        (materialStock === "low"
+          ? material.onHandQuantity <= material.reorderPoint
+          : material.onHandQuantity > material.reorderPoint);
+      return matchesSearch && matchesCategory && matchesStock;
+    });
+  }, [bootstrap.materials, materialCategory, materialSearch, materialStock]);
 
   const renderSearchInput = (value: string, onChange: (val: string) => void, placeholder: string) => {
     const isActive = value.trim() !== "";
     return (
       <div
-        className="toolbar-filter toolbar-filter-compact"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "0 8px",
-          background: isActive ? "var(--meco-soft-blue)" : "var(--bg-row-alt)",
-          border: isActive ? "1px solid var(--meco-blue)" : "1px solid var(--border-base)",
-          borderRadius: "6px"
-        }}
+        className={`toolbar-filter toolbar-filter-compact toolbar-search${isActive ? " is-active" : ""}`}
       >
-        <span style={{ color: isActive ? "var(--meco-blue)" : "var(--text-copy)", display: "flex", alignItems: "center", marginRight: "4px" }}><IconTasks /></span>
-        <input onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={{ border: "none", outline: "none", fontSize: "0.85rem", padding: "6px 0", width: "120px", background: "inherit", color: isActive ? "var(--text-title)" : "var(--text-copy)" }} type="text" value={value} />
+        <span className="toolbar-filter-icon"><IconTasks /></span>
+        <input className="toolbar-search-input" onChange={(e) => onChange(e.target.value)} placeholder={placeholder} type="text" value={value} />
       </div>
     );
   };
@@ -362,9 +416,12 @@ export function WorkspaceContent({
 
   return (
     <div
-      className="dense-shell with-sidebar"
+      className="dense-shell"
       style={{
         padding: 0,
+        margin: 0,
+        maxWidth: "none",
+        width: "100%",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
@@ -382,13 +439,14 @@ export function WorkspaceContent({
           membersById={membersById}
           openCreateTaskModal={openCreateTaskModal}
           openEditTaskModal={openEditTaskModal}
+          setActivePersonFilter={setActivePersonFilter}
         />
       ) : null}
 
       {activeTab === "queue" ? (
         <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
-            <div>
+            <div className="queue-section-header">
               <h2 style={{ color: "var(--text-title)" }}>Task queue</h2>
               <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                 {activePersonFilter === "all"
@@ -396,10 +454,7 @@ export function WorkspaceContent({
                   : `Only tasks owned by or mentored by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
               </p>
             </div>
-            <div
-              className="panel-actions"
-              style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}
-            >
+            <div className="panel-actions filter-toolbar queue-toolbar materials-toolbar">
               {renderSearchInput(queueSearchFilter, setQueueSearchFilter, "Search tasks...")}
 
               <FilterDropdown
@@ -439,19 +494,19 @@ export function WorkspaceContent({
                 value={queuePriorityFilter}
               />
 
-              <button className="primary-action" onClick={openCreateTaskModal} type="button">
-                New task
+              <button aria-label="Add task" className="primary-action queue-toolbar-action" onClick={openCreateTaskModal} title="Add task" type="button">
+                Add task
               </button>
             </div>
           </div>
           <div className="table-shell">
             <div className="queue-table queue-table-header" style={{ gridTemplateColumns: queueGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)" }}>
-              <span onClick={() => toggleSort("title")} style={{ cursor: "pointer" }}>Task{getSortIcon("title")}</span>
-              {showSubsystemCol && <span onClick={() => toggleSort("subsystemId")} style={{ cursor: "pointer" }}>Subsystem{getSortIcon("subsystemId")}</span>}
-              {showOwnerCol && <span onClick={() => toggleSort("ownerId")} style={{ cursor: "pointer" }}>Owner{getSortIcon("ownerId")}</span>}
-              {showStatusCol && <span onClick={() => toggleSort("status")} style={{ cursor: "pointer" }}>Status{getSortIcon("status")}</span>}
-              <span onClick={() => toggleSort("dueDate")} style={{ cursor: "pointer" }}>Due{getSortIcon("dueDate")}</span>
-              {showPriorityCol && <span onClick={() => toggleSort("priority")} style={{ cursor: "pointer" }}>Priority{getSortIcon("priority")}</span>}
+              <button className="table-sort-button" onClick={() => toggleSort("title")} type="button">Task{getSortIcon("title")}</button>
+              {showSubsystemCol && <button className="table-sort-button" onClick={() => toggleSort("subsystemId")} type="button">Subsystem{getSortIcon("subsystemId")}</button>}
+              {showOwnerCol && <button className="table-sort-button" onClick={() => toggleSort("ownerId")} type="button">Owner{getSortIcon("ownerId")}</button>}
+              {showStatusCol && <button className="table-sort-button" onClick={() => toggleSort("status")} type="button">Status{getSortIcon("status")}</button>}
+              <button className="table-sort-button" onClick={() => toggleSort("dueDate")} type="button">Due{getSortIcon("dueDate")}</button>
+              {showPriorityCol && <button className="table-sort-button" onClick={() => toggleSort("priority")} type="button">Priority{getSortIcon("priority")}</button>}
             </div>
             {processedTasks.map((task) => (
               <button
@@ -461,15 +516,31 @@ export function WorkspaceContent({
                 style={{ gridTemplateColumns: queueGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)", marginBottom: "1px" }}
                 type="button"
               >
-                <span className="queue-title" style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+                <span className="queue-title table-cell table-cell-primary" data-label="Task" style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
                   <strong style={{ color: "var(--text-title)" }}>{task.title}</strong>
                   <small style={{ color: "var(--text-copy)" }}>{task.summary}</small>
+                  <small style={{ color: "var(--text-copy)" }}>
+                    {(task.disciplineId ? disciplinesById[task.disciplineId]?.name : null) ?? "No discipline"}
+                    {" · "}
+                    {(task.mechanismId ? mechanismsById[task.mechanismId]?.name : null) ?? "No mechanism"}
+                    {" · "}
+                    {(task.partInstanceId
+                      ? partInstancesById[task.partInstanceId]?.name ??
+                      partDefinitionsById[partInstancesById[task.partInstanceId]?.partDefinitionId ?? ""]?.name
+                      : null) ?? "No part"}
+                    {task.requirementId
+                      ? ` · ${requirementsById[task.requirementId]?.moscowPriority ?? ""} requirement`
+                      : ""}
+                    {task.targetEventId
+                      ? ` · target ${eventsById[task.targetEventId]?.title ?? "event"}`
+                      : ""}
+                  </small>
                 </span>
-                {showSubsystemCol && <span style={{ color: "var(--text-copy)" }}>{(task.subsystemId ? subsystemsById[task.subsystemId]?.name : null) ?? "Unknown"}</span>}
-                {showOwnerCol && <span style={{ color: "var(--text-copy)" }}>{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</span>}
-                {showStatusCol && <span style={getPillStyle(task.status)}>{task.status.replace("-", " ")}</span>}
-                <span>{formatDate(task.dueDate)}</span>
-                {showPriorityCol && <span style={getPillStyle(task.priority)}>{task.priority}</span>}
+                {showSubsystemCol && <TableCell label="Subsystem">{(task.subsystemId ? subsystemsById[task.subsystemId]?.name : null) ?? "Unknown"}</TableCell>}
+                {showOwnerCol && <TableCell label="Owner">{(task.ownerId ? membersById[task.ownerId]?.name : null) ?? "Unassigned"}</TableCell>}
+                {showStatusCol && <TableCell label="Status" valueClassName="table-cell-pill"><span style={getPillStyle(task.status)}>{task.status.replace("-", " ")}</span></TableCell>}
+                <TableCell label="Due">{formatDate(task.dueDate)}</TableCell>
+                {showPriorityCol && <TableCell label="Priority" valueClassName="table-cell-pill"><span style={getPillStyle(task.priority)}>{task.priority}</span></TableCell>}
               </button>
             ))}
           </div>
@@ -479,7 +550,7 @@ export function WorkspaceContent({
       {activeTab === "purchases" ? (
         <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
-            <div>
+            <div className="queue-section-header">
               <h2 style={{ color: "var(--text-title)" }}>Purchase list</h2>
               <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                 {activePersonFilter === "all"
@@ -487,7 +558,7 @@ export function WorkspaceContent({
                   : `Only requests submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
               </p>
             </div>
-            <div className="panel-actions" style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
+            <div className="panel-actions filter-toolbar queue-toolbar purchase-toolbar" style={{ justifyContent: "flex-start" }}>
               {renderSearchInput(purchaseSearch, setPurchaseSearch, "Search items...")}
 
               <FilterDropdown
@@ -522,7 +593,7 @@ export function WorkspaceContent({
 
               <FilterDropdown
                 allLabel="All vendors"
-                icon={<IconManufacturing />}
+                icon={<IconTasks />}
                 onChange={setPurchaseVendor}
                 options={uniqueVendors.map(v => ({ id: v, name: v }))}
                 value={purchaseVendor}
@@ -539,19 +610,11 @@ export function WorkspaceContent({
                 value={purchaseApproval}
               />
 
-              <div className="mini-summary-row" style={{ gap: "8px" }}>
-                <div className="mini-chip" style={{ background: "var(--meco-soft-blue)", border: "1px solid var(--meco-blue)" }}>
-                  <span style={{ color: "var(--meco-blue)" }}>Estimated</span>
-                  <strong style={{ color: "var(--text-title)" }}>{formatCurrency(purchaseSummary.totalEstimated)}</strong>
-                </div>
-                <div className="mini-chip" style={{ background: "var(--bg-row-alt)", border: "1px solid var(--border-base)" }}>
-                  <span style={{ color: "var(--text-copy)" }}>Delivered</span>
-                  <strong style={{ color: "var(--text-title)" }}>{purchaseSummary.delivered}</strong>
-                </div>
-              </div>
               <button
-                className="primary-action"
+                aria-label="Add purchase"
+                className="primary-action queue-toolbar-action"
                 onClick={openCreatePurchaseModal}
+                title="Add purchase"
                 type="button"
               >
                 Add purchase
@@ -576,15 +639,15 @@ export function WorkspaceContent({
                 style={{ gridTemplateColumns: purchaseGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)", marginBottom: "1px" }}
                 type="button"
               >
-                <span className="queue-title" style={{ textAlign: "left" }}>
+                <span className="queue-title table-cell table-cell-primary" data-label="Item" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                {purchaseVendor === "all" && <span style={{ color: "var(--text-copy)" }}>{item.vendor}</span>}
-                <span style={{ color: "var(--text-copy)" }}>{item.quantity}</span>
-                {purchaseStatus === "all" && <span style={getPillStyle(item.status)}>{item.status}</span>}
-                {purchaseApproval === "all" && <span style={getPillStyle(item.approvedByMentor ? "approved" : "waiting")}>{item.approvedByMentor ? "Approved" : "Waiting"}</span>}
-                <span>{formatCurrency(item.estimatedCost)}</span>
-                <span>{formatCurrency(item.finalCost)}</span>
+                {purchaseVendor === "all" && <TableCell label="Vendor">{item.vendor}</TableCell>}
+                <TableCell label="Qty">{item.quantity}</TableCell>
+                {purchaseStatus === "all" && <TableCell label="Status" valueClassName="table-cell-pill"><span style={getPillStyle(item.status)}>{item.status}</span></TableCell>}
+                {purchaseApproval === "all" && <TableCell label="Mentor" valueClassName="table-cell-pill"><span style={getPillStyle(item.approvedByMentor ? "approved" : "waiting")}>{item.approvedByMentor ? "Approved" : "Waiting"}</span></TableCell>}
+                <TableCell label="Est.">{formatCurrency(item.estimatedCost)}</TableCell>
+                <TableCell label="Final">{formatCurrency(item.finalCost)}</TableCell>
               </button>
             ))}
           </div>
@@ -594,7 +657,7 @@ export function WorkspaceContent({
       {activeTab === "cnc" ? (
         <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
-            <div>
+            <div className="queue-section-header">
               <h2 style={{ color: "var(--text-title)" }}>CNC queue</h2>
               <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                 {activePersonFilter === "all"
@@ -602,7 +665,7 @@ export function WorkspaceContent({
                   : `Only CNC jobs submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
               </p>
             </div>
-            <div className="panel-actions" style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
+            <div className="panel-actions filter-toolbar queue-toolbar" style={{ justifyContent: "flex-start" }}>
               {renderSearchInput(mfgSearch, setMfgSearch, "Search parts...")}
 
               <FilterDropdown
@@ -611,6 +674,14 @@ export function WorkspaceContent({
                 onChange={setMfgSubsystem}
                 options={bootstrap.subsystems}
                 value={mfgSubsystem}
+              />
+
+              <FilterDropdown
+                allLabel="All requesters"
+                icon={<IconPerson />}
+                onChange={setMfgRequester}
+                options={bootstrap.members}
+                value={mfgRequester}
               />
 
               <FilterDropdown
@@ -635,15 +706,11 @@ export function WorkspaceContent({
                 value={mfgStatus}
               />
 
-              <div className="mini-summary-row">
-                <div className="mini-chip" style={{ background: "var(--meco-soft-blue)", border: "1px solid var(--meco-blue)" }}>
-                  <span style={{ color: "var(--meco-blue)" }}>Open jobs</span>
-                  <strong style={{ color: "var(--text-title)" }}>{cncItems.length}</strong>
-                </div>
-              </div>
               <button
-                className="primary-action"
+                aria-label="Add CNC job"
+                className="primary-action queue-toolbar-action"
                 onClick={() => openCreateManufacturingModal("cnc")}
+                title="Add CNC job"
                 type="button"
               >
                 Add CNC job
@@ -668,15 +735,15 @@ export function WorkspaceContent({
                 style={{ gridTemplateColumns: mfgGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)", marginBottom: "1px" }}
                 type="button"
               >
-                <span className="queue-title" style={{ textAlign: "left" }}>
+                <span className="queue-title table-cell table-cell-primary" data-label="Part" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                {mfgMaterial === "all" && <span style={{ color: "var(--text-copy)" }}>{item.material}</span>}
-                <span style={{ color: "var(--text-copy)" }}>{item.quantity}</span>
-                <span style={{ color: "var(--text-copy)" }}>{item.batchLabel ?? "Unbatched"}</span>
-                <span style={{ color: "var(--text-copy)" }}>{formatDate(item.dueDate)}</span>
-                {mfgStatus === "all" && <span style={getPillStyle(item.status)}>{item.status.replace("-", " ")}</span>}
-                <span style={{ color: "var(--text-copy)" }}>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
+                {mfgMaterial === "all" && <TableCell label="Material">{item.material}</TableCell>}
+                <TableCell label="Qty">{item.quantity}</TableCell>
+                <TableCell label="Batch">{item.batchLabel ?? "Unbatched"}</TableCell>
+                <TableCell label="Due">{formatDate(item.dueDate)}</TableCell>
+                {mfgStatus === "all" && <TableCell label="Status" valueClassName="table-cell-pill"><span style={getPillStyle(item.status)}>{item.status.replace("-", " ")}</span></TableCell>}
+                <TableCell label="Mentor">{item.mentorReviewed ? "Reviewed" : "Pending"}</TableCell>
               </button>
             ))}
           </div>
@@ -686,7 +753,7 @@ export function WorkspaceContent({
       {activeTab === "prints" ? (
         <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
-            <div>
+            <div className="queue-section-header">
               <h2 style={{ color: "var(--text-title)" }}>3D print queue</h2>
               <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                 {activePersonFilter === "all"
@@ -694,7 +761,7 @@ export function WorkspaceContent({
                   : `Only print jobs submitted by ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
               </p>
             </div>
-            <div className="panel-actions" style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
+            <div className="panel-actions filter-toolbar queue-toolbar" style={{ justifyContent: "flex-start" }}>
               {renderSearchInput(mfgSearch, setMfgSearch, "Search parts...")}
 
               <FilterDropdown
@@ -703,6 +770,14 @@ export function WorkspaceContent({
                 onChange={setMfgSubsystem}
                 options={bootstrap.subsystems}
                 value={mfgSubsystem}
+              />
+
+              <FilterDropdown
+                allLabel="All requesters"
+                icon={<IconPerson />}
+                onChange={setMfgRequester}
+                options={bootstrap.members}
+                value={mfgRequester}
               />
 
               <FilterDropdown
@@ -727,15 +802,11 @@ export function WorkspaceContent({
                 value={mfgStatus}
               />
 
-              <div className="mini-summary-row">
-                <div className="mini-chip" style={{ background: "var(--meco-soft-blue)", border: "1px solid var(--meco-blue)" }}>
-                  <span style={{ color: "var(--meco-blue)" }}>Open jobs</span>
-                  <strong style={{ color: "var(--text-title)" }}>{printItems.length}</strong>
-                </div>
-              </div>
               <button
-                className="primary-action"
+                aria-label="Add print job"
+                className="primary-action queue-toolbar-action"
                 onClick={() => openCreateManufacturingModal("3d-print")}
+                title="Add print job"
                 type="button"
               >
                 Add print job
@@ -760,15 +831,15 @@ export function WorkspaceContent({
                 style={{ gridTemplateColumns: mfgGridTemplate, borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)", marginBottom: "1px" }}
                 type="button"
               >
-                <span className="queue-title" style={{ textAlign: "left" }}>
+                <span className="queue-title table-cell table-cell-primary" data-label="Part" style={{ textAlign: "left" }}>
                   {renderItemMeta(item, membersById, subsystemsById)}
                 </span>
-                {mfgMaterial === "all" && <span style={{ color: "var(--text-copy)" }}>{item.material}</span>}
-                <span style={{ color: "var(--text-copy)" }}>{item.quantity}</span>
-                <span style={{ color: "var(--text-copy)" }}>{item.batchLabel ?? "Unbatched"}</span>
-                <span style={{ color: "var(--text-copy)" }}>{formatDate(item.dueDate)}</span>
-                {mfgStatus === "all" && <span style={getPillStyle(item.status)}>{item.status.replace("-", " ")}</span>}
-                <span style={{ color: "var(--text-copy)" }}>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
+                {mfgMaterial === "all" && <TableCell label="Material">{item.material}</TableCell>}
+                <TableCell label="Qty">{item.quantity}</TableCell>
+                <TableCell label="Batch">{item.batchLabel ?? "Unbatched"}</TableCell>
+                <TableCell label="Due">{formatDate(item.dueDate)}</TableCell>
+                {mfgStatus === "all" && <TableCell label="Status" valueClassName="table-cell-pill"><span style={getPillStyle(item.status)}>{item.status.replace("-", " ")}</span></TableCell>}
+                <TableCell label="Mentor">{item.mentorReviewed ? "Reviewed" : "Pending"}</TableCell>
               </button>
             ))}
           </div>
@@ -801,38 +872,108 @@ export function WorkspaceContent({
       {activeTab === "materials" ? (
         <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)" }}>
           <div className="panel-header compact-header">
-            <div>
-              <h2 style={{ color: "var(--text-title)" }}>Materials inventory</h2>
-              <p className="section-copy" style={{ color: "var(--text-copy)" }}>Tracking materials currently assigned to manufacturing jobs.</p>
+            <div className="queue-section-header">
+              <h2 style={{ color: "var(--text-title)" }}>Materials manager</h2>
+              <p className="section-copy" style={{ color: "var(--text-copy)" }}>Inventory, reorder thresholds, vendors, and shop locations for build materials.</p>
             </div>
-            <div className="panel-actions">
+            <div className="panel-actions filter-toolbar queue-toolbar" style={{ justifyContent: "flex-start" }}>
               {renderSearchInput(materialSearch, setMaterialSearch, "Search materials...")}
+
+              <FilterDropdown
+                allLabel="All categories"
+                icon={<IconManufacturing />}
+                onChange={setMaterialCategory}
+                options={[
+                  { id: "metal", name: "Metal" },
+                  { id: "plastic", name: "Plastic" },
+                  { id: "filament", name: "Filament" },
+                  { id: "electronics", name: "Electronics" },
+                  { id: "hardware", name: "Hardware" },
+                  { id: "consumable", name: "Consumable" },
+                  { id: "other", name: "Other" },
+                ]}
+                value={materialCategory}
+              />
+
+              <FilterDropdown
+                allLabel="All stock"
+                icon={<IconTasks />}
+                onChange={setMaterialStock}
+                options={[
+                  { id: "ok", name: "Stock OK" },
+                  { id: "low", name: "Low stock" },
+                ]}
+                value={materialStock}
+              />
+
+              <button aria-label="Add material" className="primary-action queue-toolbar-action" onClick={openCreateMaterialModal} title="Add material" type="button">
+                Add material
+              </button>
             </div>
           </div>
           <div className="table-shell">
-            <div className="ops-table ops-table-header" style={{ gridTemplateColumns: "1fr 1fr 1fr", borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)" }}>
-              <span>Material Name</span>
-              <span>Job usage</span>
+            <div className="ops-table ops-table-header materials-table" style={{ gridTemplateColumns: "minmax(180px, 1.8fr) 0.8fr 0.8fr 0.8fr 1fr 1fr 0.8fr 0.6fr", borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)" }}>
+              <span style={{ textAlign: "left" }}>Material</span>
+              <span>Category</span>
+              <span>On hand</span>
+              <span>Reorder</span>
+              <span>Location</span>
+              <span>Vendor</span>
               <span>Status</span>
+              <span>Actions</span>
             </div>
             {filteredMaterials.map((material) => {
-              const jobCount = bootstrap.manufacturingItems.filter(i => i.material === material).length;
+              const isLow = material.onHandQuantity <= material.reorderPoint;
               return (
                 <div
-                  className="ops-table ops-row"
-                  key={material}
-                  style={{ gridTemplateColumns: "1fr 1fr 1fr", padding: "12px 16px", borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)" }}
+                  className="ops-table ops-row materials-table"
+                  key={material.id}
+                  style={{ gridTemplateColumns: "minmax(180px, 1.8fr) 0.8fr 0.8fr 0.8fr 1fr 1fr 0.8fr 0.6fr", padding: "12px 16px", borderBottom: "1px solid var(--border-base)", color: "var(--text-copy)", background: "var(--bg-row-alt)" }}
                 >
-                  <strong style={{ color: "var(--text-title)" }}>{material}</strong>
-                  <span style={{ color: "var(--text-copy)" }}>{jobCount} active jobs</span>
-                  <span style={getPillStyle("complete")}>
-                    Available
-                  </span>
+                  <TableCell label="Material">
+                    <strong style={{ color: "var(--text-title)" }}>{material.name}</strong>
+                    {material.notes ? <small style={{ color: "var(--text-copy)" }}>{material.notes}</small> : null}
+                  </TableCell>
+                  <TableCell label="Category">{material.category}</TableCell>
+                  <TableCell label="On hand">{material.onHandQuantity} {material.unit}</TableCell>
+                  <TableCell label="Reorder">{material.reorderPoint} {material.unit}</TableCell>
+                  <TableCell label="Location">{material.location || "Unassigned"}</TableCell>
+                  <TableCell label="Vendor">{material.vendor || "Unknown"}</TableCell>
+                  <TableCell label="Status" valueClassName="table-cell-pill">
+                    <span style={getPillStyle(isLow ? "critical" : "complete")}>
+                      {isLow ? "Low stock" : "Stock OK"}
+                    </span>
+                  </TableCell>
+                  <TableCell label="Actions">
+                    <span style={{ display: "inline-flex", gap: "0.35rem" }}>
+                      <button className="secondary-action" onClick={() => openEditMaterialModal(material)} style={{ padding: "0.35rem 0.6rem" }} type="button">
+                        Edit
+                      </button>
+                      <button className="danger-action" disabled={isDeletingMaterial} onClick={() => handleDeleteMaterial(material.id)} style={{ padding: "0.35rem 0.6rem" }} type="button">
+                        Delete
+                      </button>
+                    </span>
+                  </TableCell>
                 </div>
               );
             })}
+            {filteredMaterials.length === 0 ? (
+              <p className="empty-state">No materials match the current filters.</p>
+            ) : null}
           </div>
         </section>
+      ) : null}
+
+      {activeTab === "parts" ? (
+        <PartsView
+          bootstrap={bootstrap}
+          handleDeletePartDefinition={handleDeletePartDefinition}
+          isDeletingPartDefinition={isDeletingPartDefinition}
+          openCreatePartDefinitionModal={openCreatePartDefinitionModal}
+          openEditPartDefinitionModal={openEditPartDefinitionModal}
+          partDefinitionsById={partDefinitionsById}
+          subsystemsById={subsystemsById}
+        />
       ) : null}
     </div>
   );

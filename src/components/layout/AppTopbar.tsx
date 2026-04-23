@@ -1,29 +1,26 @@
-import { IconPerson, IconRefresh } from "../shared/Icons";
+import { IconRefresh } from "../shared/Icons";
 import type { SessionUser } from "../../lib/auth";
-import type { BootstrapPayload } from "../../types";
 
 interface AppTopbarProps {
-  activePersonFilter: string;
-  bootstrap: BootstrapPayload;
   handleSignOut: () => void;
   isLoadingData: boolean;
   loadWorkspace: () => Promise<void>;
   sessionUser: SessionUser | null;
-  setActivePersonFilter: (value: string) => void;
   isDarkMode: boolean;
   toggleDarkMode: () => void;
+  toggleSidebar: () => void;
+  isSidebarCollapsed: boolean;
 }
 
 export function AppTopbar({
-  activePersonFilter,
-  bootstrap,
   handleSignOut,
   isLoadingData,
   loadWorkspace,
   sessionUser,
-  setActivePersonFilter,
   isDarkMode,
   toggleDarkMode,
+  toggleSidebar,
+  isSidebarCollapsed,
 }: AppTopbarProps) {
   return (
     <header
@@ -39,46 +36,54 @@ export function AppTopbar({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 24px",
+        padding: 0,
         background: "var(--bg-panel)",
         borderBottom: "1px solid var(--border-base)",
       }}
     >
-      <div className="app-topbar-title" style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-        <p className="eyebrow" style={{ fontSize: "0.65rem", margin: 0, color: "var(--meco-blue)" }}>
-          MECO PM
-        </p>
-        <h1 style={{ fontSize: "1.1rem", margin: 0, color: "var(--text-title)" }}>
-          Project workspace
-        </h1>
-      </div>
-      <div className="topbar-right app-topbar-right">
-        <label
-          aria-label="Filter person"
-          className="toolbar-filter toolbar-filter-compact"
-          style={activePersonFilter !== "all" ? { background: "var(--meco-soft-blue)", borderColor: "var(--meco-blue)" } : { background: "var(--bg-row-alt)", border: "1px solid var(--border-base)" }}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          height: "100%",
+          width: isSidebarCollapsed ? "64px" : "240px",
+          transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+          borderRight: "1px solid var(--border-base)",
+          flexShrink: 0,
+        }}
+      >
+        <button
+          onClick={toggleSidebar}
+          style={{
+            background: "none",
+            border: "none",
+            color: "var(--text-copy)",
+            cursor: "pointer",
+            fontSize: "1.2rem",
+            transition: "all 0.2s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: isSidebarCollapsed ? "100%" : "64px",
+            height: "100%",
+          }}
+          title="Toggle Sidebar"
         >
-          <span aria-hidden="true" className="toolbar-filter-icon" style={activePersonFilter !== "all" ? { color: "var(--meco-blue)" } : {}}>
-            <IconPerson />
-          </span>
-          <select
-            onChange={(event) => setActivePersonFilter(event.target.value)}
-            value={activePersonFilter}
-            style={{
-              color: activePersonFilter !== "all" ? "var(--text-title)" : "var(--text-copy)",
-              fontWeight: activePersonFilter !== "all" ? "600" : "400",
-              background: "inherit",
-              colorScheme: isDarkMode ? "dark" : "light",
-            }}
-          >
-            <option value="all">All roster</option>
-            {bootstrap.members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          ☰
+        </button>
+        {!isSidebarCollapsed && (
+          <div className="app-topbar-logo">
+            <div className="app-topbar-logo-badge">
+              <img
+                src="/meco-favicon.svg"
+                alt="3D printing icon"
+                style={{ height: "38px", width: "auto", maxWidth: "160px", objectFit: "contain" }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="topbar-right app-topbar-right" style={{ flex: 1, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "12px" }}>
         {sessionUser ? (
           <div className="profile-menu">
             <button

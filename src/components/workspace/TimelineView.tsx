@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from "react";
+import { IconPerson, IconTasks } from "../shared/Icons";
 import { dateDiffInDays } from "../../lib/appUtils";
 import type { BootstrapPayload, TaskRecord } from "../../types";
 
 interface TimelineViewProps {
     bootstrap: BootstrapPayload;
     activePersonFilter: string;
-    membersById: Record<string, any>;
+    setActivePersonFilter: (value: string) => void;
+    membersById: Record<string, BootstrapPayload["members"][number]>;
     openEditTaskModal: (task: TaskRecord) => void;
     openCreateTaskModal: () => void;
 }
@@ -16,6 +18,7 @@ const TASK_LABEL_COLUMN_WIDTH = 148;
 export const TimelineView: React.FC<TimelineViewProps> = ({
     bootstrap,
     activePersonFilter,
+    setActivePersonFilter,
     membersById,
     openEditTaskModal,
     openCreateTaskModal,
@@ -128,7 +131,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     return (
         <section className="panel dense-panel" style={{ margin: 0, borderRadius: 0, border: "none", background: "var(--bg-panel)", color: "var(--text-copy)" }}>
             <div className="panel-header compact-header">
-                <div>
+                <div className="queue-section-header">
                     <h2 style={{ color: "var(--text-title)" }}>Subsystem timeline</h2>
                     <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
                         {activePersonFilter === "all"
@@ -136,18 +139,38 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             : `Filtered to ${membersById[activePersonFilter]?.name ?? "selected person"}.`}
                     </p>
                 </div>
-                <div className="panel-actions">
-                    <select
-                        className="toolbar-filter-select"
-                        onChange={(e) => setViewInterval(e.target.value as "all" | "week" | "month")}
-                        style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid var(--border-base)", fontSize: "0.85rem", background: "var(--bg-row-alt)", color: "var(--text-title)", cursor: "pointer", marginRight: "8px" }}
-                        value={viewInterval}
+                <div className="panel-actions filter-toolbar queue-toolbar" style={{ justifyContent: "flex-start" }}>
+                    <label
+                        aria-label="Filter person"
+                        className={`toolbar-filter toolbar-filter-compact${activePersonFilter !== "all" ? " is-active" : ""}`}
                     >
-                        <option value="all">Full scope</option>
-                        <option value="week">This week</option>
-                        <option value="month">This month</option>
-                    </select>
-                    <button className="primary-action" onClick={openCreateTaskModal} type="button">New task</button>
+                        <span aria-hidden="true" className="toolbar-filter-icon">
+                            <IconPerson />
+                        </span>
+                        <select
+                            onChange={(event) => setActivePersonFilter(event.target.value)}
+                            value={activePersonFilter}
+                        >
+                            <option value="all">All roster</option>
+                            {bootstrap.members.map((member) => (
+                                <option key={member.id} value={member.id}>
+                                    {member.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <label className="toolbar-filter toolbar-filter-compact">
+                        <span className="toolbar-filter-icon"><IconTasks /></span>
+                        <select
+                            onChange={(e) => setViewInterval(e.target.value as "all" | "week" | "month")}
+                            value={viewInterval}
+                        >
+                            <option value="all">Full scope</option>
+                            <option value="week">This week</option>
+                            <option value="month">This month</option>
+                        </select>
+                    </label>
+                    <button className="primary-action queue-toolbar-action" onClick={openCreateTaskModal} title="Add task" type="button">Add task</button>
                 </div>
             </div>
 

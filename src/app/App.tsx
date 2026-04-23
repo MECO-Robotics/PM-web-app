@@ -13,24 +13,30 @@ import { GoogleSignInScreen, AuthStatusScreen } from "../components/auth/AuthScr
 import { AppSidebar } from "../components/layout/AppSidebar";
 import { AppTopbar } from "../components/layout/AppTopbar";
 import {
-  IconManufacturing, IconPurchases, IconRoster, IconTasks
+  Icon3DPrint, IconCnc, IconManufacturing, IconParts, IconPurchases, IconRoster, IconTasks
 } from "../components/shared/Icons";
 import { WorkspaceContent } from "../components/workspace/WorkspaceContent";
 import {
   ManufacturingEditorModal,
+  MaterialEditorModal,
+  PartDefinitionEditorModal,
   PurchaseEditorModal,
   TaskEditorModal,
 } from "../components/workspace/WorkspaceModals";
 import {
-  buildEmptyManufacturingPayload, buildEmptyPurchasePayload, buildEmptyTaskPayload, joinList, manufacturingToPayload, purchaseToPayload, splitList, taskToPayload, toErrorMessage
+  buildEmptyManufacturingPayload, buildEmptyMaterialPayload, buildEmptyPartDefinitionPayload, buildEmptyPurchasePayload, buildEmptyTaskPayload, joinList, manufacturingToPayload, materialToPayload, partDefinitionToPayload, purchaseToPayload, splitList, taskToPayload, toErrorMessage
 } from "../lib/appUtils";
 import {
   clearStoredSessionToken,
   createManufacturingItemRecord,
+  createMaterialRecord,
   createMemberRecord,
+  createPartDefinitionRecord,
   createPurchaseItemRecord,
   createTask,
+  deleteMaterialRecord,
   deleteMemberRecord,
+  deletePartDefinitionRecord,
   exchangeGoogleCredential,
   fetchAuthConfig,
   fetchBootstrap,
@@ -46,7 +52,9 @@ import {
   type GoogleCredentialResponse,
   type SessionUser,
   updateManufacturingItemRecord,
+  updateMaterialRecord,
   updateMemberRecord,
+  updatePartDefinitionRecord,
   updatePurchaseItemRecord,
   updateTaskRecord,
   validateSession,
@@ -55,21 +63,34 @@ import type {
   BootstrapPayload,
   ManufacturingItemPayload,
   ManufacturingItemRecord,
+  MaterialPayload,
+  MaterialRecord,
   MemberPayload,
+  PartDefinitionPayload,
+  PartDefinitionRecord,
   PurchaseItemPayload,
   PurchaseItemRecord,
   TaskPayload,
   TaskRecord,
 } from "../types";
 
-type ViewTab = "timeline" | "queue" | "purchases" | "cnc" | "prints" | "roster" | "materials";
+type ViewTab = "timeline" | "queue" | "purchases" | "cnc" | "prints" | "materials" | "parts" | "roster";
 type TaskModalMode = "create" | "edit" | null;
 type PurchaseModalMode = "create" | "edit" | null;
 type ManufacturingModalMode = "create" | "edit" | null;
+type MaterialModalMode = "create" | "edit" | null;
+type PartDefinitionModalMode = "create" | "edit" | null;
 
 const EMPTY_BOOTSTRAP: BootstrapPayload = {
   members: [],
   subsystems: [],
+  disciplines: [],
+  mechanisms: [],
+  requirements: [],
+  materials: [],
+  partDefinitions: [],
+  partInstances: [],
+  events: [],
   tasks: [],
   purchaseItems: [],
   manufacturingItems: [],
@@ -93,6 +114,12 @@ function renderItemMeta(
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ViewTab>("timeline");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem("meco-theme") === "dark";
   });
@@ -142,6 +169,24 @@ export default function App() {
     );
   const [isSavingManufacturing, setIsSavingManufacturing] = useState(false);
 
+  const [materialModalMode, setMaterialModalMode] = useState<MaterialModalMode>(null);
+  const [activeMaterialId, setActiveMaterialId] = useState<string | null>(null);
+  const [materialDraft, setMaterialDraft] = useState<MaterialPayload>(
+    buildEmptyMaterialPayload(),
+  );
+  const [isSavingMaterial, setIsSavingMaterial] = useState(false);
+  const [isDeletingMaterial, setIsDeletingMaterial] = useState(false);
+
+  const [partDefinitionModalMode, setPartDefinitionModalMode] =
+    useState<PartDefinitionModalMode>(null);
+  const [activePartDefinitionId, setActivePartDefinitionId] = useState<string | null>(
+    null,
+  );
+  const [partDefinitionDraft, setPartDefinitionDraft] =
+    useState<PartDefinitionPayload>(buildEmptyPartDefinitionPayload(EMPTY_BOOTSTRAP));
+  const [isSavingPartDefinition, setIsSavingPartDefinition] = useState(false);
+  const [isDeletingPartDefinition, setIsDeletingPartDefinition] = useState(false);
+
   const [activePersonFilter, setActivePersonFilter] = useState<string>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [memberForm, setMemberForm] = useState<MemberPayload>({
@@ -183,25 +228,34 @@ export default function App() {
       ),
     [bootstrap.subsystems],
   );
+  const disciplinesById = useMemo(
+    () => Object.fromEntries(bootstrap.disciplines.map((discipline) => [discipline.id, discipline])),
+    [bootstrap.disciplines],
+  );
+  const mechanismsById = useMemo(
+    () => Object.fromEntries(bootstrap.mechanisms.map((mechanism) => [mechanism.id, mechanism])),
+    [bootstrap.mechanisms],
+  );
+  const requirementsById = useMemo(
+    () => Object.fromEntries(bootstrap.requirements.map((requirement) => [requirement.id, requirement])),
+    [bootstrap.requirements],
+  );
+  const partDefinitionsById = useMemo(
+    () => Object.fromEntries(bootstrap.partDefinitions.map((partDefinition) => [partDefinition.id, partDefinition])),
+    [bootstrap.partDefinitions],
+  );
+  const partInstancesById = useMemo(
+    () => Object.fromEntries(bootstrap.partInstances.map((partInstance) => [partInstance.id, partInstance])),
+    [bootstrap.partInstances],
+  );
+  const eventsById = useMemo(
+    () => Object.fromEntries(bootstrap.events.map((event) => [event.id, event])),
+    [bootstrap.events],
+  );
   const activeTask = useMemo(
     () => bootstrap.tasks.find((task) => task.id === activeTaskId) ?? null,
     [bootstrap.tasks, activeTaskId],
   );
-
-  const purchaseSummary = useMemo(() => {
-    const totalEstimated = bootstrap.purchaseItems.reduce(
-      (sum, item) => sum + item.estimatedCost,
-      0,
-    );
-    const delivered = bootstrap.purchaseItems.filter(
-      (item) => item.status === "delivered",
-    ).length;
-
-    return {
-      totalEstimated,
-      delivered,
-    };
-  }, [bootstrap.purchaseItems]);
 
   const cncItems = useMemo(
     () =>
@@ -241,13 +295,13 @@ export default function App() {
     {
       value: "cnc" as ViewTab,
       label: "CNC",
-      icon: <IconManufacturing />,
+      icon: <IconCnc />,
       count: cncItems.length,
     },
     {
       value: "prints" as ViewTab,
       label: "3D print",
-      icon: <IconManufacturing />,
+      icon: <Icon3DPrint />,
       count: printItems.length,
     },
     {
@@ -260,7 +314,13 @@ export default function App() {
       value: "materials" as ViewTab,
       label: "Materials",
       icon: <IconManufacturing />,
-      count: Array.from(new Set(bootstrap.manufacturingItems.map(i => i.material))).length,
+      count: bootstrap.materials.length,
+    },
+    {
+      value: "parts" as ViewTab,
+      label: "Parts",
+      icon: <IconParts />,
+      count: bootstrap.partDefinitions.length + bootstrap.partInstances.length,
     },
   ];
 
@@ -363,6 +423,37 @@ export default function App() {
           setActiveManufacturingId(null);
         }
       }
+
+      if (materialModalMode === "create") {
+        setMaterialDraft(buildEmptyMaterialPayload());
+      }
+
+      if (materialModalMode === "edit" && activeMaterialId) {
+        const nextItem = payload.materials.find((item) => item.id === activeMaterialId);
+        if (nextItem) {
+          setMaterialDraft(materialToPayload(nextItem));
+        } else {
+          setMaterialModalMode(null);
+          setActiveMaterialId(null);
+        }
+      }
+
+      if (partDefinitionModalMode === "create") {
+        setPartDefinitionDraft(buildEmptyPartDefinitionPayload(payload));
+      }
+
+      if (partDefinitionModalMode === "edit" && activePartDefinitionId) {
+        const nextItem = payload.partDefinitions.find(
+          (item) => item.id === activePartDefinitionId,
+        );
+        if (nextItem) {
+          setPartDefinitionDraft(partDefinitionToPayload(nextItem));
+        } else {
+          setPartDefinitionModalMode(null);
+          setActivePartDefinitionId(null);
+        }
+      }
+
     } catch (error) {
       setDataMessage(toErrorMessage(error));
     } finally {
@@ -370,10 +461,14 @@ export default function App() {
     }
   }, [
     activeManufacturingId,
+    activeMaterialId,
+    activePartDefinitionId,
     activePersonFilter,
     activePurchaseId,
     activeTaskId,
     manufacturingModalMode,
+    materialModalMode,
+    partDefinitionModalMode,
     purchaseModalMode,
     selectedMemberId,
     taskModalMode,
@@ -434,6 +529,40 @@ export default function App() {
   const closeManufacturingModal = () => {
     setManufacturingModalMode(null);
     setActiveManufacturingId(null);
+  };
+
+  const openCreateMaterialModal = () => {
+    setActiveMaterialId(null);
+    setMaterialDraft(buildEmptyMaterialPayload());
+    setMaterialModalMode("create");
+  };
+
+  const openEditMaterialModal = (item: MaterialRecord) => {
+    setActiveMaterialId(item.id);
+    setMaterialDraft(materialToPayload(item));
+    setMaterialModalMode("edit");
+  };
+
+  const closeMaterialModal = () => {
+    setMaterialModalMode(null);
+    setActiveMaterialId(null);
+  };
+
+  const openCreatePartDefinitionModal = () => {
+    setActivePartDefinitionId(null);
+    setPartDefinitionDraft(buildEmptyPartDefinitionPayload(bootstrap));
+    setPartDefinitionModalMode("create");
+  };
+
+  const openEditPartDefinitionModal = (item: PartDefinitionRecord) => {
+    setActivePartDefinitionId(item.id);
+    setPartDefinitionDraft(partDefinitionToPayload(item));
+    setPartDefinitionModalMode("edit");
+  };
+
+  const closePartDefinitionModal = () => {
+    setPartDefinitionModalMode(null);
+    setActivePartDefinitionId(null);
   };
 
   const handleGoogleCredential = useEffectEvent(
@@ -707,6 +836,88 @@ export default function App() {
     }
   };
 
+  const handleMaterialSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSavingMaterial(true);
+    setDataMessage(null);
+
+    try {
+      if (materialModalMode === "create") {
+        await createMaterialRecord(materialDraft, handleUnauthorized);
+      } else if (materialModalMode === "edit" && activeMaterialId) {
+        await updateMaterialRecord(activeMaterialId, materialDraft, handleUnauthorized);
+      }
+
+      await loadWorkspace();
+      closeMaterialModal();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingMaterial(false);
+    }
+  };
+
+  const handleDeleteMaterial = async (materialId: string) => {
+    setIsDeletingMaterial(true);
+    setDataMessage(null);
+
+    try {
+      await deleteMaterialRecord(materialId, handleUnauthorized);
+      if (activeMaterialId === materialId) {
+        closeMaterialModal();
+      }
+      await loadWorkspace();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsDeletingMaterial(false);
+    }
+  };
+
+  const handlePartDefinitionSubmit = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    setIsSavingPartDefinition(true);
+    setDataMessage(null);
+
+    try {
+      if (partDefinitionModalMode === "create") {
+        await createPartDefinitionRecord(partDefinitionDraft, handleUnauthorized);
+      } else if (partDefinitionModalMode === "edit" && activePartDefinitionId) {
+        await updatePartDefinitionRecord(
+          activePartDefinitionId,
+          partDefinitionDraft,
+          handleUnauthorized,
+        );
+      }
+
+      await loadWorkspace();
+      closePartDefinitionModal();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingPartDefinition(false);
+    }
+  };
+
+  const handleDeletePartDefinition = async (partDefinitionId: string) => {
+    setIsDeletingPartDefinition(true);
+    setDataMessage(null);
+
+    try {
+      await deletePartDefinitionRecord(partDefinitionId, handleUnauthorized);
+      if (activePartDefinitionId === partDefinitionId) {
+        closePartDefinitionModal();
+      }
+      await loadWorkspace();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsDeletingPartDefinition(false);
+    }
+  };
+
   const handleCreateMember = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSavingMember(true);
@@ -804,10 +1015,17 @@ export default function App() {
 
   return (
     <main
-      className={`page-shell with-sidebar ${isDarkMode ? "dark-mode" : ""}`}
+      className={`page-shell ${isDarkMode ? "dark-mode" : ""}`}
       style={{
+        transition: "padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
         background: isDarkMode ? "#0f172a" : "#ffffff",
         paddingTop: "64px",
+        paddingLeft: isSidebarCollapsed ? "64px" : "240px",
+        paddingRight: 0,
+        margin: 0,
+        maxWidth: "none",
+        width: "100%",
+        boxSizing: "border-box",
         "--bg-panel": isDarkMode ? "#1e293b" : "#ffffff",
         "--border-base": isDarkMode ? "#334155" : "#e5e7eb",
         "--text-title": isDarkMode ? "#f8fafc" : "#000000",
@@ -830,21 +1048,21 @@ export default function App() {
       } as React.CSSProperties}
     >
       <AppTopbar
-        activePersonFilter={activePersonFilter}
-        bootstrap={bootstrap}
         handleSignOut={handleSignOut}
         isLoadingData={isLoadingData}
         loadWorkspace={loadWorkspace}
         sessionUser={sessionUser}
-        setActivePersonFilter={setActivePersonFilter}
         isDarkMode={isDarkMode}
         toggleDarkMode={toggleDarkMode}
+        toggleSidebar={toggleSidebar}
+        isSidebarCollapsed={isSidebarCollapsed}
       />
 
       <AppSidebar
         activeTab={activeTab}
         items={navigationItems}
         onSelectTab={(tab) => setActiveTab(tab as ViewTab)}
+        isCollapsed={isSidebarCollapsed}
       />
 
       <WorkspaceContent
@@ -865,13 +1083,20 @@ export default function App() {
         memberForm={memberForm}
         membersById={membersById}
         openCreateManufacturingModal={openCreateManufacturingModal}
+        openCreateMaterialModal={openCreateMaterialModal}
+        openCreatePartDefinitionModal={openCreatePartDefinitionModal}
         openCreatePurchaseModal={openCreatePurchaseModal}
         openCreateTaskModal={openCreateTaskModal}
         openEditManufacturingModal={openEditManufacturingModal}
+        openEditMaterialModal={openEditMaterialModal}
+        openEditPartDefinitionModal={openEditPartDefinitionModal}
         openEditPurchaseModal={openEditPurchaseModal}
         openEditTaskModal={openEditTaskModal}
+        handleDeleteMaterial={handleDeleteMaterial}
+        handleDeletePartDefinition={handleDeletePartDefinition}
+        isDeletingMaterial={isDeletingMaterial}
+        isDeletingPartDefinition={isDeletingPartDefinition}
         printItems={printItems}
-        purchaseSummary={purchaseSummary}
         renderItemMeta={renderItemMeta}
         rosterMentors={rosterMentors}
         selectMember={selectMember}
@@ -880,7 +1105,14 @@ export default function App() {
         setIsEditPersonOpen={setIsEditPersonOpen}
         setMemberEditDraft={setMemberEditDraft}
         setMemberForm={setMemberForm}
+        setActivePersonFilter={setActivePersonFilter}
         students={students}
+        disciplinesById={disciplinesById}
+        eventsById={eventsById}
+        mechanismsById={mechanismsById}
+        partDefinitionsById={partDefinitionsById}
+        partInstancesById={partInstancesById}
+        requirementsById={requirementsById}
         subsystemsById={subsystemsById}
       />
 
@@ -891,7 +1123,13 @@ export default function App() {
           closeTaskModal={closeTaskModal}
           handleTaskSubmit={handleTaskSubmit}
           isSavingTask={isSavingTask}
+          disciplinesById={disciplinesById}
+          eventsById={eventsById}
+          mechanismsById={mechanismsById}
           mentors={mentors}
+          partDefinitionsById={partDefinitionsById}
+          partInstancesById={partInstancesById}
+          requirementsById={requirementsById}
           setTaskDraft={setTaskDraft}
           setTaskDraftBlockers={setTaskDraftBlockers}
           students={students}
@@ -924,6 +1162,29 @@ export default function App() {
           manufacturingDraft={manufacturingDraft}
           manufacturingModalMode={manufacturingModalMode}
           setManufacturingDraft={setManufacturingDraft}
+        />
+      ) : null}
+
+      {materialModalMode ? (
+        <MaterialEditorModal
+          closeMaterialModal={closeMaterialModal}
+          handleMaterialSubmit={handleMaterialSubmit}
+          isSavingMaterial={isSavingMaterial}
+          materialDraft={materialDraft}
+          materialModalMode={materialModalMode}
+          setMaterialDraft={setMaterialDraft}
+        />
+      ) : null}
+
+      {partDefinitionModalMode ? (
+        <PartDefinitionEditorModal
+          bootstrap={bootstrap}
+          closePartDefinitionModal={closePartDefinitionModal}
+          handlePartDefinitionSubmit={handlePartDefinitionSubmit}
+          isSavingPartDefinition={isSavingPartDefinition}
+          partDefinitionDraft={partDefinitionDraft}
+          partDefinitionModalMode={partDefinitionModalMode}
+          setPartDefinitionDraft={setPartDefinitionDraft}
         />
       ) : null}
     </main>
