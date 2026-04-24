@@ -14,6 +14,8 @@ import type { BootstrapPayload } from "../../types";
 interface UseWorkspaceDerivedDataArgs {
   activeTaskId: string | null;
   bootstrap: BootstrapPayload;
+  isAllProjectsView: boolean;
+  selectedProjectType: BootstrapPayload["projects"][number]["projectType"] | null;
 }
 
 function recordById<T extends { id: string }>(items: T[]) {
@@ -23,6 +25,8 @@ function recordById<T extends { id: string }>(items: T[]) {
 export function useWorkspaceDerivedData({
   activeTaskId,
   bootstrap,
+  isAllProjectsView,
+  selectedProjectType,
 }: UseWorkspaceDerivedDataArgs) {
   const students = useMemo(
     () =>
@@ -49,7 +53,6 @@ export function useWorkspaceDerivedData({
   const subsystemsById = useMemo(() => recordById(bootstrap.subsystems), [bootstrap.subsystems]);
   const disciplinesById = useMemo(() => recordById(bootstrap.disciplines), [bootstrap.disciplines]);
   const mechanismsById = useMemo(() => recordById(bootstrap.mechanisms), [bootstrap.mechanisms]);
-  const requirementsById = useMemo(() => recordById(bootstrap.requirements), [bootstrap.requirements]);
   const partDefinitionsById = useMemo(
     () => recordById(bootstrap.partDefinitions),
     [bootstrap.partDefinitions],
@@ -80,57 +83,84 @@ export function useWorkspaceDerivedData({
     [bootstrap.manufacturingItems],
   );
 
-  const inventoryCount =
-    bootstrap.materials.length +
-    bootstrap.partDefinitions.length +
-    bootstrap.partInstances.length +
-    bootstrap.purchaseItems.length;
+  const isRobotProject = selectedProjectType === "robot";
+  const inventoryCount = isRobotProject
+    ? bootstrap.materials.length +
+      bootstrap.partDefinitions.length +
+      bootstrap.partInstances.length +
+      bootstrap.purchaseItems.length
+    : bootstrap.artifacts.length + bootstrap.purchaseItems.length;
+  const showManufacturingTab = !isAllProjectsView && isRobotProject;
+  const showProjectInventoryTab = !isAllProjectsView;
+  const showProjectWorkflowTab = !isAllProjectsView;
+  const workflowLabel = isRobotProject ? "Subsystems" : "Workflow";
+  const workflowCount = isRobotProject
+    ? bootstrap.subsystems.length
+    : bootstrap.workstreams.length;
 
   const navigationItems = useMemo<NavigationItem[]>(
-    () => [
-      {
-        value: "tasks",
-        label: "Tasks",
-        icon: <IconTasks />,
-        count: bootstrap.tasks.length,
-      },
-      {
-        value: "worklogs",
-        label: "Work logs",
-        icon: <IconWorkLogs />,
-        count: bootstrap.workLogs.length,
-      },
-      {
-        value: "manufacturing",
-        label: "Manufacturing",
-        icon: <IconManufacturing />,
-        count: bootstrap.manufacturingItems.length,
-      },
-      {
-        value: "inventory",
-        label: "Inventory",
-        icon: <IconParts />,
-        count: inventoryCount,
-      },
-      {
-        value: "subsystems",
-        label: "Subsystems",
-        icon: <IconSubsystems />,
-        count: bootstrap.subsystems.length,
-      },
-      {
+    () => {
+      const items: NavigationItem[] = [
+        {
+          value: "tasks",
+          label: "Tasks",
+          icon: <IconTasks />,
+          count: bootstrap.tasks.length,
+        },
+        {
+          value: "worklogs",
+          label: "Work logs",
+          icon: <IconWorkLogs />,
+          count: bootstrap.workLogs.length,
+        },
+      ];
+
+      if (showManufacturingTab) {
+        items.push({
+          value: "manufacturing",
+          label: "Manufacturing",
+          icon: <IconManufacturing />,
+          count: bootstrap.manufacturingItems.length,
+        });
+      }
+
+      if (showProjectInventoryTab) {
+        items.push({
+          value: "inventory",
+          label: "Inventory",
+          icon: <IconParts />,
+          count: inventoryCount,
+        });
+      }
+
+      if (showProjectWorkflowTab) {
+        items.push({
+          value: "subsystems",
+          label: workflowLabel,
+          icon: <IconSubsystems />,
+          count: workflowCount,
+        });
+      }
+
+      items.push({
         value: "roster",
         label: "Roster",
         icon: <IconRoster />,
         count: bootstrap.members.length,
-      },
-    ],
+      });
+
+      return items;
+    },
     [
+      bootstrap.tasks.length,
+      bootstrap.workLogs.length,
       bootstrap.manufacturingItems,
       bootstrap.members.length,
-      bootstrap.workLogs.length,
-      bootstrap.tasks.length,
-      bootstrap.subsystems.length,
+      showManufacturingTab,
+      showProjectInventoryTab,
+      showProjectWorkflowTab,
+      workflowCount,
+      workflowLabel,
       inventoryCount,
     ],
   );
@@ -148,7 +178,6 @@ export function useWorkspaceDerivedData({
     partDefinitionsById,
     partInstancesById,
     printItems,
-    requirementsById,
     rosterMentors,
     students,
     subsystemsById,

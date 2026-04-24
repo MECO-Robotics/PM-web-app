@@ -133,7 +133,7 @@ export const operationsSnapshot = {
     {
       title: "Controls review still depends on final drive calibration evidence",
       detail:
-        "The QA desk keeps documentation requirements visible before a mentor can finalize approval.",
+        "The QA desk keeps documentation checkpoints visible before a mentor can finalize approval.",
     },
   ],
   metrics: {

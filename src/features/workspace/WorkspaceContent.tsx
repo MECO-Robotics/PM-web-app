@@ -8,7 +8,10 @@ import {
 } from "react";
 
 import type {
+  ArtifactKind,
+  ArtifactRecord,
   BootstrapPayload,
+  EventPayload,
   ManufacturingItemRecord,
   MaterialRecord,
   MemberPayload,
@@ -16,6 +19,7 @@ import type {
   PurchaseItemRecord,
   TaskRecord,
 } from "../../types";
+import { ArtifactInventoryView } from "./views/ArtifactInventoryView";
 import { CncView } from "./views/CncView";
 import { FabricationView } from "./views/FabricationView";
 import { MaterialsView } from "./views/MaterialsView";
@@ -27,6 +31,7 @@ import { SubsystemsView } from "./views/SubsystemsView";
 import { WorkLogsView } from "./views/WorkLogsView";
 import { TaskQueueView } from "./views/TaskQueueView";
 import { TimelineView } from "./views/TimelineView";
+import { WorkflowView } from "./views/WorkflowView";
 import type {
   InventoryViewTab,
   ManufacturingViewTab,
@@ -39,12 +44,15 @@ type WorkspaceSubviewTab =
   | ManufacturingViewTab
   | InventoryViewTab
   | "worklogs"
+  | "documents"
+  | "nontechnical"
   | "subsystems"
+  | "workflow"
   | "roster";
 
 const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> = {
   timeline:
-    "Use the person and date-range filters above to focus the schedule, collapse or expand subsystem rows with the arrows, and hover a task bar to reveal the pencil cue before clicking the task to edit it.",
+    "Use the person and date-range filters above to focus the schedule, click a date number to add or edit milestones for that day, collapse or expand subsystem rows with the arrows, and hover a task bar to reveal the pencil cue before clicking the task to edit it.",
   queue:
     "Use search and filters to narrow the list, click a column header to sort, and hover any row to reveal the pencil cue before clicking the row to open its task details. Use Add to create a new task.",
   worklogs:
@@ -57,12 +65,18 @@ const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> = {
     "Search and filter fabrication jobs by subsystem, requester, material, or status, then hover a row to reveal the pencil cue before clicking the row to update that job. Use Add to enter a new freeform fabrication request.",
   materials:
     "Use the search and stock filters to find inventory quickly, then hover a row to reveal the pencil cue before clicking the row to update quantities, vendors, locations, or notes. Use Add to track a new material.",
+  documents:
+    "Use search to find project artifacts quickly, hover a row to reveal the pencil cue, and click the row to update linked document details.",
+  nontechnical:
+    "Use this view to track non-technical outputs, ownership, and progress, then click any row to update details.",
   parts:
     "Search and filter the catalog from the toolbar, hover a part definition to reveal the pencil cue, and click the row to edit it. Use the edit modal to update or delete the part definition. Review matching part instances below for subsystem and mechanism ownership.",
   purchases:
     "Search or filter requests by subsystem, requester, status, vendor, or approval, then hover a row to reveal the pencil cue before clicking the row to review or update it. Use Add to log a new request against a real part from the Parts tab.",
   subsystems:
     "Search and filter subsystem ownership and mechanism coverage, click a subsystem row to expand its mechanisms underneath, hover the pencil on the right to edit the subsystem, and use the add controls to create or update subsystems, mechanisms, and mechanism-owned part instances.",
+  workflow:
+    "Search and filter workflow ownership, click a row to expand details, and use add or edit controls to keep non-technical workstreams current.",
   roster:
     "Use the plus buttons to add people to each group, click a name to select them, and hover a member to reveal the pencil affordance for editing or deleting them from the popup.",
 };
@@ -70,6 +84,7 @@ const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> = {
 interface WorkspaceContentProps {
   activePersonFilter: string;
   activeTab: ViewTab;
+  artifacts: ArtifactRecord[];
   bootstrap: BootstrapPayload;
   cncItems: ManufacturingItemRecord[];
   dataMessage: string | null;
@@ -78,17 +93,25 @@ interface WorkspaceContentProps {
   fabricationItems: ManufacturingItemRecord[];
   handleCreateMember: (event: FormEvent<HTMLFormElement>) => void;
   handleDeleteMember: (id: string) => void;
+  handleTimelineEventSave: (
+    mode: "create" | "edit",
+    eventId: string | null,
+    payload: EventPayload,
+  ) => Promise<void>;
   handleUpdateMember: (event: FormEvent<HTMLFormElement>) => void;
   isAddPersonOpen: boolean;
   isDeletingMember: boolean;
   isEditPersonOpen: boolean;
   isLoadingData: boolean;
+  isAllProjectsView: boolean;
+  isNonRobotProject: boolean;
   isSavingMember: boolean;
   memberEditDraft: MemberPayload | null;
   memberForm: MemberPayload;
   membersById: Record<string, BootstrapPayload["members"][number]>;
   mechanismsById: Record<string, BootstrapPayload["mechanisms"][number]>;
   openCreateManufacturingModal: (process: "cnc" | "3d-print" | "fabrication") => void;
+  openCreateArtifactModal: (kind: ArtifactKind) => void;
   openCreateMaterialModal: () => void;
   openCreateMechanismModal: (subsystemId?: string) => void;
   openCreatePartInstanceModal: (mechanism: BootstrapPayload["mechanisms"][number]) => void;
@@ -98,6 +121,7 @@ interface WorkspaceContentProps {
   openCreateTaskModal: () => void;
   openCreateWorkLogModal: () => void;
   openEditManufacturingModal: (item: ManufacturingItemRecord) => void;
+  openEditArtifactModal: (artifact: ArtifactRecord) => void;
   openEditMaterialModal: (item: MaterialRecord) => void;
   openEditMechanismModal: (mechanism: BootstrapPayload["mechanisms"][number]) => void;
   openEditPartInstanceModal: (partInstance: BootstrapPayload["partInstances"][number]) => void;
@@ -108,7 +132,6 @@ interface WorkspaceContentProps {
   partDefinitionsById: Record<string, BootstrapPayload["partDefinitions"][number]>;
   partInstancesById: Record<string, BootstrapPayload["partInstances"][number]>;
   printItems: ManufacturingItemRecord[];
-  requirementsById: Record<string, BootstrapPayload["requirements"][number]>;
   rosterMentors: BootstrapPayload["members"];
   manufacturingView: ManufacturingViewTab;
   inventoryView: InventoryViewTab;
@@ -241,6 +264,7 @@ function WorkspaceErrorPopup({
 export function WorkspaceContent({
   activePersonFilter,
   activeTab,
+  artifacts,
   bootstrap,
   cncItems,
   dataMessage,
@@ -249,17 +273,21 @@ export function WorkspaceContent({
   fabricationItems,
   handleCreateMember,
   handleDeleteMember,
+  handleTimelineEventSave,
   handleUpdateMember,
   isAddPersonOpen,
   isDeletingMember,
   isEditPersonOpen,
   isLoadingData,
+  isAllProjectsView,
+  isNonRobotProject,
   isSavingMember,
   memberEditDraft,
   memberForm,
   membersById,
   mechanismsById,
   openCreateManufacturingModal,
+  openCreateArtifactModal,
   openCreateMaterialModal,
   openCreateMechanismModal,
   openCreatePartInstanceModal,
@@ -269,6 +297,7 @@ export function WorkspaceContent({
   openCreateTaskModal,
   openCreateWorkLogModal,
   openEditManufacturingModal,
+  openEditArtifactModal,
   openEditMaterialModal,
   openEditMechanismModal,
   openEditPartInstanceModal,
@@ -279,7 +308,6 @@ export function WorkspaceContent({
   partDefinitionsById,
   partInstancesById,
   printItems,
-  requirementsById,
   rosterMentors,
   manufacturingView,
   inventoryView,
@@ -323,7 +351,9 @@ export function WorkspaceContent({
           <TimelineView
             activePersonFilter={activePersonFilter}
             bootstrap={bootstrap}
+            isAllProjectsView={isAllProjectsView}
             membersById={membersById}
+            onSaveTimelineEvent={handleTimelineEventSave}
             openCreateTaskModal={openCreateTaskModal}
             openEditTaskModal={openEditTaskModal}
             setActivePersonFilter={setActivePersonFilter}
@@ -339,13 +369,13 @@ export function WorkspaceContent({
             bootstrap={bootstrap}
             disciplinesById={disciplinesById}
             eventsById={eventsById}
+            isAllProjectsView={isAllProjectsView}
             mechanismsById={mechanismsById}
             membersById={membersById}
             openCreateTaskModal={openCreateTaskModal}
             openEditTaskModal={openEditTaskModal}
             partDefinitionsById={partDefinitionsById}
             partInstancesById={partInstancesById}
-            requirementsById={requirementsById}
             subsystemsById={subsystemsById}
           />
         </WorkspaceSubPanel>
@@ -413,28 +443,56 @@ export function WorkspaceContent({
 
       <WorkspaceSectionPanel isActive={activeTab === "inventory"}>
         <WorkspaceSubPanel
-          description={SUBVIEW_INTERACTION_GUIDANCE.materials}
+          description={
+            isNonRobotProject
+              ? SUBVIEW_INTERACTION_GUIDANCE.documents
+              : SUBVIEW_INTERACTION_GUIDANCE.materials
+          }
           isActive={inventoryView === "materials"}
         >
-          <MaterialsView
-            bootstrap={bootstrap}
-            openCreateMaterialModal={openCreateMaterialModal}
-            openEditMaterialModal={openEditMaterialModal}
-          />
+          {isNonRobotProject ? (
+            <ArtifactInventoryView
+              artifacts={artifacts}
+              bootstrap={bootstrap}
+              kind="document"
+              openCreateArtifactModal={openCreateArtifactModal}
+              openEditArtifactModal={openEditArtifactModal}
+            />
+          ) : (
+            <MaterialsView
+              bootstrap={bootstrap}
+              openCreateMaterialModal={openCreateMaterialModal}
+              openEditMaterialModal={openEditMaterialModal}
+            />
+          )}
         </WorkspaceSubPanel>
 
         <WorkspaceSubPanel
-          description={SUBVIEW_INTERACTION_GUIDANCE.parts}
+          description={
+            isNonRobotProject
+              ? SUBVIEW_INTERACTION_GUIDANCE.nontechnical
+              : SUBVIEW_INTERACTION_GUIDANCE.parts
+          }
           isActive={inventoryView === "parts"}
         >
-          <PartsView
-            bootstrap={bootstrap}
-            openCreatePartDefinitionModal={openCreatePartDefinitionModal}
-            openEditPartDefinitionModal={openEditPartDefinitionModal}
-            mechanismsById={mechanismsById}
-            partDefinitionsById={partDefinitionsById}
-            subsystemsById={subsystemsById}
-          />
+          {isNonRobotProject ? (
+            <ArtifactInventoryView
+              artifacts={artifacts}
+              bootstrap={bootstrap}
+              kind="nontechnical"
+              openCreateArtifactModal={openCreateArtifactModal}
+              openEditArtifactModal={openEditArtifactModal}
+            />
+          ) : (
+            <PartsView
+              bootstrap={bootstrap}
+              openCreatePartDefinitionModal={openCreatePartDefinitionModal}
+              openEditPartDefinitionModal={openEditPartDefinitionModal}
+              mechanismsById={mechanismsById}
+              partDefinitionsById={partDefinitionsById}
+              subsystemsById={subsystemsById}
+            />
+          )}
         </WorkspaceSubPanel>
 
         <WorkspaceSubPanel
@@ -454,19 +512,31 @@ export function WorkspaceContent({
 
       <WorkspaceSectionPanel isActive={activeTab === "subsystems"}>
         <WorkspaceSubPanel
-          description={SUBVIEW_INTERACTION_GUIDANCE.subsystems}
+          description={
+            isNonRobotProject
+              ? SUBVIEW_INTERACTION_GUIDANCE.workflow
+              : SUBVIEW_INTERACTION_GUIDANCE.subsystems
+          }
           isActive
         >
-          <SubsystemsView
-            bootstrap={bootstrap}
-            membersById={membersById}
-            openCreateMechanismModal={openCreateMechanismModal}
-            openCreatePartInstanceModal={openCreatePartInstanceModal}
-            openCreateSubsystemModal={openCreateSubsystemModal}
-            openEditMechanismModal={openEditMechanismModal}
-            openEditPartInstanceModal={openEditPartInstanceModal}
-            openEditSubsystemModal={openEditSubsystemModal}
-          />
+          {isNonRobotProject ? (
+            <WorkflowView
+              artifacts={artifacts}
+              bootstrap={bootstrap}
+              membersById={membersById}
+            />
+          ) : (
+            <SubsystemsView
+              bootstrap={bootstrap}
+              membersById={membersById}
+              openCreateMechanismModal={openCreateMechanismModal}
+              openCreatePartInstanceModal={openCreatePartInstanceModal}
+              openCreateSubsystemModal={openCreateSubsystemModal}
+              openEditMechanismModal={openEditMechanismModal}
+              openEditPartInstanceModal={openEditPartInstanceModal}
+              openEditSubsystemModal={openEditSubsystemModal}
+            />
+          )}
         </WorkspaceSubPanel>
       </WorkspaceSectionPanel>
 

@@ -1,25 +1,34 @@
 import type {
+  ArtifactPayload,
+  ArtifactRecord,
   BootstrapPayload,
+  EventPayload,
+  EventRecord,
   ManufacturingItemPayload,
   ManufacturingItemRecord,
   MaterialPayload,
   MaterialRecord,
   MechanismPayload,
   MechanismRecord,
+  MemberCreatePayload,
   MemberPayload,
   MemberRecord,
   PartDefinitionPayload,
   PartDefinitionRecord,
   PartInstancePayload,
   PartInstanceRecord,
+  ProjectRecord,
   PurchaseItemPayload,
   PurchaseItemRecord,
+  SeasonCreatePayload,
+  SeasonRecord,
   SubsystemPayload,
   SubsystemRecord,
   TaskPayload,
   TaskRecord,
   WorkLogPayload,
   WorkLogRecord,
+  WorkstreamRecord,
 } from "../types";
 
 const DEFAULT_API_BASE_URL = "/api";
@@ -231,16 +240,412 @@ function isAuthConfig(payload: unknown): payload is AuthConfig {
   );
 }
 
-function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload {
-  const source = payload as Partial<BootstrapPayload>;
+const LEGACY_SEASON_ID = "season-default";
+const LEGACY_PROJECT_ID = "project-default";
+const REQUIRED_PROJECTS_PER_SEASON: Array<{
+  key: "robot" | "business" | "outreach" | "media" | "training" | "operations";
+  name: string;
+  projectType: ProjectRecord["projectType"];
+}> = [
+  { key: "robot", name: "Robot", projectType: "robot" },
+  { key: "business", name: "Business", projectType: "other" },
+  { key: "outreach", name: "Outreach", projectType: "outreach" },
+  { key: "media", name: "Media", projectType: "other" },
+  { key: "training", name: "Training", projectType: "other" },
+  { key: "operations", name: "Operations", projectType: "operations" },
+];
+
+type LegacyBootstrapPayload = Partial<BootstrapPayload> & {
+  tasks?: Array<Partial<TaskRecord> & { requirementId?: string | null }>;
+  artifacts?: Array<Partial<ArtifactRecord>>;
+};
+
+function isIsoDate(value: unknown): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function dateOnly(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const candidate = value.slice(0, 10);
+  return isIsoDate(candidate) ? candidate : null;
+}
+
+function toTitleFromId(value: string) {
+  const normalized = value
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+
+  if (normalized.length === 0) {
+    return "Default";
+  }
+
+  return normalized.replace(/\b([a-z])/g, (match) => match.toUpperCase());
+}
+
+function toSlug(value: string) {
+  const normalized = value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized.length > 0 ? normalized : "project";
+}
+
+function toNumberOrZero(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  return 0;
+}
+
+function isArtifactKind(value: unknown): value is ArtifactRecord["kind"] {
+  return value === "document" || value === "nontechnical";
+}
+
+function isArtifactStatus(value: unknown): value is ArtifactRecord["status"] {
+  return value === "draft" || value === "in-review" || value === "published";
+}
+
+function reserveUniqueId(candidate: string, fallback: string, usedIds: Set<string>) {
+  const base = (candidate.trim().length > 0 ? candidate.trim() : fallback.trim()) || fallback;
+  if (!usedIds.has(base)) {
+    usedIds.add(base);
+    return base;
+  }
+
+  let counter = 2;
+  while (usedIds.has(`${base}-${counter}`)) {
+    counter += 1;
+  }
+
+  const id = `${base}-${counter}`;
+  usedIds.add(id);
+  return id;
+}
+
+function classifyProjectBucket(project: Pick<ProjectRecord, "name" | "projectType">) {
+  const name = project.name.toLowerCase();
+
+  if (project.projectType === "robot" || /\brobot\b/.test(name)) {
+    return "robot";
+  }
+
+  if (project.projectType === "outreach" || /\boutreach\b/.test(name)) {
+    return "outreach";
+  }
+
+  if (project.projectType === "operations" || /\boperations?\b/.test(name)) {
+    return "operations";
+  }
+
+  if (/\bbusiness\b/.test(name)) {
+    return "business";
+  }
+
+  if (/\bmedia\b/.test(name)) {
+    return "media";
+  }
+
+  if (/\btraining\b/.test(name)) {
+    return "training";
+  }
+
+  return null;
+}
+
+function inferPlanningWindow(source: LegacyBootstrapPayload) {
+  const dates: string[] = [];
+  const tasks = source.tasks ?? [];
+  const events = source.events ?? [];
+
+  tasks.forEach((task) => {
+    if (isIsoDate(task.startDate)) {
+      dates.push(task.startDate);
+    }
+
+    if (isIsoDate(task.dueDate)) {
+      dates.push(task.dueDate);
+    }
+  });
+
+  events.forEach((event) => {
+    const eventStart = dateOnly(event.startDateTime);
+    const eventEnd = dateOnly(event.endDateTime);
+
+    if (eventStart) {
+      dates.push(eventStart);
+    }
+
+    if (eventEnd) {
+      dates.push(eventEnd);
+    }
+  });
+
+  dates.sort((left, right) => left.localeCompare(right));
+
+  const fallbackDate = new Date().toISOString().slice(0, 10);
+  return {
+    startDate: dates[0] ?? fallbackDate,
+    endDate: dates[dates.length - 1] ?? dates[0] ?? fallbackDate,
+  };
+}
+
+function normalizePlanningRecords(source: LegacyBootstrapPayload) {
+  const sourceTasks = source.tasks ?? [];
+  const sourceSeasons = source.seasons ?? [];
+  const sourceProjects = source.projects ?? [];
+  const sourceWorkstreams = source.workstreams ?? [];
+  const sourceSubsystems = source.subsystems ?? [];
+  const sourceDisciplines = source.disciplines ?? [];
+  const { startDate, endDate } = inferPlanningWindow(source);
+
+  let seasons: SeasonRecord[] = sourceSeasons;
+  if (seasons.length === 0) {
+    const seasonIdsFromProjects = Array.from(
+      new Set(
+        sourceProjects
+          .map((project) => project.seasonId)
+          .filter((seasonId): seasonId is string => typeof seasonId === "string" && seasonId.length > 0),
+      ),
+    );
+    const seasonIds = seasonIdsFromProjects.length > 0 ? seasonIdsFromProjects : [LEGACY_SEASON_ID];
+
+    seasons = seasonIds.map((seasonId) => ({
+      id: seasonId,
+      name: seasonIdsFromProjects.length > 0 ? toTitleFromId(seasonId) : "Default Season",
+      type: "season",
+      startDate,
+      endDate,
+    }));
+  }
+  const defaultSeasonId = seasons[0]?.id ?? LEGACY_SEASON_ID;
+
+  const usedProjectIds = new Set<string>();
+  let projects: ProjectRecord[] = sourceProjects.map((project, index) => {
+    const projectId = reserveUniqueId(
+      project.id ?? "",
+      `project-${index + 1}`,
+      usedProjectIds,
+    );
+
+    return {
+      id: projectId,
+      seasonId: seasons.some((season) => season.id === project.seasonId)
+        ? project.seasonId
+        : defaultSeasonId,
+      name: project.name ?? `Project ${index + 1}`,
+      projectType: project.projectType ?? "robot",
+      description: project.description ?? "",
+      status: project.status ?? "active",
+    };
+  });
+
+  seasons.forEach((season) => {
+    const existingBuckets = new Set(
+      projects
+        .filter((project) => project.seasonId === season.id)
+        .map((project) => classifyProjectBucket(project))
+        .filter((bucket): bucket is NonNullable<ReturnType<typeof classifyProjectBucket>> => bucket !== null),
+    );
+
+    REQUIRED_PROJECTS_PER_SEASON.forEach((template) => {
+      if (existingBuckets.has(template.key)) {
+        return;
+      }
+
+      const generatedId = reserveUniqueId(
+        `${toSlug(season.id)}-${template.key}`,
+        `${LEGACY_PROJECT_ID}-${template.key}`,
+        usedProjectIds,
+      );
+
+      projects.push({
+        id: generatedId,
+        seasonId: season.id,
+        name: template.name,
+        projectType: template.projectType,
+        description: `${template.name} scope for ${season.name}.`,
+        status: "active",
+      });
+    });
+  });
+
+  const projectIds = new Set(projects.map((project) => project.id));
+  const defaultProjectId =
+    projects.find(
+      (project) =>
+        project.seasonId === defaultSeasonId &&
+        classifyProjectBucket(project) === "robot",
+    )?.id ??
+    projects[0]?.id ??
+    LEGACY_PROJECT_ID;
+  const subsystemById = new Map(sourceSubsystems.map((subsystem) => [subsystem.id, subsystem]));
+  const inferredWorkstreamBySubsystemId = new Map<string, string>();
+
+  let workstreams: WorkstreamRecord[] = sourceWorkstreams.map((workstream, index) => ({
+    id: workstream.id ?? `workstream-${index + 1}`,
+    projectId: projectIds.has(workstream.projectId) ? workstream.projectId : defaultProjectId,
+    name: workstream.name ?? `Workstream ${index + 1}`,
+    description: workstream.description ?? "",
+  }));
+
+  if (workstreams.length === 0) {
+    const subsystemIds = Array.from(
+      new Set(
+        [
+          ...sourceSubsystems.map((subsystem) => subsystem.id),
+          ...sourceTasks
+            .map((task) => task.subsystemId)
+            .filter((subsystemId): subsystemId is string => typeof subsystemId === "string" && subsystemId.length > 0),
+        ],
+      ),
+    );
+
+    workstreams = subsystemIds.map((subsystemId, index) => {
+      const subsystem = subsystemById.get(subsystemId);
+      const workstreamId = `workstream-${subsystemId}`;
+      inferredWorkstreamBySubsystemId.set(subsystemId, workstreamId);
+
+      return {
+        id: workstreamId,
+        projectId: defaultProjectId,
+        name: subsystem?.name ?? `Workstream ${index + 1}`,
+        description: subsystem?.description ?? "",
+      };
+    });
+  } else {
+    sourceSubsystems.forEach((subsystem) => {
+      const matchingWorkstream = workstreams.find(
+        (workstream) => workstream.name.toLowerCase() === subsystem.name.toLowerCase(),
+      );
+
+      if (matchingWorkstream) {
+        inferredWorkstreamBySubsystemId.set(subsystem.id, matchingWorkstream.id);
+      }
+    });
+  }
+
+  const workstreamIds = new Set(workstreams.map((workstream) => workstream.id));
+  const defaultSubsystemId = sourceSubsystems[0]?.id ?? "";
+  const defaultDisciplineId = sourceDisciplines[0]?.id ?? "";
+
+  const tasks: TaskRecord[] = sourceTasks.map((task, index) => {
+    const taskProjectId =
+      typeof task.projectId === "string" && projectIds.has(task.projectId)
+        ? task.projectId
+        : defaultProjectId;
+    const taskSubsystemId =
+      typeof task.subsystemId === "string" && task.subsystemId.length > 0
+        ? task.subsystemId
+        : defaultSubsystemId;
+    const inferredWorkstreamId = taskSubsystemId
+      ? inferredWorkstreamBySubsystemId.get(taskSubsystemId) ?? null
+      : null;
+    const taskWorkstreamId =
+      typeof task.workstreamId === "string" && workstreamIds.has(task.workstreamId)
+        ? task.workstreamId
+        : inferredWorkstreamId;
+    const taskStartDate = isIsoDate(task.startDate) ? task.startDate : startDate;
+    const taskDueDate = isIsoDate(task.dueDate) ? task.dueDate : taskStartDate;
+
+    return {
+      id: task.id ?? `task-${index + 1}`,
+      projectId: taskProjectId,
+      workstreamId: taskWorkstreamId,
+      title: task.title ?? "Untitled task",
+      summary: task.summary ?? "",
+      subsystemId: taskSubsystemId,
+      disciplineId: task.disciplineId ?? defaultDisciplineId,
+      mechanismId: task.mechanismId ?? null,
+      partInstanceId: task.partInstanceId ?? null,
+      targetEventId: task.targetEventId ?? null,
+      ownerId: task.ownerId ?? null,
+      mentorId: task.mentorId ?? null,
+      startDate: taskStartDate,
+      dueDate: taskDueDate,
+      priority: task.priority ?? "medium",
+      status: task.status ?? "not-started",
+      dependencyIds: task.dependencyIds ?? [],
+      blockers: task.blockers ?? [],
+      linkedManufacturingIds: task.linkedManufacturingIds ?? [],
+      linkedPurchaseIds: task.linkedPurchaseIds ?? [],
+      estimatedHours: toNumberOrZero(task.estimatedHours),
+      actualHours: toNumberOrZero(task.actualHours),
+      requiresDocumentation: task.requiresDocumentation ?? false,
+      documentationLinked: task.documentationLinked ?? false,
+    };
+  });
 
   return {
-    members: source.members ?? [],
-    subsystems: source.subsystems ?? [],
+    seasons,
+    projects,
+    workstreams,
+    tasks,
+  };
+}
+
+function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload {
+  const source = payload as LegacyBootstrapPayload;
+  const planning = normalizePlanningRecords(source);
+  const defaultSeasonId = planning.seasons[0]?.id ?? LEGACY_SEASON_ID;
+  const defaultProjectId = planning.projects[0]?.id ?? LEGACY_PROJECT_ID;
+  const projectIds = new Set(planning.projects.map((project) => project.id));
+  const workstreamsById = new Map(
+    planning.workstreams.map((workstream) => [workstream.id, workstream] as const),
+  );
+  const artifacts: ArtifactRecord[] = (source.artifacts ?? []).map((artifact, index) => {
+    const projectId =
+      typeof artifact.projectId === "string" && projectIds.has(artifact.projectId)
+        ? artifact.projectId
+        : defaultProjectId;
+    const requestedWorkstreamId =
+      typeof artifact.workstreamId === "string" && artifact.workstreamId.trim().length > 0
+        ? artifact.workstreamId
+        : null;
+    const workstream = requestedWorkstreamId
+      ? workstreamsById.get(requestedWorkstreamId)
+      : null;
+    const workstreamId =
+      workstream && workstream.projectId === projectId ? workstream.id : null;
+
+    return {
+      id: artifact.id ?? `artifact-${index + 1}`,
+      projectId,
+      workstreamId,
+      kind: isArtifactKind(artifact.kind) ? artifact.kind : "document",
+      title: artifact.title ?? `Artifact ${index + 1}`,
+      summary: artifact.summary ?? "",
+      status: isArtifactStatus(artifact.status) ? artifact.status : "draft",
+      link: artifact.link ?? "",
+      updatedAt:
+        typeof artifact.updatedAt === "string" && artifact.updatedAt.trim().length > 0
+          ? artifact.updatedAt
+          : new Date().toISOString(),
+    };
+  });
+
+  return {
+    seasons: planning.seasons,
+    projects: planning.projects,
+    workstreams: planning.workstreams,
+    members: (source.members ?? []).map((member) => ({
+      ...member,
+      seasonId: member.seasonId ?? defaultSeasonId,
+    })),
+    subsystems: (source.subsystems ?? []).map((subsystem) => ({
+      ...subsystem,
+      projectId: subsystem.projectId ?? defaultProjectId,
+    })),
     disciplines: source.disciplines ?? [],
     mechanisms: source.mechanisms ?? [],
-    requirements: source.requirements ?? [],
     materials: source.materials ?? [],
+    artifacts,
     partDefinitions: (source.partDefinitions ?? []).map((partDefinition) => ({
       ...partDefinition,
       materialId: partDefinition.materialId ?? null,
@@ -252,7 +657,10 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
       status: partInstance.status ?? "planned",
     })),
     events: source.events ?? [],
-    tasks: source.tasks ?? [],
+    qaReports: source.qaReports ?? [],
+    testResults: source.testResults ?? [],
+    risks: source.risks ?? [],
+    tasks: planning.tasks,
     workLogs: (source.workLogs ?? []).map((workLog) => ({
       ...workLog,
       participantIds: workLog.participantIds ?? [],
@@ -325,6 +733,45 @@ export async function createTask(
     "/tasks",
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createEventRecord(
+  payload: EventPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: EventRecord }>(
+    "/events",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updateEventRecord(
+  eventId: string,
+  payload: Partial<EventPayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: EventRecord }>(
+    `/events/${eventId}`,
+    {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
@@ -468,8 +915,27 @@ export async function updateTaskRecord(
   return response.item;
 }
 
+export async function createSeasonRecord(
+  payload: SeasonCreatePayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: SeasonRecord }>(
+    "/seasons",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
 export async function createMemberRecord(
-  payload: MemberPayload,
+  payload: MemberCreatePayload,
   onUnauthorized?: () => void,
 ) {
   const response = await requestApi<{ item: MemberRecord }>(
@@ -567,6 +1033,70 @@ export async function deleteMaterialRecord(
 ) {
   const response = await requestApi<{ item: MaterialRecord }>(
     `/materials/${materialId}`,
+    {
+      method: "DELETE",
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function fetchArtifactRecords(onUnauthorized?: () => void) {
+  const response = await requestApi<{ items: ArtifactRecord[] }>(
+    "/artifacts",
+    {},
+    onUnauthorized,
+  );
+
+  return response.items;
+}
+
+export async function createArtifactRecord(
+  payload: ArtifactPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: ArtifactRecord }>(
+    "/artifacts",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updateArtifactRecord(
+  artifactId: string,
+  payload: Partial<ArtifactPayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: ArtifactRecord }>(
+    `/artifacts/${artifactId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function deleteArtifactRecord(
+  artifactId: string,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: ArtifactRecord }>(
+    `/artifacts/${artifactId}`,
     {
       method: "DELETE",
     },

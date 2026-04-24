@@ -1,4 +1,6 @@
 import type {
+  ArtifactPayload,
+  ArtifactRecord,
   BootstrapPayload,
   ManufacturingItemPayload,
   ManufacturingItemRecord,
@@ -58,11 +60,12 @@ export function joinList(values: string[]) {
 }
 
 export function buildEmptyTaskPayload(bootstrap: BootstrapPayload): TaskPayload {
+    const firstProject = bootstrap.projects[0]?.id ?? "";
+    const firstWorkstream =
+        bootstrap.workstreams.find((workstream) => workstream.projectId === firstProject)?.id ??
+        null;
     const firstSubsystem = getDefaultSubsystemId(bootstrap);
     const firstDiscipline = bootstrap.disciplines[0]?.id ?? "";
-    const firstRequirement =
-        bootstrap.requirements.find((requirement) => requirement.subsystemId === firstSubsystem)?.id ??
-        null;
     const firstMechanism =
         bootstrap.mechanisms.find((mechanism) => mechanism.subsystemId === firstSubsystem)?.id ??
         null;
@@ -82,11 +85,12 @@ export function buildEmptyTaskPayload(bootstrap: BootstrapPayload): TaskPayload 
     const today = new Date().toISOString().slice(0, 10);
 
     return {
+        projectId: firstProject,
+        workstreamId: firstWorkstream,
         title: "",
         summary: "",
         subsystemId: firstSubsystem,
         disciplineId: firstDiscipline,
-        requirementId: firstRequirement,
         mechanismId: firstMechanism,
         partInstanceId: firstPartInstance,
         targetEventId: firstEvent,
@@ -177,6 +181,48 @@ export function buildEmptyMaterialPayload(): MaterialPayload {
     };
 }
 
+export function buildEmptyArtifactPayload(
+    bootstrap: BootstrapPayload,
+    defaults: {
+        projectId?: string;
+        workstreamId?: string | null;
+        kind?: ArtifactPayload["kind"];
+    } = {},
+): ArtifactPayload {
+    const resolvedProjectId =
+        defaults.projectId &&
+        bootstrap.projects.some((project) => project.id === defaults.projectId)
+            ? defaults.projectId
+            : bootstrap.projects[0]?.id ?? "";
+
+    const resolvedWorkstreamId =
+        defaults.workstreamId !== undefined
+            ? defaults.workstreamId
+            : bootstrap.workstreams.find((workstream) => workstream.projectId === resolvedProjectId)?.id ??
+              null;
+
+    const projectScopedWorkstreamId =
+        resolvedWorkstreamId &&
+        bootstrap.workstreams.some(
+            (workstream) =>
+                workstream.id === resolvedWorkstreamId &&
+                workstream.projectId === resolvedProjectId,
+        )
+            ? resolvedWorkstreamId
+            : null;
+
+    return {
+        projectId: resolvedProjectId,
+        workstreamId: projectScopedWorkstreamId,
+        kind: defaults.kind ?? "document",
+        title: "",
+        summary: "",
+        status: "draft",
+        link: "",
+        updatedAt: new Date().toISOString(),
+    };
+}
+
 export function buildEmptyPartDefinitionPayload(bootstrap: BootstrapPayload): PartDefinitionPayload {
     return {
         name: "",
@@ -190,7 +236,12 @@ export function buildEmptyPartDefinitionPayload(bootstrap: BootstrapPayload): Pa
 }
 
 export function buildEmptySubsystemPayload(bootstrap: BootstrapPayload): SubsystemPayload {
-    const defaultParentSubsystemId = getDefaultSubsystemId(bootstrap) || null;
+    const defaultProjectId = bootstrap.projects[0]?.id ?? "";
+    const defaultParentSubsystemId =
+        (
+            bootstrap.subsystems.find((subsystem) => subsystem.projectId === defaultProjectId)?.id ??
+            getDefaultSubsystemId(bootstrap)
+        ) || null;
     const firstResponsibleEngineer =
         bootstrap.members.find((member) => member.role === "lead")?.id ??
         bootstrap.members.find((member) => member.role === "student")?.id ??
@@ -199,6 +250,7 @@ export function buildEmptySubsystemPayload(bootstrap: BootstrapPayload): Subsyst
     const firstMentor = bootstrap.members.find((member) => member.role === "mentor")?.id ?? null;
 
     return {
+        projectId: defaultProjectId,
         name: "",
         description: "",
         parentSubsystemId: defaultParentSubsystemId,
@@ -266,6 +318,14 @@ export const manufacturingToPayload = (item: ManufacturingItemRecord): Manufactu
 });
 
 export const materialToPayload = (item: MaterialRecord): MaterialPayload => ({ ...item });
+
+export const artifactToPayload = (item: ArtifactRecord): ArtifactPayload => ({
+    ...item,
+    workstreamId: item.workstreamId ?? null,
+    summary: item.summary ?? "",
+    link: item.link ?? "",
+    updatedAt: item.updatedAt || new Date().toISOString(),
+});
 
 export const partDefinitionToPayload = (item: PartDefinitionRecord): PartDefinitionPayload => ({
     ...item,

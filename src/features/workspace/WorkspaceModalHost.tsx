@@ -1,6 +1,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 
 import {
+  ArtifactEditorModal,
   ManufacturingEditorModal,
   MaterialEditorModal,
   MechanismEditorModal,
@@ -12,6 +13,7 @@ import {
   WorkLogEditorModal,
 } from "./WorkspaceModals";
 import type {
+  ArtifactModalMode,
   ManufacturingModalMode,
   MaterialModalMode,
   MechanismModalMode,
@@ -23,6 +25,7 @@ import type {
   WorkLogModalMode,
 } from "./shared/workspaceModalModes";
 import type {
+  ArtifactPayload,
   BootstrapPayload,
   ManufacturingItemPayload,
   MaterialPayload,
@@ -37,6 +40,7 @@ import type {
 } from "../../types";
 
 interface WorkspaceModalHostProps {
+  activeArtifactId: string | null;
   activePartDefinitionId: string | null;
   activeMaterialId: string | null;
   activeMechanismId: string | null;
@@ -44,6 +48,7 @@ interface WorkspaceModalHostProps {
   activeTask: TaskRecord | null;
   bootstrap: BootstrapPayload;
   closeManufacturingModal: () => void;
+  closeArtifactModal: () => void;
   closeMaterialModal: () => void;
   closeMechanismModal: () => void;
   closePartInstanceModal: () => void;
@@ -55,6 +60,7 @@ interface WorkspaceModalHostProps {
   disciplinesById: Record<string, BootstrapPayload["disciplines"][number]>;
   eventsById: Record<string, BootstrapPayload["events"][number]>;
   handleDeleteMaterial: (materialId: string) => Promise<void>;
+  handleDeleteArtifact: (artifactId: string) => Promise<void>;
   handleDeletePartDefinition: (partDefinitionId: string) => Promise<void>;
   handleDeleteMechanism: (mechanismId: string) => Promise<void>;
   handlePartInstanceSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -62,14 +68,17 @@ interface WorkspaceModalHostProps {
   handleMaterialSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleMechanismSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handlePartDefinitionSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleArtifactSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handlePurchaseSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleWorkLogSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleSubsystemSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleTaskSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   isDeletingMaterial: boolean;
+  isDeletingArtifact: boolean;
   isDeletingPartDefinition: boolean;
   isDeletingMechanism: boolean;
   isSavingManufacturing: boolean;
+  isSavingArtifact: boolean;
   isSavingMaterial: boolean;
   isSavingPartDefinition: boolean;
   isSavingPartInstance: boolean;
@@ -78,6 +87,8 @@ interface WorkspaceModalHostProps {
   isSavingWorkLog: boolean;
   isSavingSubsystem: boolean;
   isSavingTask: boolean;
+  artifactDraft: ArtifactPayload;
+  artifactModalMode: ArtifactModalMode;
   manufacturingDraft: ManufacturingItemPayload;
   manufacturingModalMode: ManufacturingModalMode;
   materialDraft: MaterialPayload;
@@ -97,7 +108,7 @@ interface WorkspaceModalHostProps {
   purchaseModalMode: PurchaseModalMode;
   workLogDraft: WorkLogPayload;
   workLogModalMode: WorkLogModalMode;
-  requirementsById: Record<string, BootstrapPayload["requirements"][number]>;
+  setArtifactDraft: Dispatch<SetStateAction<ArtifactPayload>>;
   setManufacturingDraft: Dispatch<SetStateAction<ManufacturingItemPayload>>;
   setMaterialDraft: Dispatch<SetStateAction<MaterialPayload>>;
   setMechanismDraft: Dispatch<SetStateAction<MechanismPayload>>;
@@ -120,6 +131,7 @@ interface WorkspaceModalHostProps {
 }
 
 export function WorkspaceModalHost({
+  activeArtifactId,
   activePartDefinitionId,
   activeMaterialId,
   activeMechanismId,
@@ -127,6 +139,7 @@ export function WorkspaceModalHost({
   activeTask,
   bootstrap,
   closeManufacturingModal,
+  closeArtifactModal,
   closeMaterialModal,
   closeMechanismModal,
   closePartInstanceModal,
@@ -138,6 +151,7 @@ export function WorkspaceModalHost({
   disciplinesById,
   eventsById,
   handleDeleteMaterial,
+  handleDeleteArtifact,
   handleDeletePartDefinition,
   handleDeleteMechanism,
   handlePartInstanceSubmit,
@@ -145,14 +159,17 @@ export function WorkspaceModalHost({
   handleMaterialSubmit,
   handleMechanismSubmit,
   handlePartDefinitionSubmit,
+  handleArtifactSubmit,
   handlePurchaseSubmit,
   handleWorkLogSubmit,
   handleSubsystemSubmit,
   handleTaskSubmit,
   isDeletingMaterial,
+  isDeletingArtifact,
   isDeletingPartDefinition,
   isDeletingMechanism,
   isSavingManufacturing,
+  isSavingArtifact,
   isSavingMaterial,
   isSavingPartDefinition,
   isSavingPartInstance,
@@ -161,6 +178,8 @@ export function WorkspaceModalHost({
   isSavingWorkLog,
   isSavingSubsystem,
   isSavingTask,
+  artifactDraft,
+  artifactModalMode,
   manufacturingDraft,
   manufacturingModalMode,
   materialDraft,
@@ -180,7 +199,7 @@ export function WorkspaceModalHost({
   purchaseModalMode,
   workLogDraft,
   workLogModalMode,
-  requirementsById,
+  setArtifactDraft,
   setManufacturingDraft,
   setMaterialDraft,
   setMechanismDraft,
@@ -203,6 +222,21 @@ export function WorkspaceModalHost({
 }: WorkspaceModalHostProps) {
   return (
     <>
+      {artifactModalMode ? (
+        <ArtifactEditorModal
+          activeArtifactId={activeArtifactId}
+          artifactDraft={artifactDraft}
+          artifactModalMode={artifactModalMode}
+          bootstrap={bootstrap}
+          closeArtifactModal={closeArtifactModal}
+          handleArtifactSubmit={handleArtifactSubmit}
+          handleDeleteArtifact={handleDeleteArtifact}
+          isDeletingArtifact={isDeletingArtifact}
+          isSavingArtifact={isSavingArtifact}
+          setArtifactDraft={setArtifactDraft}
+        />
+      ) : null}
+
       {subsystemModalMode ? (
         <SubsystemEditorModal
           activeSubsystemId={activeSubsystemId}
@@ -259,7 +293,6 @@ export function WorkspaceModalHost({
           mentors={mentors}
           partDefinitionsById={partDefinitionsById}
           partInstancesById={partInstancesById}
-          requirementsById={requirementsById}
           setTaskDraft={setTaskDraft}
           setTaskDraftBlockers={setTaskDraftBlockers}
           students={students}

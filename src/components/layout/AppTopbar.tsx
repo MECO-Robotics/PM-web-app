@@ -8,6 +8,7 @@ import {
   MECO_PROFILE_AVATAR_SIZE,
 } from "../../lib/branding";
 import type { SessionUser } from "../../lib/auth";
+import type { ProjectRecord } from "../../types";
 import type {
   InventoryViewTab,
   ManufacturingViewTab,
@@ -27,13 +28,19 @@ const MANUFACTURING_VIEW_OPTIONS: { value: ManufacturingViewTab; label: string }
   { value: "fabrication", label: "Fabrication" },
 ];
 
-const INVENTORY_VIEW_OPTIONS: { value: InventoryViewTab; label: string }[] = [
+const ROBOT_INVENTORY_VIEW_OPTIONS: { value: InventoryViewTab; label: string }[] = [
   { value: "materials", label: "Materials" },
   { value: "parts", label: "Parts" },
   { value: "purchases", label: "Purchases" },
 ];
 
-const SECTION_LABELS: Record<ViewTab, string> = {
+const NON_ROBOT_INVENTORY_VIEW_OPTIONS: { value: InventoryViewTab; label: string }[] = [
+  { value: "materials", label: "Documents" },
+  { value: "parts", label: "Non-Technical" },
+  { value: "purchases", label: "Purchases" },
+];
+
+const BASE_SECTION_LABELS: Record<ViewTab, string> = {
   tasks: "Tasks",
   worklogs: "Worklogs",
   manufacturing: "Manufacturing",
@@ -78,25 +85,29 @@ function TopbarTabs<T extends string>({
 function TopbarNavigation({
   activeTab,
   inventoryView,
+  isNonRobotProject,
   manufacturingView,
   setInventoryView,
   setManufacturingView,
   setTaskView,
+  subsystemsLabel,
   taskView,
 }: {
   activeTab: ViewTab;
   inventoryView: InventoryViewTab;
+  isNonRobotProject: boolean;
   manufacturingView: ManufacturingViewTab;
   setInventoryView: Dispatch<SetStateAction<InventoryViewTab>>;
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
   setTaskView: Dispatch<SetStateAction<TaskViewTab>>;
+  subsystemsLabel: string;
   taskView: TaskViewTab;
 }) {
   switch (activeTab) {
     case "tasks":
       return (
         <>
-          <span className="app-topbar-page-label">{SECTION_LABELS.tasks}</span>
+          <span className="app-topbar-page-label">{BASE_SECTION_LABELS.tasks}</span>
           <TopbarTabs
             activeValue={taskView}
             ariaLabel="Task views"
@@ -108,7 +119,7 @@ function TopbarNavigation({
     case "manufacturing":
       return (
         <>
-          <span className="app-topbar-page-label">{SECTION_LABELS.manufacturing}</span>
+          <span className="app-topbar-page-label">{BASE_SECTION_LABELS.manufacturing}</span>
           <TopbarTabs
             activeValue={manufacturingView}
             ariaLabel="Manufacturing views"
@@ -120,17 +131,25 @@ function TopbarNavigation({
     case "inventory":
       return (
         <>
-          <span className="app-topbar-page-label">{SECTION_LABELS.inventory}</span>
+          <span className="app-topbar-page-label">{BASE_SECTION_LABELS.inventory}</span>
           <TopbarTabs
             activeValue={inventoryView}
             ariaLabel="Inventory views"
             onChange={setInventoryView}
-            options={INVENTORY_VIEW_OPTIONS}
+            options={
+              isNonRobotProject
+                ? NON_ROBOT_INVENTORY_VIEW_OPTIONS
+                : ROBOT_INVENTORY_VIEW_OPTIONS
+            }
           />
         </>
       );
     default:
-      return <span className="app-topbar-page-label">{SECTION_LABELS[activeTab]}</span>;
+      return (
+        <span className="app-topbar-page-label">
+          {activeTab === "subsystems" ? subsystemsLabel : BASE_SECTION_LABELS[activeTab]}
+        </span>
+      );
   }
 }
 
@@ -140,6 +159,7 @@ interface AppTopbarProps {
   inventoryView: InventoryViewTab;
   isLoadingData: boolean;
   isDarkMode: boolean;
+  isNonRobotProject: boolean;
   isSidebarCollapsed: boolean;
   loadWorkspace: () => Promise<void>;
   manufacturingView: ManufacturingViewTab;
@@ -148,6 +168,10 @@ interface AppTopbarProps {
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
   setTaskView: Dispatch<SetStateAction<TaskViewTab>>;
   taskView: TaskViewTab;
+  projects: ProjectRecord[];
+  selectedProjectId: string | null;
+  subsystemsLabel: string;
+  onSelectProject: (projectId: string | null) => void;
   toggleDarkMode: () => void;
   toggleSidebar: () => void;
 }
@@ -158,6 +182,7 @@ export function AppTopbar({
   inventoryView,
   isLoadingData,
   isDarkMode,
+  isNonRobotProject,
   isSidebarCollapsed,
   loadWorkspace,
   manufacturingView,
@@ -166,6 +191,10 @@ export function AppTopbar({
   setManufacturingView,
   setTaskView,
   taskView,
+  projects,
+  selectedProjectId,
+  subsystemsLabel,
+  onSelectProject,
   toggleDarkMode,
   toggleSidebar,
 }: AppTopbarProps) {
@@ -199,14 +228,41 @@ export function AppTopbar({
         ) : null}
       </div>
 
+      <div className="app-topbar-project-slot">
+        <label className="app-topbar-project-picker">
+          <span className="app-topbar-project-label">Project</span>
+          <select
+            className="app-topbar-project-select"
+            disabled={projects.length === 0}
+            onChange={(event) => onSelectProject(event.target.value || null)}
+            value={selectedProjectId ?? ""}
+          >
+            {projects.length === 0 ? (
+              <option value="">No projects</option>
+            ) : (
+              <>
+                <option value="">All projects</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        </label>
+      </div>
+
       <div className="app-topbar-nav">
         <TopbarNavigation
           activeTab={activeTab}
           inventoryView={inventoryView}
+          isNonRobotProject={isNonRobotProject}
           manufacturingView={manufacturingView}
           setInventoryView={setInventoryView}
           setManufacturingView={setManufacturingView}
           setTaskView={setTaskView}
+          subsystemsLabel={subsystemsLabel}
           taskView={taskView}
         />
       </div>

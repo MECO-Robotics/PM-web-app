@@ -2,6 +2,7 @@ import {
   startTransition,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -17,6 +18,8 @@ import type {
   ViewTab,
 } from "../features/workspace/shared/workspaceTypes";
 import {
+  artifactToPayload,
+  buildEmptyArtifactPayload,
   buildEmptyMechanismPayload,
   buildEmptyManufacturingPayload,
   buildEmptyMaterialPayload,
@@ -39,12 +42,15 @@ import {
   toErrorMessage,
 } from "../lib/appUtils";
 import {
+  createArtifactRecord,
   createManufacturingItemRecord,
   createMaterialRecord,
   createMemberRecord,
+  createSeasonRecord,
   createMechanismRecord,
   createWorkLogRecord,
   createSubsystemRecord,
+  createEventRecord,
   createPartDefinitionRecord,
   createPartInstanceRecord,
   createPurchaseItemRecord,
@@ -53,6 +59,7 @@ import {
   deleteMemberRecord,
   deleteMechanismRecord,
   deletePartDefinitionRecord,
+  deleteArtifactRecord,
   fetchBootstrap,
   updateManufacturingItemRecord,
   updateMaterialRecord,
@@ -63,9 +70,15 @@ import {
   updatePartInstanceRecord,
   updatePurchaseItemRecord,
   updateTaskRecord,
+  updateArtifactRecord,
+  updateEventRecord,
 } from "../lib/auth";
 import type {
+  ArtifactKind,
+  ArtifactPayload,
+  ArtifactRecord,
   BootstrapPayload,
+  EventPayload,
   ManufacturingItemPayload,
   ManufacturingItemRecord,
   MaterialPayload,
@@ -87,6 +100,7 @@ import type {
 } from "../types";
 import { EMPTY_BOOTSTRAP } from "../features/workspace/shared/bootstrapDefaults";
 import type {
+  ArtifactModalMode,
   ManufacturingModalMode,
   MaterialModalMode,
   MechanismModalMode,
@@ -102,6 +116,110 @@ import { useAppShell } from "./useAppShell";
 import { useWorkspaceDerivedData } from "../features/workspace/useWorkspaceDerivedData";
 import { WorkspaceModalHost } from "../features/workspace/WorkspaceModalHost";
 
+function scopeBootstrapBySelection(
+  payload: BootstrapPayload,
+  selectedSeasonId: string | null,
+  selectedProjectId: string | null,
+): BootstrapPayload {
+  const seasonScopedProjects = selectedSeasonId
+    ? payload.projects.filter((project) => project.seasonId === selectedSeasonId)
+    : payload.projects;
+  const selectedProjectIsValid =
+    selectedProjectId !== null &&
+    seasonScopedProjects.some((project) => project.id === selectedProjectId);
+  const activeProjectIds = new Set(
+    (selectedProjectIsValid
+      ? seasonScopedProjects.filter((project) => project.id === selectedProjectId)
+      : seasonScopedProjects
+    ).map((project) => project.id),
+  );
+  const scopedSeasons = selectedSeasonId
+    ? payload.seasons.filter((season) => season.id === selectedSeasonId)
+    : payload.seasons;
+  const scopedProjects = seasonScopedProjects.filter((project) =>
+    activeProjectIds.has(project.id),
+  );
+  const scopedWorkstreams = payload.workstreams.filter((workstream) =>
+    activeProjectIds.has(workstream.projectId),
+  );
+  const scopedSubsystems = payload.subsystems.filter((subsystem) =>
+    activeProjectIds.has(subsystem.projectId),
+  );
+  const scopedSubsystemIds = new Set(scopedSubsystems.map((subsystem) => subsystem.id));
+  const scopedMechanisms = payload.mechanisms.filter((mechanism) =>
+    scopedSubsystemIds.has(mechanism.subsystemId),
+  );
+  const scopedMechanismIds = new Set(scopedMechanisms.map((mechanism) => mechanism.id));
+  const scopedPartInstances = payload.partInstances.filter(
+    (partInstance) =>
+      scopedSubsystemIds.has(partInstance.subsystemId) &&
+      (!partInstance.mechanismId || scopedMechanismIds.has(partInstance.mechanismId)),
+  );
+  const scopedPurchaseItems = payload.purchaseItems.filter((item) =>
+    scopedSubsystemIds.has(item.subsystemId),
+  );
+  const scopedManufacturingItems = payload.manufacturingItems.filter((item) =>
+    scopedSubsystemIds.has(item.subsystemId),
+  );
+  const scopedEvents = payload.events.filter(
+    (event) =>
+      event.relatedSubsystemIds.length === 0 ||
+      event.relatedSubsystemIds.some((subsystemId) => scopedSubsystemIds.has(subsystemId)),
+  );
+  const scopedWorkstreamIds = new Set(scopedWorkstreams.map((workstream) => workstream.id));
+  const scopedTasks = payload.tasks.filter(
+    (task) =>
+      activeProjectIds.has(task.projectId) && scopedSubsystemIds.has(task.subsystemId),
+  );
+  const scopedTaskIds = new Set(scopedTasks.map((task) => task.id));
+  const scopedWorkLogs = payload.workLogs.filter((workLog) => scopedTaskIds.has(workLog.taskId));
+  const scopedQaReports = payload.qaReports.filter((report) => scopedTaskIds.has(report.taskId));
+  const scopedQaReportIds = new Set(scopedQaReports.map((report) => report.id));
+  const scopedRisks = payload.risks.filter((risk) => {
+    if (risk.attachmentType === "project" && !activeProjectIds.has(risk.attachmentId)) {
+      return false;
+    }
+
+    if (
+      risk.attachmentType === "workstream" &&
+      !scopedWorkstreamIds.has(risk.attachmentId)
+    ) {
+      return false;
+    }
+
+    if (risk.mitigationTaskId && !scopedTaskIds.has(risk.mitigationTaskId)) {
+      return false;
+    }
+
+    if (risk.sourceType === "qa-report" && !scopedQaReportIds.has(risk.sourceId)) {
+      return false;
+    }
+
+    return true;
+  });
+  const scopedMembers = selectedSeasonId
+    ? payload.members.filter((member) => member.seasonId === selectedSeasonId)
+    : payload.members;
+
+  return {
+    ...payload,
+    seasons: scopedSeasons,
+    projects: scopedProjects,
+    workstreams: scopedWorkstreams,
+    subsystems: scopedSubsystems,
+    mechanisms: scopedMechanisms,
+    partInstances: scopedPartInstances,
+    purchaseItems: scopedPurchaseItems,
+    manufacturingItems: scopedManufacturingItems,
+    events: scopedEvents,
+    members: scopedMembers,
+    tasks: scopedTasks,
+    workLogs: scopedWorkLogs,
+    qaReports: scopedQaReports,
+    risks: scopedRisks,
+  };
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<ViewTab>("tasks");
   const [taskView, setTaskView] = useState<TaskViewTab>("timeline");
@@ -114,7 +232,8 @@ export default function App() {
 
   const {
     isDarkMode,
-    isShellCompact,
+    isSidebarCollapsed,
+    isSidebarOverlay,
     pageShellStyle,
     toggleDarkMode,
     toggleSidebar,
@@ -196,6 +315,15 @@ export default function App() {
   const [isSavingPartDefinition, setIsSavingPartDefinition] = useState(false);
   const [isDeletingPartDefinition, setIsDeletingPartDefinition] = useState(false);
 
+  const [artifactModalMode, setArtifactModalMode] =
+    useState<ArtifactModalMode>(null);
+  const [activeArtifactId, setActiveArtifactId] = useState<string | null>(null);
+  const [artifactDraft, setArtifactDraft] = useState<ArtifactPayload>(
+    buildEmptyArtifactPayload(EMPTY_BOOTSTRAP, { kind: "document" }),
+  );
+  const [isSavingArtifact, setIsSavingArtifact] = useState(false);
+  const [isDeletingArtifact, setIsDeletingArtifact] = useState(false);
+
   const [partInstanceModalMode, setPartInstanceModalMode] =
     useState<PartInstanceModalMode>(null);
   const [activePartInstanceId, setActivePartInstanceId] = useState<string | null>(null);
@@ -223,6 +351,8 @@ export default function App() {
   const [isDeletingMechanism, setIsDeletingMechanism] = useState(false);
 
   const [activePersonFilter, setActivePersonFilter] = useState<string>("all");
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [memberForm, setMemberForm] = useState<MemberPayload>({
     name: "",
@@ -235,6 +365,65 @@ export default function App() {
   );
   const [isSavingMember, setIsSavingMember] = useState(false);
   const [isDeletingMember, setIsDeletingMember] = useState(false);
+  const projectsInSelectedSeason = useMemo(() => {
+    if (!selectedSeasonId) {
+      return bootstrap.projects;
+    }
+
+    return bootstrap.projects.filter((project) => project.seasonId === selectedSeasonId);
+  }, [bootstrap.projects, selectedSeasonId]);
+  const scopedBootstrap = useMemo(
+    () => scopeBootstrapBySelection(bootstrap, selectedSeasonId, selectedProjectId),
+    [bootstrap, selectedProjectId, selectedSeasonId],
+  );
+  const selectedProject = useMemo(
+    () =>
+      projectsInSelectedSeason.find((project) => project.id === selectedProjectId) ?? null,
+    [projectsInSelectedSeason, selectedProjectId],
+  );
+  const selectedProjectType = selectedProject?.projectType ?? null;
+  const isAllProjectsView = selectedProjectId === null;
+  const isNonRobotProject =
+    selectedProjectType !== null && selectedProjectType !== "robot";
+  const subsystemsLabel = isNonRobotProject ? "Workflow" : "Subsystems";
+  const scopedArtifacts = useMemo(() => {
+    const activeProjectIds = new Set(
+      scopedBootstrap.projects.map((project) => project.id),
+    );
+    return bootstrap.artifacts.filter((artifact) =>
+      activeProjectIds.has(artifact.projectId),
+    );
+  }, [bootstrap.artifacts, scopedBootstrap.projects]);
+
+  useEffect(() => {
+    if (bootstrap.seasons.length === 0) {
+      if (selectedSeasonId !== null) {
+        setSelectedSeasonId(null);
+      }
+      return;
+    }
+
+    if (!selectedSeasonId || !bootstrap.seasons.some((season) => season.id === selectedSeasonId)) {
+      setSelectedSeasonId(bootstrap.seasons[0].id);
+    }
+  }, [bootstrap.seasons, selectedSeasonId]);
+
+  useEffect(() => {
+    if (projectsInSelectedSeason.length === 0) {
+      if (selectedProjectId !== null) {
+        setSelectedProjectId(null);
+      }
+      return;
+    }
+
+    if (
+      selectedProjectId &&
+      !projectsInSelectedSeason.some((project) => project.id === selectedProjectId)
+    ) {
+      setSelectedProjectId(null);
+    }
+  }, [projectsInSelectedSeason, selectedProjectId]);
+
   const {
     activeTask,
     cncItems,
@@ -248,14 +437,26 @@ export default function App() {
     partDefinitionsById,
     partInstancesById,
     printItems,
-    requirementsById,
     rosterMentors,
     students,
     subsystemsById,
   } = useWorkspaceDerivedData({
     activeTaskId,
-    bootstrap,
+    bootstrap: scopedBootstrap,
+    isAllProjectsView,
+    selectedProjectType,
   });
+
+  const visibleTabs = useMemo(
+    () => new Set<ViewTab>(navigationItems.map((item) => item.value)),
+    [navigationItems],
+  );
+
+  useEffect(() => {
+    if (!visibleTabs.has(activeTab)) {
+      setActiveTab("tasks");
+    }
+  }, [activeTab, visibleTabs]);
 
   const handleUnauthorized = useCallback(() => {
     expireSession("Your session expired. Please sign in again.");
@@ -288,10 +489,17 @@ export default function App() {
         activePersonFilter === "all" ? null : activePersonFilter,
         handleUnauthorized,
       );
+      const scopedPayload = scopeBootstrapBySelection(
+        payload,
+        selectedSeasonId,
+        selectedProjectId,
+      );
+      const nextArtifacts = payload.artifacts;
       const nextMemberId =
-        selectedMemberId && payload.members.some((member) => member.id === selectedMemberId)
+        selectedMemberId &&
+        scopedPayload.members.some((member) => member.id === selectedMemberId)
           ? selectedMemberId
-          : payload.members[0]?.id ?? null;
+          : scopedPayload.members[0]?.id ?? null;
 
       startTransition(() => {
         setBootstrap(payload);
@@ -299,15 +507,15 @@ export default function App() {
 
       if (
         activePersonFilter !== "all" &&
-        !payload.members.some((member) => member.id === activePersonFilter)
+        !scopedPayload.members.some((member) => member.id === activePersonFilter)
       ) {
         setActivePersonFilter("all");
       }
 
-      selectMember(nextMemberId, payload);
+      selectMember(nextMemberId, scopedPayload);
 
       if (taskModalMode === "create") {
-        setTaskDraft(buildEmptyTaskPayload(payload));
+        setTaskDraft(buildEmptyTaskPayload(scopedPayload));
         setTaskDraftBlockers("");
       }
 
@@ -388,6 +596,30 @@ export default function App() {
         }
       }
 
+      if (artifactModalMode === "create") {
+        setArtifactDraft(
+          buildEmptyArtifactPayload(
+            scopedPayload,
+            {
+              projectId: selectedProjectId ?? undefined,
+              kind: artifactDraft.kind,
+            },
+          ),
+        );
+      }
+
+      if (artifactModalMode === "edit" && activeArtifactId) {
+        const nextArtifact = nextArtifacts.find(
+          (artifact) => artifact.id === activeArtifactId,
+        );
+        if (nextArtifact) {
+          setArtifactDraft(artifactToPayload(nextArtifact));
+        } else {
+          setArtifactModalMode(null);
+          setActiveArtifactId(null);
+        }
+      }
+
       if (partInstanceModalMode === "create") {
         setPartInstanceDraft((current) =>
           buildEmptyPartInstancePayload(payload, {
@@ -411,12 +643,12 @@ export default function App() {
       }
 
       if (subsystemModalMode === "create") {
-        setSubsystemDraft(buildEmptySubsystemPayload(payload));
+        setSubsystemDraft(buildEmptySubsystemPayload(scopedPayload));
         setSubsystemDraftRisks("");
       }
 
       if (subsystemModalMode === "edit" && activeSubsystemId) {
-        const nextSubsystem = payload.subsystems.find(
+        const nextSubsystem = scopedPayload.subsystems.find(
           (subsystem) => subsystem.id === activeSubsystemId,
         );
         if (nextSubsystem) {
@@ -435,7 +667,7 @@ export default function App() {
       }
 
       if (mechanismModalMode === "edit" && activeMechanismId) {
-        const nextMechanism = payload.mechanisms.find(
+        const nextMechanism = scopedPayload.mechanisms.find(
           (mechanism) => mechanism.id === activeMechanismId,
         );
         if (nextMechanism) {
@@ -452,6 +684,7 @@ export default function App() {
       setIsLoadingData(false);
     }
   }, [
+    activeArtifactId,
     activeManufacturingId,
     activeMaterialId,
     activePartDefinitionId,
@@ -461,6 +694,8 @@ export default function App() {
     activeTaskId,
     activeSubsystemId,
     activeMechanismId,
+    artifactDraft.kind,
+    artifactModalMode,
     handleUnauthorized,
     mechanismModalMode,
     manufacturingModalMode,
@@ -469,6 +704,8 @@ export default function App() {
     partInstanceModalMode,
     purchaseModalMode,
     selectedMemberId,
+    selectedProjectId,
+    selectedSeasonId,
     selectMember,
     subsystemModalMode,
     taskModalMode,
@@ -476,7 +713,7 @@ export default function App() {
 
   const openCreateTaskModal = () => {
     setActiveTaskId(null);
-    setTaskDraft(buildEmptyTaskPayload(bootstrap));
+    setTaskDraft(buildEmptyTaskPayload(scopedBootstrap));
     setTaskDraftBlockers("");
     setTaskModalMode("create");
   };
@@ -496,7 +733,7 @@ export default function App() {
   const openCreateWorkLogModal = () => {
     setWorkLogDraft(
       buildEmptyWorkLogPayload(
-        bootstrap,
+        scopedBootstrap,
         activePersonFilter === "all" ? null : activePersonFilter,
       ),
     );
@@ -562,6 +799,28 @@ export default function App() {
     setActiveMaterialId(null);
   };
 
+  const openCreateArtifactModal = (kind: ArtifactKind) => {
+    setActiveArtifactId(null);
+    setArtifactDraft(
+      buildEmptyArtifactPayload(scopedBootstrap, {
+        projectId: selectedProjectId ?? undefined,
+        kind,
+      }),
+    );
+    setArtifactModalMode("create");
+  };
+
+  const openEditArtifactModal = (artifact: ArtifactRecord) => {
+    setActiveArtifactId(artifact.id);
+    setArtifactDraft(artifactToPayload(artifact));
+    setArtifactModalMode("edit");
+  };
+
+  const closeArtifactModal = () => {
+    setArtifactModalMode(null);
+    setActiveArtifactId(null);
+  };
+
   const openCreatePartDefinitionModal = () => {
     setActivePartDefinitionId(null);
     setPartDefinitionDraft(buildEmptyPartDefinitionPayload(bootstrap));
@@ -603,7 +862,7 @@ export default function App() {
 
   const openCreateSubsystemModal = () => {
     setActiveSubsystemId(null);
-    setSubsystemDraft(buildEmptySubsystemPayload(bootstrap));
+    setSubsystemDraft(buildEmptySubsystemPayload(scopedBootstrap));
     setSubsystemDraftRisks("");
     setSubsystemModalMode("create");
   };
@@ -680,6 +939,19 @@ export default function App() {
       setIsSavingTask(false);
     }
   };
+
+  const handleTimelineEventSave = useCallback(
+    async (mode: "create" | "edit", eventId: string | null, payload: EventPayload) => {
+      if (mode === "create") {
+        await createEventRecord(payload, handleUnauthorized);
+      } else if (eventId) {
+        await updateEventRecord(eventId, payload, handleUnauthorized);
+      }
+
+      await loadWorkspace();
+    },
+    [handleUnauthorized, loadWorkspace],
+  );
 
   const handleWorkLogSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -849,6 +1121,55 @@ export default function App() {
     }
   };
 
+  const handleArtifactSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSavingArtifact(true);
+    setDataMessage(null);
+
+    try {
+      const payload: ArtifactPayload = {
+        ...artifactDraft,
+        title: artifactDraft.title.trim(),
+        summary: artifactDraft.summary.trim(),
+        link: artifactDraft.link.trim(),
+      };
+      if (!payload.projectId) {
+        setDataMessage("Pick a project before saving an artifact.");
+        return;
+      }
+
+      if (artifactModalMode === "create") {
+        await createArtifactRecord(payload, handleUnauthorized);
+      } else if (artifactModalMode === "edit" && activeArtifactId) {
+        await updateArtifactRecord(activeArtifactId, payload, handleUnauthorized);
+      }
+
+      await loadWorkspace();
+      closeArtifactModal();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingArtifact(false);
+    }
+  };
+
+  const handleDeleteArtifact = async (artifactId: string) => {
+    setIsDeletingArtifact(true);
+    setDataMessage(null);
+
+    try {
+      await deleteArtifactRecord(artifactId, handleUnauthorized);
+      if (activeArtifactId === artifactId) {
+        closeArtifactModal();
+      }
+      await loadWorkspace();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsDeletingArtifact(false);
+    }
+  };
+
   const handlePartDefinitionSubmit = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
@@ -941,12 +1262,18 @@ export default function App() {
 
   const handleSubsystemSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (subsystemModalMode === "create" && !selectedProjectId) {
+      setDataMessage("Pick a project before adding a subsystem.");
+      return;
+    }
+
     setIsSavingSubsystem(true);
     setDataMessage(null);
 
     try {
       const payload: SubsystemPayload = {
         ...subsystemDraft,
+        projectId: selectedProjectId ?? subsystemDraft.projectId,
         risks: splitList(subsystemDraftRisks),
       };
 
@@ -1003,13 +1330,57 @@ export default function App() {
     }
   };
 
+  const handleCreateSeason = async () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const rawSeasonName = window.prompt("Name your new season.");
+    if (rawSeasonName === null) {
+      return;
+    }
+
+    const seasonName = rawSeasonName.trim();
+    if (seasonName.length < 2) {
+      setDataMessage("Season names need at least 2 characters.");
+      return;
+    }
+
+    setDataMessage(null);
+
+    try {
+      const season = await createSeasonRecord(
+        {
+          name: seasonName,
+        },
+        handleUnauthorized,
+      );
+      await loadWorkspace();
+      setSelectedSeasonId(season.id);
+      setSelectedProjectId(null);
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    }
+  };
+
   const handleCreateMember = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!selectedSeasonId) {
+      setDataMessage("Pick a season before adding a roster member.");
+      return;
+    }
+
     setIsSavingMember(true);
     setDataMessage(null);
 
     try {
-      await createMemberRecord(memberForm, handleUnauthorized);
+      await createMemberRecord(
+        {
+          ...memberForm,
+          seasonId: selectedSeasonId,
+        },
+        handleUnauthorized,
+      );
       setMemberForm({ name: "", role: "student" });
       setIsAddPersonOpen(false);
       await loadWorkspace();
@@ -1073,11 +1444,42 @@ export default function App() {
     }
   };
 
+  const closeSidebarOverlay = useCallback(() => {
+    if (isSidebarOverlay) {
+      toggleSidebar();
+    }
+  }, [isSidebarOverlay, toggleSidebar]);
+
+  const handleSidebarTabSelect = useCallback(
+    (tab: ViewTab) => {
+      setActiveTab(tab);
+      closeSidebarOverlay();
+    },
+    [closeSidebarOverlay],
+  );
+
+  useEffect(() => {
+    if (!isSidebarOverlay) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeSidebarOverlay();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [closeSidebarOverlay, isSidebarOverlay]);
+
   if (authBooting) {
     return (
       <AuthStatusScreen
         body="Checking the server-side auth configuration before the workspace opens."
-        title="Loading sign-in requirements for MECO Robotics."
+        title="Loading sign-in rules for MECO Robotics."
       />
     );
   }
@@ -1113,7 +1515,7 @@ export default function App() {
 
   return (
     <main
-      className={`page-shell ${isDarkMode ? "dark-mode" : ""} ${isShellCompact ? "is-sidebar-collapsed" : ""}`}
+      className={`page-shell ${isDarkMode ? "dark-mode" : ""} ${isSidebarCollapsed ? "is-sidebar-collapsed" : ""} ${isSidebarOverlay ? "is-sidebar-overlay" : ""}`}
       style={pageShellStyle}
     >
       <AppTopbar
@@ -1124,42 +1526,65 @@ export default function App() {
         loadWorkspace={loadWorkspace}
         manufacturingView={manufacturingView}
         sessionUser={sessionUser}
+        isNonRobotProject={isNonRobotProject}
         setInventoryView={setInventoryView}
         setManufacturingView={setManufacturingView}
         setTaskView={setTaskView}
         taskView={taskView}
+        projects={projectsInSelectedSeason}
+        selectedProjectId={selectedProjectId}
+        subsystemsLabel={subsystemsLabel}
+        onSelectProject={setSelectedProjectId}
         isDarkMode={isDarkMode}
         toggleDarkMode={toggleDarkMode}
         toggleSidebar={toggleSidebar}
-        isSidebarCollapsed={isShellCompact}
+        isSidebarCollapsed={isSidebarCollapsed}
       />
 
       <AppSidebar
         activeTab={activeTab}
         items={navigationItems}
-        onSelectTab={setActiveTab}
-        isCollapsed={isShellCompact}
+        onSelectTab={handleSidebarTabSelect}
+        isCollapsed={isSidebarCollapsed}
+        seasons={bootstrap.seasons}
+        selectedSeasonId={selectedSeasonId}
+        onSelectSeason={setSelectedSeasonId}
+        onCreateSeason={handleCreateSeason}
       />
+
+      {isSidebarOverlay ? (
+        <button
+          aria-label="Close sidebar"
+          className="sidebar-overlay-scrim"
+          onClick={closeSidebarOverlay}
+          type="button"
+        />
+      ) : null}
 
       <WorkspaceContent
         activePersonFilter={activePersonFilter}
         activeTab={activeTab}
-        bootstrap={bootstrap}
+        artifacts={scopedArtifacts}
+        bootstrap={scopedBootstrap}
         cncItems={cncItems}
         dataMessage={dataMessage}
         fabricationItems={fabricationItems}
         handleCreateMember={handleCreateMember}
         handleDeleteMember={handleDeleteMember}
+        handleTimelineEventSave={handleTimelineEventSave}
         handleUpdateMember={handleUpdateMember}
         isAddPersonOpen={isAddPersonOpen}
         isDeletingMember={isDeletingMember}
         isEditPersonOpen={isEditPersonOpen}
         isLoadingData={isLoadingData}
+        isAllProjectsView={isAllProjectsView}
+        isNonRobotProject={isNonRobotProject}
         isSavingMember={isSavingMember}
         memberEditDraft={memberEditDraft}
         memberForm={memberForm}
         membersById={membersById}
         openCreateManufacturingModal={openCreateManufacturingModal}
+        openCreateArtifactModal={openCreateArtifactModal}
         openCreateMaterialModal={openCreateMaterialModal}
         openCreateMechanismModal={openCreateMechanismModal}
         openCreatePartInstanceModal={openCreatePartInstanceModal}
@@ -1169,6 +1594,7 @@ export default function App() {
         openCreateTaskModal={openCreateTaskModal}
         openCreateWorkLogModal={openCreateWorkLogModal}
         openEditManufacturingModal={openEditManufacturingModal}
+        openEditArtifactModal={openEditArtifactModal}
         openEditMaterialModal={openEditMaterialModal}
         openEditMechanismModal={openEditMechanismModal}
         openEditPartInstanceModal={openEditPartInstanceModal}
@@ -1194,19 +1620,20 @@ export default function App() {
         mechanismsById={mechanismsById}
         partDefinitionsById={partDefinitionsById}
         partInstancesById={partInstancesById}
-        requirementsById={requirementsById}
         subsystemsById={subsystemsById}
         onDismissDataMessage={clearDataMessage}
       />
 
       <WorkspaceModalHost
+        activeArtifactId={activeArtifactId}
         activePartDefinitionId={activePartDefinitionId}
         activeMaterialId={activeMaterialId}
         activeMechanismId={activeMechanismId}
         activeSubsystemId={activeSubsystemId}
         activeTask={activeTask}
-        bootstrap={bootstrap}
+        bootstrap={scopedBootstrap}
         closeManufacturingModal={closeManufacturingModal}
+        closeArtifactModal={closeArtifactModal}
         closeMaterialModal={closeMaterialModal}
         closeMechanismModal={closeMechanismModal}
         closePartInstanceModal={closePartInstanceModal}
@@ -1218,6 +1645,7 @@ export default function App() {
         disciplinesById={disciplinesById}
         eventsById={eventsById}
         handleDeleteMaterial={handleDeleteMaterial}
+        handleDeleteArtifact={handleDeleteArtifact}
         handleDeletePartDefinition={handleDeletePartDefinition}
         handleDeleteMechanism={handleDeleteMechanism}
         handlePartInstanceSubmit={handlePartInstanceSubmit}
@@ -1225,14 +1653,17 @@ export default function App() {
         handleManufacturingSubmit={handleManufacturingSubmit}
         handleMaterialSubmit={handleMaterialSubmit}
         handlePartDefinitionSubmit={handlePartDefinitionSubmit}
+        handleArtifactSubmit={handleArtifactSubmit}
         handlePurchaseSubmit={handlePurchaseSubmit}
         handleWorkLogSubmit={handleWorkLogSubmit}
         handleSubsystemSubmit={handleSubsystemSubmit}
         handleTaskSubmit={handleTaskSubmit}
         isDeletingMaterial={isDeletingMaterial}
+        isDeletingArtifact={isDeletingArtifact}
         isDeletingPartDefinition={isDeletingPartDefinition}
         isDeletingMechanism={isDeletingMechanism}
         isSavingManufacturing={isSavingManufacturing}
+        isSavingArtifact={isSavingArtifact}
         isSavingMaterial={isSavingMaterial}
         isSavingPartDefinition={isSavingPartDefinition}
         isSavingPartInstance={isSavingPartInstance}
@@ -1241,6 +1672,8 @@ export default function App() {
         isSavingWorkLog={isSavingWorkLog}
         isSavingSubsystem={isSavingSubsystem}
         isSavingTask={isSavingTask}
+        artifactDraft={artifactDraft}
+        artifactModalMode={artifactModalMode}
         manufacturingDraft={manufacturingDraft}
         manufacturingModalMode={manufacturingModalMode}
         materialDraft={materialDraft}
@@ -1260,7 +1693,7 @@ export default function App() {
         purchaseModalMode={purchaseModalMode}
         workLogDraft={workLogDraft}
         workLogModalMode={workLogModalMode}
-        requirementsById={requirementsById}
+        setArtifactDraft={setArtifactDraft}
         setMechanismDraft={setMechanismDraft}
         setManufacturingDraft={setManufacturingDraft}
         setMaterialDraft={setMaterialDraft}

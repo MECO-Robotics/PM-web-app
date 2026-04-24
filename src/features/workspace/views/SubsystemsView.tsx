@@ -54,60 +54,37 @@ export function SubsystemsView({
         subsystem.id,
         {
           mechanisms: 0,
-          openRequirements: 0,
           parts: 0,
           tasks: 0,
           openTasks: 0,
-          requirements: 0,
         },
       ]),
     ) as Record<
       string,
       {
         mechanisms: number;
-        openRequirements: number;
         parts: number;
         tasks: number;
         openTasks: number;
-        requirements: number;
       }
     >;
 
     for (const mechanism of bootstrap.mechanisms) {
       initialCounts[mechanism.subsystemId] = initialCounts[mechanism.subsystemId] ?? {
         mechanisms: 0,
-        openRequirements: 0,
         parts: 0,
         tasks: 0,
         openTasks: 0,
-        requirements: 0,
       };
       initialCounts[mechanism.subsystemId].mechanisms += 1;
-    }
-
-    for (const requirement of bootstrap.requirements) {
-      initialCounts[requirement.subsystemId] = initialCounts[requirement.subsystemId] ?? {
-        mechanisms: 0,
-        openRequirements: 0,
-        parts: 0,
-        tasks: 0,
-        openTasks: 0,
-        requirements: 0,
-      };
-      initialCounts[requirement.subsystemId].requirements += 1;
-      if (requirement.status !== "complete") {
-        initialCounts[requirement.subsystemId].openRequirements += 1;
-      }
     }
 
     for (const partInstance of bootstrap.partInstances) {
       initialCounts[partInstance.subsystemId] = initialCounts[partInstance.subsystemId] ?? {
         mechanisms: 0,
-        openRequirements: 0,
         parts: 0,
         tasks: 0,
         openTasks: 0,
-        requirements: 0,
       };
       initialCounts[partInstance.subsystemId].parts += 1;
     }
@@ -115,11 +92,9 @@ export function SubsystemsView({
     for (const task of bootstrap.tasks) {
       initialCounts[task.subsystemId] = initialCounts[task.subsystemId] ?? {
         mechanisms: 0,
-        openRequirements: 0,
         parts: 0,
         tasks: 0,
         openTasks: 0,
-        requirements: 0,
       };
       initialCounts[task.subsystemId].tasks += 1;
       if (task.status !== "complete") {
@@ -128,7 +103,7 @@ export function SubsystemsView({
     }
 
     return initialCounts;
-  }, [bootstrap.mechanisms, bootstrap.partInstances, bootstrap.requirements, bootstrap.subsystems, bootstrap.tasks]);
+  }, [bootstrap.mechanisms, bootstrap.partInstances, bootstrap.subsystems, bootstrap.tasks]);
 
   const partDefinitionsById = useMemo(
     () =>
@@ -245,10 +220,6 @@ export function SubsystemsView({
 
   const visibleSubsystemCount = filteredSubsystems.length;
   const visibleMechanismCount = filteredMechanisms.length;
-  const visibleOpenRequirementCount = filteredSubsystems.reduce(
-    (total, subsystem) => total + (countsBySubsystemId[subsystem.id]?.openRequirements ?? 0),
-    0,
-  );
 
   return (
     <section className={`panel dense-panel subsystem-manager-shell ${WORKSPACE_PANEL_CLASS}`}>
@@ -294,10 +265,6 @@ export function SubsystemsView({
           <span>Visible mechanisms</span>
           <strong>{visibleMechanismCount}</strong>
         </div>
-        <div className="summary-chip">
-          <span>Open requirements</span>
-          <strong>{visibleOpenRequirementCount}</strong>
-        </div>
       </div>
 
       <div className="panel-subsection subsystem-manager-list" style={{ flex: "1 1 620px" }}>
@@ -327,11 +294,9 @@ export function SubsystemsView({
           {filteredSubsystems.map((subsystem) => {
             const counts = countsBySubsystemId[subsystem.id] ?? {
               mechanisms: 0,
-              openRequirements: 0,
               parts: 0,
               tasks: 0,
               openTasks: 0,
-              requirements: 0,
             };
             const isSelected = subsystem.id === selectedSubsystem?.id;
             const mentorNames = subsystem.mentorIds
@@ -385,7 +350,7 @@ export function SubsystemsView({
                     <small style={{ color: "var(--text-copy)" }}>
                       {subsystem.parentSubsystemId
                         ? `Parent: ${parentSubsystem?.name ?? "Unknown"}`
-                        : "Parent: Drivetrain root"}
+                        : "Parent: No parent (root)"}
                     </small>
                   </TableCell>
                   <TableCell label="Lead">
@@ -474,7 +439,7 @@ export function SubsystemsView({
 
           {filteredSubsystems.length === 0 ? (
             <p className="empty-state">
-              No subsystems match the current search or scope.
+              No subsystems match the current search or filters.
             </p>
           ) : null}
         </div>

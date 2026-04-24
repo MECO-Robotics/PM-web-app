@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { buildPageShellStyle } from "./theme";
 
 export function useAppShell() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
+  const [isCompactSidebarExpanded, setIsCompactSidebarExpanded] = useState(false);
   const [isViewportNarrow, setIsViewportNarrow] = useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia("(max-width: 960px)").matches
@@ -28,10 +29,24 @@ export function useAppShell() {
     };
   }, []);
 
-  const isShellCompact = isSidebarCollapsed || isViewportNarrow;
+  useEffect(() => {
+    if (!isViewportNarrow) {
+      setIsCompactSidebarExpanded(false);
+    }
+  }, [isViewportNarrow]);
+
+  const isSidebarCollapsed = isViewportNarrow
+    ? !isCompactSidebarExpanded
+    : isDesktopSidebarCollapsed;
+  const isSidebarOverlay = isViewportNarrow && isCompactSidebarExpanded;
 
   const toggleSidebar = () => {
-    setIsSidebarCollapsed((current) => !current);
+    if (isViewportNarrow) {
+      setIsCompactSidebarExpanded((current) => !current);
+      return;
+    }
+
+    setIsDesktopSidebarCollapsed((current) => !current);
   };
 
   const toggleDarkMode = () => {
@@ -46,7 +61,8 @@ export function useAppShell() {
 
   return {
     isDarkMode,
-    isShellCompact,
+    isSidebarCollapsed,
+    isSidebarOverlay,
     pageShellStyle,
     toggleDarkMode,
     toggleSidebar,

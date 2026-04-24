@@ -1,5 +1,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import type {
+  ArtifactPayload,
+  ArtifactStatus,
   BootstrapPayload,
   ManufacturingItemPayload,
   MaterialPayload,
@@ -25,7 +27,6 @@ interface TaskEditorModalProps {
   mentors: BootstrapPayload["members"];
   partDefinitionsById: Record<string, BootstrapPayload["partDefinitions"][number]>;
   partInstancesById: Record<string, BootstrapPayload["partInstances"][number]>;
-  requirementsById: Record<string, BootstrapPayload["requirements"][number]>;
   students: BootstrapPayload["members"];
   taskDraft: TaskPayload;
   taskDraftBlockers: string;
@@ -46,7 +47,6 @@ export function TaskEditorModal({
   mentors,
   partDefinitionsById,
   partInstancesById,
-  requirementsById,
   students,
   taskDraft,
   taskDraftBlockers,
@@ -54,8 +54,14 @@ export function TaskEditorModal({
   setTaskDraft,
   setTaskDraftBlockers,
 }: TaskEditorModalProps) {
-  const filteredRequirements = bootstrap.requirements.filter(
-    (requirement) => requirement.subsystemId === taskDraft.subsystemId,
+  const projectsById = Object.fromEntries(
+    bootstrap.projects.map((project) => [project.id, project]),
+  ) as Record<string, BootstrapPayload["projects"][number]>;
+  const workstreamsById = Object.fromEntries(
+    bootstrap.workstreams.map((workstream) => [workstream.id, workstream]),
+  ) as Record<string, BootstrapPayload["workstreams"][number]>;
+  const filteredWorkstreams = bootstrap.workstreams.filter(
+    (workstream) => workstream.projectId === taskDraft.projectId,
   );
   const filteredMechanisms = bootstrap.mechanisms.filter(
     (mechanism) => mechanism.subsystemId === taskDraft.subsystemId,
@@ -101,14 +107,59 @@ export function TaskEditorModal({
             />
           </label>
           <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Project</span>
+            <select
+              onChange={(event) =>
+                setTaskDraft((current) => {
+                  const projectId = event.target.value;
+                  const workstreamId =
+                    bootstrap.workstreams.find(
+                      (workstream) => workstream.projectId === projectId,
+                    )?.id ?? null;
+
+                  return {
+                    ...current,
+                    projectId,
+                    workstreamId,
+                  };
+                })
+              }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              value={taskDraft.projectId}
+            >
+              {bootstrap.projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Workstream</span>
+            <select
+              onChange={(event) =>
+                setTaskDraft((current) => ({
+                  ...current,
+                  workstreamId: event.target.value || null,
+                }))
+              }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              value={taskDraft.workstreamId ?? ""}
+            >
+              <option value="">Project-level task</option>
+              {filteredWorkstreams.map((workstream) => (
+                <option key={workstream.id} value={workstream.id}>
+                  {workstream.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
             <span style={{ color: "var(--text-title)" }}>Subsystem</span>
             <select
               onChange={(event) =>
                 setTaskDraft((current) => {
                   const subsystemId = event.target.value;
-                  const requirementId =
-                    bootstrap.requirements.find((requirement) => requirement.subsystemId === subsystemId)?.id ??
-                    null;
                   const nextMechanisms = bootstrap.mechanisms.filter(
                     (mechanism) => mechanism.subsystemId === subsystemId,
                   );
@@ -122,7 +173,6 @@ export function TaskEditorModal({
                   return {
                     ...current,
                     subsystemId,
-                    requirementId,
                     mechanismId,
                     partInstanceId,
                   };
@@ -150,26 +200,6 @@ export function TaskEditorModal({
               {bootstrap.disciplines.map((discipline) => (
                 <option key={discipline.id} value={discipline.id}>
                   {discipline.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Requirement</span>
-            <select
-              onChange={(event) =>
-                setTaskDraft((current) => ({
-                  ...current,
-                  requirementId: event.target.value || null,
-                }))
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={taskDraft.requirementId ?? ""}
-            >
-              <option value="">No requirement</option>
-              {filteredRequirements.map((requirement) => (
-                <option key={requirement.id} value={requirement.id}>
-                  {requirement.title}
                 </option>
               ))}
             </select>
@@ -270,14 +300,16 @@ export function TaskEditorModal({
           <div className="field modal-wide" style={{ gap: "6px" }}>
             <span style={{ color: "var(--text-title)" }}>Task traceability</span>
             <small style={{ color: "var(--text-copy)" }}>
+              {(taskDraft.projectId ? projectsById[taskDraft.projectId]?.name : null) ?? "No project"}
+              {" / "}
+              {(taskDraft.workstreamId ? workstreamsById[taskDraft.workstreamId]?.name : null) ?? "Project-level task"}
+              {" / "}
               {(taskDraft.disciplineId ? disciplinesById[taskDraft.disciplineId]?.name : null) ?? "No discipline"}
-              {" · "}
-              {(taskDraft.requirementId ? requirementsById[taskDraft.requirementId]?.moscowPriority : null) ?? "No requirement"}
-              {" · "}
+              {" / "}
               {(taskDraft.mechanismId ? mechanismsById[taskDraft.mechanismId]?.name : null) ?? "No mechanism"}
-              {" · "}
+              {" / "}
               {(taskDraft.partInstanceId ? partInstancesById[taskDraft.partInstanceId]?.name : null) ?? "No part instance"}
-              {" · "}
+              {" / "}
               {(taskDraft.targetEventId ? eventsById[taskDraft.targetEventId]?.title : null) ?? "No event"}
             </small>
           </div>
@@ -1323,6 +1355,253 @@ export function MaterialEditorModal({
   );
 }
 
+interface ArtifactEditorModalProps {
+  activeArtifactId: string | null;
+  artifactDraft: ArtifactPayload;
+  artifactModalMode: "create" | "edit";
+  bootstrap: BootstrapPayload;
+  closeArtifactModal: () => void;
+  handleArtifactSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  handleDeleteArtifact: (artifactId: string) => Promise<void>;
+  isDeletingArtifact: boolean;
+  isSavingArtifact: boolean;
+  setArtifactDraft: Dispatch<SetStateAction<ArtifactPayload>>;
+}
+
+export function ArtifactEditorModal({
+  activeArtifactId,
+  artifactDraft,
+  artifactModalMode,
+  bootstrap,
+  closeArtifactModal,
+  handleArtifactSubmit,
+  handleDeleteArtifact,
+  isDeletingArtifact,
+  isSavingArtifact,
+  setArtifactDraft,
+}: ArtifactEditorModalProps) {
+  const filteredWorkstreams = bootstrap.workstreams.filter(
+    (workstream) => workstream.projectId === artifactDraft.projectId,
+  );
+
+  return (
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
+      <section
+        aria-modal="true"
+        className="modal-card"
+        role="dialog"
+        style={{
+          background: "var(--bg-panel)",
+          border: "1px solid var(--border-base)",
+        }}
+      >
+        <div className="panel-header compact-header">
+          <div>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>
+              Artifact editor
+            </p>
+            <h2 style={{ color: "var(--text-title)" }}>
+              {artifactModalMode === "create" ? "Add artifact" : "Edit artifact"}
+            </h2>
+          </div>
+          <button
+            className="icon-button"
+            onClick={closeArtifactModal}
+            style={{ color: "var(--text-copy)", background: "transparent" }}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+        <form
+          className="modal-form"
+          onSubmit={handleArtifactSubmit}
+          style={{ color: "var(--text-copy)" }}
+        >
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Title</span>
+            <input
+              onChange={(event) =>
+                setArtifactDraft((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
+              }
+              required
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={artifactDraft.title}
+            />
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Project</span>
+            <select
+              onChange={(event) =>
+                setArtifactDraft((current) => {
+                  const projectId = event.target.value;
+                  const defaultWorkstreamId =
+                    bootstrap.workstreams.find(
+                      (workstream) => workstream.projectId === projectId,
+                    )?.id ?? null;
+                  return {
+                    ...current,
+                    projectId,
+                    workstreamId: defaultWorkstreamId,
+                  };
+                })
+              }
+              required
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={artifactDraft.projectId}
+            >
+              <option value="" disabled>
+                Select project
+              </option>
+              {bootstrap.projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Workflow</span>
+            <select
+              onChange={(event) =>
+                setArtifactDraft((current) => ({
+                  ...current,
+                  workstreamId: event.target.value || null,
+                }))
+              }
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={artifactDraft.workstreamId ?? ""}
+            >
+              <option value="">Project-level artifact</option>
+              {filteredWorkstreams.map((workstream) => (
+                <option key={workstream.id} value={workstream.id}>
+                  {workstream.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Status</span>
+            <select
+              onChange={(event) =>
+                setArtifactDraft((current) => ({
+                  ...current,
+                  status: event.target.value as ArtifactStatus,
+                }))
+              }
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={artifactDraft.status}
+            >
+              <option value="draft">Draft</option>
+              <option value="in-review">In review</option>
+              <option value="published">Published</option>
+            </select>
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Summary</span>
+            <textarea
+              onChange={(event) =>
+                setArtifactDraft((current) => ({
+                  ...current,
+                  summary: event.target.value,
+                }))
+              }
+              rows={3}
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={artifactDraft.summary}
+            />
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Link</span>
+            <input
+              onChange={(event) =>
+                setArtifactDraft((current) => ({
+                  ...current,
+                  link: event.target.value,
+                }))
+              }
+              placeholder="https://..."
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              type="url"
+              value={artifactDraft.link}
+            />
+          </label>
+
+          <div className="modal-actions modal-wide">
+            {artifactModalMode === "edit" && activeArtifactId ? (
+              <button
+                className="danger-action"
+                disabled={isDeletingArtifact || isSavingArtifact}
+                onClick={() => {
+                  void handleDeleteArtifact(activeArtifactId);
+                }}
+                type="button"
+              >
+                {isDeletingArtifact ? "Deleting..." : "Delete artifact"}
+              </button>
+            ) : null}
+            <button
+              className="secondary-action"
+              onClick={closeArtifactModal}
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              className="primary-action"
+              disabled={isSavingArtifact || isDeletingArtifact}
+              type="submit"
+            >
+              {isSavingArtifact
+                ? "Saving..."
+                : artifactModalMode === "create"
+                  ? "Add artifact"
+                  : "Save changes"}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
 interface PartDefinitionEditorModalProps {
   bootstrap: BootstrapPayload;
   activePartDefinitionId: string | null;
@@ -1670,7 +1949,6 @@ export function SubsystemEditorModal({
                     parentSubsystemId: event.target.value || null,
                   }))
                 }
-                required
                 style={{
                   background: "var(--bg-row-alt)",
                   color: "var(--text-title)",
@@ -1678,6 +1956,7 @@ export function SubsystemEditorModal({
                 }}
                 value={subsystemDraft.parentSubsystemId ?? ""}
               >
+                <option value="">No parent (root subsystem)</option>
                 {parentSubsystemOptions.map((subsystem) => (
                   <option key={subsystem.id} value={subsystem.id}>
                     {subsystem.name}
@@ -1932,3 +2211,4 @@ export function MechanismEditorModal({
     </div>
   );
 }
+

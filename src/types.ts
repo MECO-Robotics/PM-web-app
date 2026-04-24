@@ -42,8 +42,6 @@ export type TaskStatus =
   | "in-progress"
   | "waiting-for-qa"
   | "complete";
-export type MoscowPriority = "must" | "should" | "could" | "wont";
-export type RequirementStatus = "planned" | "in-progress" | "complete";
 export type ManufacturingProcess = "3d-print" | "cnc" | "fabrication";
 export type ManufacturingStatus =
   | "requested"
@@ -65,15 +63,25 @@ export type MaterialCategory =
   | "hardware"
   | "consumable"
   | "other";
+export type ArtifactKind = "document" | "nontechnical";
+export type ArtifactStatus = "draft" | "in-review" | "published";
+export type SeasonType = "season" | "offseason" | "initiative";
+export type ProjectType = "robot" | "operations" | "outreach" | "other";
+export type ProjectStatus = "planned" | "active" | "paused" | "complete";
+export type TestResultStatus = "pass" | "fail" | "blocked";
+export type RiskSeverity = "high" | "medium" | "low";
+export type RiskAttachmentType = "project" | "workstream" | "mechanism" | "part-instance";
 
 export interface MemberRecord {
   id: string;
   name: string;
   role: MemberRole;
+  seasonId: string;
 }
 
 export interface SubsystemRecord {
   id: string;
+  projectId: string;
   name: string;
   description: string;
   isCore: boolean;
@@ -96,15 +104,6 @@ export interface MechanismRecord {
   description: string;
 }
 
-export interface RequirementRecord {
-  id: string;
-  subsystemId: string;
-  title: string;
-  description: string;
-  moscowPriority: MoscowPriority;
-  status: RequirementStatus;
-}
-
 export interface MaterialRecord {
   id: string;
   name: string;
@@ -115,6 +114,18 @@ export interface MaterialRecord {
   location: string;
   vendor: string;
   notes: string;
+}
+
+export interface ArtifactRecord {
+  id: string;
+  projectId: string;
+  workstreamId: string | null;
+  kind: ArtifactKind;
+  title: string;
+  summary: string;
+  status: ArtifactStatus;
+  link: string;
+  updatedAt: string;
 }
 
 export interface PartDefinitionRecord {
@@ -150,13 +161,78 @@ export interface EventRecord {
   relatedSubsystemIds: string[];
 }
 
+export interface EventPayload {
+  title: string;
+  type: EventType;
+  startDateTime: string;
+  endDateTime: string | null;
+  isExternal: boolean;
+  description: string;
+  relatedSubsystemIds: string[];
+}
+
+export interface SeasonRecord {
+  id: string;
+  name: string;
+  type: SeasonType;
+  startDate: string;
+  endDate: string;
+}
+
+export interface ProjectRecord {
+  id: string;
+  seasonId: string;
+  name: string;
+  projectType: ProjectType;
+  description: string;
+  status: ProjectStatus;
+}
+
+export interface WorkstreamRecord {
+  id: string;
+  projectId: string;
+  name: string;
+  description: string;
+}
+
+export interface QaReportRecord {
+  id: string;
+  taskId: string;
+  participantIds: string[];
+  result: "pass" | "minor-fix" | "iteration-worthy";
+  mentorApproved: boolean;
+  notes: string;
+  reviewedAt: string;
+}
+
+export interface TestResultRecord {
+  id: string;
+  eventId: string;
+  title: string;
+  status: TestResultStatus;
+  findings: string[];
+}
+
+export interface RiskRecord {
+  id: string;
+  title: string;
+  detail: string;
+  severity: RiskSeverity;
+  sourceType: "qa-report" | "test-result";
+  sourceId: string;
+  attachmentType: RiskAttachmentType;
+  attachmentId: string;
+  mitigationTaskId: string | null;
+}
+
 export interface TaskRecord {
   id: string;
+  projectId: string;
+  workstreamId: string | null;
   title: string;
   summary: string;
   subsystemId: string;
   disciplineId: string;
-  requirementId: string | null;
   mechanismId: string | null;
   partInstanceId: string | null;
   targetEventId: string | null;
@@ -256,24 +332,41 @@ export interface ManufacturingItemPayload {
 }
 
 export interface BootstrapPayload {
+  seasons: SeasonRecord[];
+  projects: ProjectRecord[];
+  workstreams: WorkstreamRecord[];
   members: MemberRecord[];
   subsystems: SubsystemRecord[];
   disciplines: DisciplineRecord[];
   mechanisms: MechanismRecord[];
-  requirements: RequirementRecord[];
   materials: MaterialRecord[];
+  artifacts: ArtifactRecord[];
   partDefinitions: PartDefinitionRecord[];
   partInstances: PartInstanceRecord[];
   events: EventRecord[];
+  qaReports: QaReportRecord[];
+  testResults: TestResultRecord[];
+  risks: RiskRecord[];
   tasks: TaskRecord[];
   workLogs: WorkLogRecord[];
   purchaseItems: PurchaseItemRecord[];
   manufacturingItems: ManufacturingItemRecord[];
 }
 
+export interface SeasonCreatePayload {
+  name: string;
+  type?: SeasonType;
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface MemberPayload {
   name: string;
   role: MemberRole;
+}
+
+export interface MemberCreatePayload extends MemberPayload {
+  seasonId: string;
 }
 
 export interface MaterialPayload {
@@ -287,6 +380,17 @@ export interface MaterialPayload {
   notes: string;
 }
 
+export interface ArtifactPayload {
+  projectId: string;
+  workstreamId: string | null;
+  kind: ArtifactKind;
+  title: string;
+  summary: string;
+  status: ArtifactStatus;
+  link: string;
+  updatedAt: string;
+}
+
 export interface PartDefinitionPayload {
   name: string;
   partNumber: string;
@@ -298,6 +402,7 @@ export interface PartDefinitionPayload {
 }
 
 export interface SubsystemPayload {
+  projectId: string;
   name: string;
   description: string;
   parentSubsystemId: string | null;
@@ -323,11 +428,12 @@ export interface PartInstancePayload {
 }
 
 export interface TaskPayload {
+  projectId: string;
+  workstreamId: string | null;
   title: string;
   summary: string;
   subsystemId: string;
   disciplineId: string;
-  requirementId: string | null;
   mechanismId: string | null;
   partInstanceId: string | null;
   targetEventId: string | null;

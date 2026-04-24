@@ -1,8 +1,13 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { formatDate } from "../../../lib/appUtils";
 import type { BootstrapPayload, TaskRecord } from "../../../types";
-import { IconManufacturing, IconPerson, IconTasks } from "../../../components/shared/Icons";
+import {
+  IconManufacturing,
+  IconParts,
+  IconPerson,
+  IconTasks,
+} from "../../../components/shared/Icons";
 import {
   EditableHoverIndicator,
   FilterDropdown,
@@ -13,20 +18,27 @@ import { getStatusPillClassName } from "../shared/workspaceUtils";
 import { WORKSPACE_PANEL_CLASS } from "../shared/workspaceTypes";
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from "../shared/workspaceOptions";
 
-type TaskSortField = "dueDate" | "ownerId" | "priority" | "status" | "subsystemId" | "title";
+type TaskSortField =
+  | "dueDate"
+  | "ownerId"
+  | "priority"
+  | "projectId"
+  | "status"
+  | "subsystemId"
+  | "title";
 
 interface TaskQueueViewProps {
   activePersonFilter: string;
   bootstrap: BootstrapPayload;
   disciplinesById: Record<string, BootstrapPayload["disciplines"][number]>;
   eventsById: Record<string, BootstrapPayload["events"][number]>;
+  isAllProjectsView: boolean;
   mechanismsById: Record<string, BootstrapPayload["mechanisms"][number]>;
   membersById: Record<string, BootstrapPayload["members"][number]>;
   openCreateTaskModal: () => void;
   openEditTaskModal: (task: TaskRecord) => void;
   partDefinitionsById: Record<string, BootstrapPayload["partDefinitions"][number]>;
   partInstancesById: Record<string, BootstrapPayload["partInstances"][number]>;
-  requirementsById: Record<string, BootstrapPayload["requirements"][number]>;
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
 }
 
@@ -35,29 +47,55 @@ export function TaskQueueView({
   bootstrap,
   disciplinesById,
   eventsById,
+  isAllProjectsView,
   mechanismsById,
   membersById,
   openCreateTaskModal,
   openEditTaskModal,
   partDefinitionsById,
   partInstancesById,
-  requirementsById,
   subsystemsById,
 }: TaskQueueViewProps) {
   const [sortField, setSortField] = useState<TaskSortField>("dueDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [projectFilter, setProjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [subsystemFilter, setSubsystemFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [searchFilter, setSearchFilter] = useState("");
 
+  const projectsById = useMemo(
+    () =>
+      Object.fromEntries(
+        bootstrap.projects.map((project) => [project.id, project]),
+      ) as Record<string, BootstrapPayload["projects"][number]>,
+    [bootstrap.projects],
+  );
+
+  useEffect(() => {
+    if (!isAllProjectsView && projectFilter !== "all") {
+      setProjectFilter("all");
+    }
+  }, [isAllProjectsView, projectFilter]);
+
+  useEffect(() => {
+    if (
+      projectFilter !== "all" &&
+      !bootstrap.projects.some((project) => project.id === projectFilter)
+    ) {
+      setProjectFilter("all");
+    }
+  }, [bootstrap.projects, projectFilter]);
+
+  const showProjectCol = isAllProjectsView && projectFilter === "all";
   const showSubsystemCol = subsystemFilter === "all";
   const showOwnerCol = ownerFilter === "all";
   const showStatusCol = statusFilter === "all";
   const showPriorityCol = priorityFilter === "all";
 
   const gridTemplate = [
+    showProjectCol ? "1fr" : null,
     "minmax(200px, 2.5fr)",
     showSubsystemCol ? "1fr" : null,
     showOwnerCol ? "1fr" : null,
@@ -71,6 +109,9 @@ export function TaskQueueView({
   const processedTasks = useMemo(() => {
     let result = [...bootstrap.tasks];
 
+    if (isAllProjectsView && projectFilter !== "all") {
+      result = result.filter((task) => task.projectId === projectFilter);
+    }
     if (statusFilter !== "all") {
       result = result.filter((task) => task.status === statusFilter);
     }
@@ -115,6 +156,9 @@ export function TaskQueueView({
       if (sortField === "subsystemId") {
         return subsystemsById[task.subsystemId]?.name ?? "";
       }
+      if (sortField === "projectId") {
+        return projectsById[task.projectId]?.name ?? "";
+      }
       if (sortField === "ownerId") {
         return membersById[task.ownerId ?? ""]?.name ?? "";
       }
@@ -138,9 +182,12 @@ export function TaskQueueView({
     });
   }, [
     bootstrap.tasks,
+    isAllProjectsView,
     membersById,
     ownerFilter,
     priorityFilter,
+    projectFilter,
+    projectsById,
     searchFilter,
     sortField,
     sortOrder,
@@ -185,6 +232,17 @@ export function TaskQueueView({
             placeholder="Search tasks..."
             value={searchFilter}
           />
+
+          {isAllProjectsView ? (
+            <FilterDropdown
+              allLabel="All projects"
+              ariaLabel="Filter tasks by project"
+              icon={<IconParts />}
+              onChange={setProjectFilter}
+              options={bootstrap.projects}
+              value={projectFilter}
+            />
+          ) : null}
 
           <FilterDropdown
             allLabel="All subsystems"
@@ -239,6 +297,11 @@ export function TaskQueueView({
           className="queue-table queue-table-header"
           style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
         >
+          {showProjectCol ? (
+            <button className="table-sort-button" onClick={() => toggleSort("projectId")} type="button">
+              Project{getSortIcon("projectId")}
+            </button>
+          ) : null}
           <button className="table-sort-button" onClick={() => toggleSort("title")} type="button">
             Task{getSortIcon("title")}
           </button>
@@ -275,13 +338,18 @@ export function TaskQueueView({
 
           return (
             <button
-            className="queue-table queue-row editable-hover-target editable-hover-target-row"
-            key={task.id}
-            onClick={() => openEditTaskModal(task)}
-            style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
-            type="button"
-          >
-            <span
+              className="queue-table queue-row editable-hover-target editable-hover-target-row"
+              key={task.id}
+              onClick={() => openEditTaskModal(task)}
+              style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
+              type="button"
+            >
+              {showProjectCol ? (
+                <TableCell label="Project">
+                  {projectsById[task.projectId]?.name ?? "Unknown"}
+                </TableCell>
+              ) : null}
+              <span
                 className="queue-title table-cell table-cell-primary queue-title-stack"
                 data-label="Task"
               >
@@ -293,9 +361,6 @@ export function TaskQueueView({
                   {(task.mechanismId ? mechanismsById[task.mechanismId]?.name : null) ?? "No mechanism"}
                   {" / "}
                   {linkedPart ?? "No part"}
-                  {task.requirementId
-                    ? ` / ${requirementsById[task.requirementId]?.moscowPriority ?? ""} requirement`
-                    : ""}
                   {task.targetEventId
                     ? ` / target ${eventsById[task.targetEventId]?.title ?? "event"}`
                     : ""}
