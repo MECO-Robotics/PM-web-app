@@ -427,7 +427,7 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
   const defaultSeasonId = seasons[0]?.id ?? LEGACY_SEASON_ID;
 
   const usedProjectIds = new Set<string>();
-  let projects: ProjectRecord[] = sourceProjects.map((project, index) => {
+  const projects: ProjectRecord[] = sourceProjects.map((project, index) => {
     const projectId = reserveUniqueId(
       project.id ?? "",
       `project-${index + 1}`,
