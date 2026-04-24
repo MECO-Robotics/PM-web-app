@@ -121,6 +121,14 @@ function readLocalGoogleClientIdOverride() {
   return override ? override : null;
 }
 
+export function isSecureGoogleAuthHost() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return isLocalHostname(window.location.hostname) || window.location.protocol === "https:";
+}
+
 function buildApiUrl(path: string) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${apiBaseUrl}${normalizedPath}`;

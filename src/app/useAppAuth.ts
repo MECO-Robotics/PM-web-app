@@ -14,6 +14,7 @@ import {
   fetchCurrentUser,
   isLocalGoogleAuthHost,
   isUsingLocalGoogleClientIdOverride,
+  isSecureGoogleAuthHost,
   loadGoogleIdentityScript,
   loadStoredSessionToken,
   resolveGoogleClientId,
@@ -45,6 +46,7 @@ export function useAppAuth({ resetWorkspace }: UseAppAuthArgs) {
   const enforcedAuthConfig = authConfig?.enabled ? authConfig : null;
   const googleClientId = resolveGoogleClientId(authConfig);
   const hostedDomain = enforcedAuthConfig?.hostedDomain ?? "";
+  const isGoogleAuthHostAllowed = isSecureGoogleAuthHost();
   const isGoogleAuthAvailable = Boolean(googleClientId);
   const isEmailAuthAvailable = Boolean(enforcedAuthConfig?.emailEnabled);
   const isLocalGoogleOverrideActive = isUsingLocalGoogleClientIdOverride();
@@ -225,6 +227,13 @@ export function useAppAuth({ resetWorkspace }: UseAppAuthArgs) {
       return;
     }
 
+    if (!isGoogleAuthHostAllowed) {
+      setAuthMessage(
+        "Google SSO is unavailable from this host. Google web sign-in requires HTTPS for non-localhost origins.",
+      );
+      return;
+    }
+
     let cancelled = false;
     const activeGoogleClientId = googleClientId;
 
@@ -241,6 +250,20 @@ export function useAppAuth({ resetWorkspace }: UseAppAuthArgs) {
           client_id: activeGoogleClientId,
           callback: (response) => {
             void handleGoogleCredential(response);
+          },
+          error_callback: (error) => {
+            const errorType =
+              typeof error === "object" &&
+              error !== null &&
+              "type" in error &&
+              typeof error.type === "string"
+                ? error.type
+                : null;
+            const suffix =
+              errorType === "origin_mismatch"
+                ? " (origin mismatch: check Google OAuth client allowed origins)"
+                : "";
+            setAuthMessage(`Google sign-in could not be initialized.${suffix}`);
           },
           hd: hostedDomain || undefined,
           ux_mode: "popup",
@@ -269,7 +292,7 @@ export function useAppAuth({ resetWorkspace }: UseAppAuthArgs) {
       cancelled = true;
       buttonSlot.replaceChildren();
     };
-  }, [authBooting, googleClientId, hostedDomain, sessionUser]);
+  }, [authBooting, googleClientId, hostedDomain, isGoogleAuthHostAllowed, sessionUser]);
 
   const handleSignOut = useCallback(() => {
     clearStoredSessionToken();

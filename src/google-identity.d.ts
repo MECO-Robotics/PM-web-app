@@ -8,6 +8,7 @@ declare global {
           initialize(options: {
             client_id: string;
             callback: (response: { credential?: string }) => void;
+            error_callback?: (error: unknown) => void;
             hd?: string;
             ux_mode?: "popup" | "redirect";
             auto_select?: boolean;
