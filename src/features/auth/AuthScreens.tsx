@@ -152,14 +152,16 @@ export function SignInScreen({
           ) : null}
 
           <div className="auth-panel-stack">
-            <EmailAuthPanel
-              clearAuthMessage={clearAuthMessage}
-              hostedDomain={signInConfig.hostedDomain}
-              isEmailDeliveryConfigured={hasEmailSignIn}
-              isSigningIn={isSigningIn}
-              onRequestEmailCode={onRequestEmailCode}
-              onVerifyEmailCode={onVerifyEmailCode}
-            />
+            {hasEmailSignIn ? (
+              <EmailAuthPanel
+                clearAuthMessage={clearAuthMessage}
+                hostedDomain={signInConfig.hostedDomain}
+                isEmailDeliveryConfigured={hasEmailSignIn}
+                isSigningIn={isSigningIn}
+                onRequestEmailCode={onRequestEmailCode}
+                onVerifyEmailCode={onVerifyEmailCode}
+              />
+            ) : null}
 
             <GoogleAuthPanel
               googleButtonRef={googleButtonRef}
