@@ -1,6 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { IconEye, IconPerson, IconTasks } from "@/components/shared";
+import {
+  IconChevronLeft,
+  IconChevronRight,
+  IconEye,
+  IconPerson,
+  IconTasks,
+} from "@/components/shared";
 import { dateDiffInDays } from "@/lib/appUtils";
 import type {
   BootstrapPayload,
@@ -77,11 +83,52 @@ interface MilestoneGeometry {
   centerY: number;
 }
 
+interface TimelineSharedDayBackground {
+  day: string;
+  left: number;
+  width: number;
+  style: EventStyle | null;
+}
+
+interface TimelineMilestoneHoverLayerProps {
+  controllerRef: React.MutableRefObject<(popup: HoveredMilestonePopup | null) => void>;
+  portalTarget: HTMLElement | null;
+  resolveGeometry: (
+    popupStartDay: string | null,
+    popupEndDay: string | null,
+  ) => MilestoneGeometry | null;
+}
+
+type TimelineViewInterval = "all" | "week" | "month";
+
 const PROJECT_COLUMN_WIDTH = 112;
 const SUBSYSTEM_COLUMN_WIDTH = 128;
 const TASK_LABEL_COLUMN_WIDTH = 148;
 const HIDDEN_COLUMN_PEEK_WIDTH = 34;
+const TIMELINE_LEFT_TASK_COLUMN_Z_INDEX = 10020;
+const TIMELINE_LEFT_SUBSYSTEM_COLUMN_Z_INDEX = 10021;
+const TIMELINE_LEFT_PROJECT_COLUMN_Z_INDEX = 10022;
+const TIMELINE_LEFT_HEADER_Z_INDEX = 10030;
+const TIMELINE_LEFT_PROJECT_HEADER_Z_INDEX = 10031;
+const ALL_INTERVAL_PAST_MONTHS = 9;
+const ALL_INTERVAL_FUTURE_MONTHS = 3;
 const DEFAULT_EVENT_TYPE: EventType = "internal-review";
+const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "long" });
+const MONTH_YEAR_LABEL_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: "long",
+  year: "numeric",
+});
+const PERIOD_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+});
+const PERIOD_DATE_WITH_YEAR_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+const WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat(undefined, { day: "numeric" });
 const EVENT_TYPE_STYLES: Record<EventType, EventStyle> = {
   "drive-practice": {
     label: "Drive practice",
@@ -163,6 +210,49 @@ function localTodayDate() {
   return offsetAdjusted.toISOString().slice(0, 10);
 }
 
+function addDaysToDay(day: string, dayCount: number) {
+  const candidate = new Date(`${day}T12:00:00`);
+  candidate.setDate(candidate.getDate() + dayCount);
+  return candidate.toISOString().slice(0, 10);
+}
+
+function addMonthsToDay(day: string, monthCount: number) {
+  const [year, month, date] = day.split("-").map(Number);
+  const targetMonthStart = new Date(year, month - 1 + monthCount, 1, 12);
+  const targetMonthEnd = new Date(
+    targetMonthStart.getFullYear(),
+    targetMonthStart.getMonth() + 1,
+    0,
+    12,
+  );
+  targetMonthStart.setDate(Math.min(date, targetMonthEnd.getDate()));
+  return targetMonthStart.toISOString().slice(0, 10);
+}
+
+function monthLabelFromDay(day: string) {
+  return MONTH_LABEL_FORMATTER.format(new Date(`${day.slice(0, 7)}-01T00:00:00`));
+}
+
+function formatTimelinePeriodLabel(viewInterval: TimelineViewInterval, days: string[]) {
+  const startDay = days[0];
+  const endDay = days[days.length - 1];
+  if (!startDay || !endDay) {
+    return viewInterval === "week" ? "No week" : "No month";
+  }
+
+  if (viewInterval === "month") {
+    return MONTH_YEAR_LABEL_FORMATTER.format(new Date(`${startDay.slice(0, 7)}-01T00:00:00`));
+  }
+
+  if (viewInterval === "week") {
+    const startDate = new Date(`${startDay}T00:00:00`);
+    const endDate = new Date(`${endDay}T00:00:00`);
+    return `${PERIOD_DATE_FORMATTER.format(startDate)} - ${PERIOD_DATE_WITH_YEAR_FORMATTER.format(endDate)}`;
+  }
+
+  return "Recent window";
+}
+
 function emptyEventDraft(): TimelineEventDraft {
   return {
     title: "",
@@ -183,11 +273,97 @@ function eventDraftFromRecord(record: EventRecord): TimelineEventDraft {
   };
 }
 
-function sortEventsByStart(events: EventRecord[]) {
-  return [...events].sort((left, right) =>
-    left.startDateTime.localeCompare(right.startDateTime),
+function areSameLines(left: string[], right: string[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function isSameHoveredMilestonePopup(
+  left: HoveredMilestonePopup | null,
+  right: HoveredMilestonePopup | null,
+) {
+  if (left === right) {
+    return true;
+  }
+
+  if (!left || !right) {
+    return false;
+  }
+
+  return (
+    left.anchorStartDay === right.anchorStartDay &&
+    left.anchorEndDay === right.anchorEndDay &&
+    left.rotationDeg === right.rotationDeg &&
+    left.background === right.background &&
+    left.color === right.color &&
+    areSameLines(left.lines, right.lines)
   );
 }
+
+const TimelineMilestoneHoverLayer: React.FC<TimelineMilestoneHoverLayerProps> = React.memo(
+  ({ controllerRef, portalTarget, resolveGeometry }) => {
+    const [popup, setPopup] = useState<HoveredMilestonePopup | null>(null);
+
+    useEffect(() => {
+      controllerRef.current = setPopup;
+      return () => {
+        controllerRef.current = () => undefined;
+      };
+    }, [controllerRef]);
+
+    const geometry = popup
+      ? resolveGeometry(popup.anchorStartDay, popup.anchorEndDay)
+      : null;
+
+    if (!popup || !geometry || !portalTarget) {
+      return null;
+    }
+
+    return createPortal(
+      <>
+        <div
+          aria-hidden="true"
+          className="timeline-day-event-overlay-column"
+          style={{
+            background: withColumnOverlayTint(popup.background),
+            height: `${geometry.centerY * 2}px`,
+            left: `${geometry.left}px`,
+            top: "0px",
+            width: `${geometry.width}px`,
+          }}
+        />
+        <div
+          className="timeline-day-event-overlay-tooltip"
+          role="presentation"
+          style={{
+            transform: `translate(-50%, -50%) rotate(${popup.rotationDeg}deg)`,
+            left: `${geometry.centerX}px`,
+            top: `${geometry.centerY}px`,
+            color: "#ffffff",
+          }}
+        >
+          {popup.lines.map((line, index) => (
+            <span className="timeline-day-event-overlay-tooltip-item" key={`${line}-${index}`}>
+              {line}
+            </span>
+          ))}
+        </div>
+      </>,
+      portalTarget,
+    );
+  },
+);
+
+TimelineMilestoneHoverLayer.displayName = "TimelineMilestoneHoverLayer";
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
   bootstrap,
@@ -201,7 +377,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   onSaveTimelineEvent,
   triggerCreateMilestoneToken,
 }) => {
-  const [viewInterval, setViewInterval] = useState<"all" | "week" | "month">("all");
+  const [viewInterval, setViewInterval] = useState<TimelineViewInterval>("month");
+  const [viewAnchorDate, setViewAnchorDate] = useState(localTodayDate);
   const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
   const [collapsedSubsystems, setCollapsedSubsystems] = useState<Record<string, boolean>>({});
   const [eventModalMode, setEventModalMode] = useState<"create" | "edit" | null>(null);
@@ -218,15 +395,18 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const [isProjectColumnVisible, setIsProjectColumnVisible] = useState(true);
   const [isSubsystemColumnVisible, setIsSubsystemColumnVisible] = useState(true);
   const [isTaskColumnVisible, setIsTaskColumnVisible] = useState(true);
-  const [hoveredMilestonePopup, setHoveredMilestonePopup] =
-    useState<HoveredMilestonePopup | null>(null);
   const [timelineDayMilestoneUnderlayLayouts, setTimelineDayMilestoneUnderlayLayouts] =
     useState<TimelineDayMilestoneUnderlayLayout>({});
   const [timelineGridHeight, setTimelineGridHeight] = useState(0);
+  const [timelineHeaderHeight, setTimelineHeaderHeight] = useState(0);
   const timelineShellRef = useRef<HTMLDivElement | null>(null);
   const timelineGridRef = useRef<HTMLDivElement | null>(null);
   const timelineDayCellRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const timelineLayerGeometryFrameRef = useRef<number | null>(null);
+  const hoveredMilestonePopupRef = useRef<HoveredMilestonePopup | null>(null);
+  const setHoveredMilestonePopupLayerRef = useRef<
+    (popup: HoveredMilestonePopup | null) => void
+  >(() => undefined);
 
   const projectsById = useMemo(
     () =>
@@ -271,17 +451,27 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     let endDate: string;
 
     if (viewInterval === "all") {
-      const taskStartDates = scopedTasks.map((task) => task.startDate);
-      const taskEndDates = scopedTasks.map((task) => task.dueDate);
-      const eventStartDates = bootstrap.events.map((event) => datePortion(event.startDateTime));
-      const eventEndDates = bootstrap.events.map((event) =>
-        datePortion(event.endDateTime ?? event.startDateTime),
-      );
+      let earliestDate: string | null = null;
+      let latestDate: string | null = null;
+      const includeCandidate = (candidate: string) => {
+        if (!earliestDate || candidate < earliestDate) {
+          earliestDate = candidate;
+        }
+        if (!latestDate || candidate > latestDate) {
+          latestDate = candidate;
+        }
+      };
 
-      const startCandidates = [...taskStartDates, ...eventStartDates].sort();
-      const endCandidates = [...taskEndDates, ...eventEndDates].sort();
+      scopedTasks.forEach((task) => {
+        includeCandidate(task.startDate);
+        includeCandidate(task.dueDate);
+      });
+      bootstrap.events.forEach((event) => {
+        includeCandidate(datePortion(event.startDateTime));
+        includeCandidate(datePortion(event.endDateTime ?? event.startDateTime));
+      });
 
-      if (startCandidates.length === 0 || endCandidates.length === 0) {
+      if (!earliestDate || !latestDate) {
         return {
           days: [] as string[],
           dayEvents: {} as Record<string, EventRecord[]>,
@@ -298,18 +488,40 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         };
       }
 
-      const startObj = new Date(`${startCandidates[0]}T12:00:00`);
+      const startObj = new Date(`${earliestDate}T12:00:00`);
       startObj.setDate(1);
-
-      const endObj = new Date(`${endCandidates[endCandidates.length - 1]}T12:00:00`);
+      const endObj = new Date(`${latestDate}T12:00:00`);
       endObj.setMonth(endObj.getMonth() + 1);
       endObj.setDate(0);
+      const now = new Date();
+      now.setHours(12, 0, 0, 0);
+      const boundedStart = new Date(
+        now.getFullYear(),
+        now.getMonth() - ALL_INTERVAL_PAST_MONTHS,
+        1,
+        12,
+      );
+      const boundedEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() + ALL_INTERVAL_FUTURE_MONTHS + 1,
+        0,
+        12,
+      );
+      if (startObj < boundedStart) {
+        startObj.setTime(boundedStart.getTime());
+      }
+      if (endObj > boundedEnd) {
+        endObj.setTime(boundedEnd.getTime());
+      }
+      if (startObj > endObj) {
+        startObj.setTime(boundedStart.getTime());
+        endObj.setTime(boundedEnd.getTime());
+      }
 
       startDate = startObj.toISOString().slice(0, 10);
       endDate = endObj.toISOString().slice(0, 10);
     } else {
-      const now = new Date();
-      now.setHours(12, 0, 0, 0);
+      const now = new Date(`${viewAnchorDate}T12:00:00`);
       let s: Date;
       let e: Date;
 
@@ -327,14 +539,18 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     }
 
     const totalDays = dateDiffInDays(startDate, endDate) + 1;
-    const days = Array.from({ length: totalDays }, (_, index) => {
-      const candidate = new Date(`${startDate}T12:00:00`);
-      candidate.setDate(candidate.getDate() + index);
-      return candidate.toISOString().slice(0, 10);
-    });
+    const days: string[] = [];
+    const dayCursor = new Date(`${startDate}T12:00:00`);
+    for (let index = 0; index < totalDays; index += 1) {
+      days.push(dayCursor.toISOString().slice(0, 10));
+      dayCursor.setDate(dayCursor.getDate() + 1);
+    }
 
     const dayEvents: Record<string, EventRecord[]> = {};
-    bootstrap.events.forEach((event) => {
+    const eventsSortedByStart = [...bootstrap.events].sort((left, right) =>
+      left.startDateTime.localeCompare(right.startDateTime),
+    );
+    eventsSortedByStart.forEach((event) => {
       const eventStart = datePortion(event.startDateTime);
       const eventEnd = datePortion(event.endDateTime ?? event.startDateTime);
 
@@ -349,52 +565,70 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
       while (cursor <= finalDay) {
         const dayKey = cursor.toISOString().slice(0, 10);
-        dayEvents[dayKey] = dayEvents[dayKey] ? [...dayEvents[dayKey], event] : [event];
+        const existing = dayEvents[dayKey];
+        if (existing) {
+          existing.push(event);
+        } else {
+          dayEvents[dayKey] = [event];
+        }
         cursor.setDate(cursor.getDate() + 1);
       }
     });
 
-    const subsystemRows =
-      scopedTasks.length === 0
-        ? []
-        : scopedSubsystems.map((subsystem, index) => {
-            const subsystemTasks = scopedTasks
-              .filter(
-                (task) =>
-                  task.subsystemId === subsystem.id &&
-                  task.startDate <= endDate &&
-                  task.dueDate >= startDate,
-              )
-              .map((task) => ({
-                ...task,
-                offset: dateDiffInDays(
-                  startDate,
-                  task.startDate < startDate ? startDate : task.startDate,
-                ),
-                span:
-                  Math.max(
-                    1,
-                    dateDiffInDays(
-                      task.startDate < startDate ? startDate : task.startDate,
-                      task.dueDate > endDate ? endDate : task.dueDate,
-                    ) + 1,
-                  ),
-              }));
+    const tasksBySubsystem = new Map<string, Array<TaskRecord & { offset: number; span: number }>>();
+    scopedTasks.forEach((task) => {
+      if (task.startDate > endDate || task.dueDate < startDate) {
+        return;
+      }
 
-            return {
-              id: subsystem.id,
-              name: subsystem.name,
-              projectId: subsystem.projectId,
-              projectName: projectsById[subsystem.projectId]?.name ?? "Unknown",
-              index,
-              taskCount: subsystemTasks.length,
-              completeCount: subsystemTasks.filter((task) => task.status === "complete").length,
-              tasks: subsystemTasks,
-            };
-          });
+      const clampedStart = task.startDate < startDate ? startDate : task.startDate;
+      const clampedEnd = task.dueDate > endDate ? endDate : task.dueDate;
+      const projectedTask = {
+        ...task,
+        offset: dateDiffInDays(startDate, clampedStart),
+        span: Math.max(1, dateDiffInDays(clampedStart, clampedEnd) + 1),
+      };
+
+      const targetSubsystemIds =
+        task.subsystemIds.length > 0 ? task.subsystemIds : [task.subsystemId];
+      for (const subsystemId of targetSubsystemIds) {
+        const existingTasks = tasksBySubsystem.get(subsystemId);
+        if (existingTasks) {
+          existingTasks.push(projectedTask);
+        } else {
+          tasksBySubsystem.set(subsystemId, [projectedTask]);
+        }
+      }
+    });
+
+    const subsystemRows = scopedSubsystems.map((subsystem, index) => {
+      const subsystemTasks = tasksBySubsystem.get(subsystem.id) ?? [];
+      let completeCount = 0;
+      subsystemTasks.forEach((task) => {
+        if (task.status === "complete") {
+          completeCount += 1;
+        }
+      });
+
+      return {
+        id: subsystem.id,
+        name: subsystem.name,
+        projectId: subsystem.projectId,
+        projectName: projectsById[subsystem.projectId]?.name ?? "Unknown",
+        index,
+        taskCount: subsystemTasks.length,
+        completeCount,
+        tasks: subsystemTasks,
+      };
+    });
 
     return { days, dayEvents, subsystemRows };
-  }, [bootstrap.events, projectsById, scopedSubsystems, scopedTasks, viewInterval]);
+  }, [bootstrap.events, projectsById, scopedSubsystems, scopedTasks, viewAnchorDate, viewInterval]);
+
+  const timelinePeriodLabel = useMemo(
+    () => formatTimelinePeriodLabel(viewInterval, timeline.days),
+    [timeline.days, viewInterval],
+  );
 
   const timelineGridTemplate = useMemo(() => {
     const dayWidth =
@@ -432,35 +666,78 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
   const monthGroups = useMemo(() => {
     const groups: { month: string; span: number }[] = [];
-    let lastMonth = "";
+    let lastMonthKey = "";
+    let lastMonthLabel = "";
     let currentSpan = 0;
 
     timeline.days.forEach((day) => {
-      const monthName = new Date(`${day}T00:00:00`).toLocaleDateString(undefined, {
-        month: "long",
-      });
-      if (monthName !== lastMonth) {
-        if (lastMonth !== "") {
-          groups.push({ month: lastMonth, span: currentSpan });
+      const monthKey = day.slice(0, 7);
+      if (monthKey !== lastMonthKey) {
+        if (lastMonthLabel !== "") {
+          groups.push({ month: lastMonthLabel, span: currentSpan });
         }
-        lastMonth = monthName;
+        lastMonthKey = monthKey;
+        lastMonthLabel = monthLabelFromDay(day);
         currentSpan = 1;
       } else {
         currentSpan += 1;
       }
     });
 
-    if (lastMonth) {
-      groups.push({ month: lastMonth, span: currentSpan });
+    if (lastMonthLabel) {
+      groups.push({ month: lastMonthLabel, span: currentSpan });
     }
     return groups;
   }, [timeline.days]);
 
-  const dayEventsByDate = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(timeline.dayEvents).map(([day, events]) => [day, sortEventsByStart(events)]),
-    );
-  }, [timeline.dayEvents]);
+  const dayEventsByDate = timeline.dayEvents;
+
+  const timelineSharedDayBackgrounds = useMemo(
+    () =>
+      timeline.days
+        .map((day) => {
+          const measured = timelineDayMilestoneUnderlayLayouts[day];
+          const dayCell = measured ? null : timelineDayCellRefs.current[day];
+          const left = measured?.left ?? dayCell?.offsetLeft;
+          const width = measured?.width ?? dayCell?.offsetWidth;
+          if (typeof left !== "number" || typeof width !== "number" || width <= 0) {
+            return null;
+          }
+
+          return {
+            day,
+            left,
+            width,
+            style: dayEventsByDate[day]?.length ? EVENT_TYPE_STYLES[dayEventsByDate[day][0].type] : null,
+          } satisfies TimelineSharedDayBackground;
+        })
+        .filter((entry): entry is TimelineSharedDayBackground => entry !== null),
+    [dayEventsByDate, timeline.days, timelineDayMilestoneUnderlayLayouts],
+  );
+
+  const timelineDayHeaderCells = useMemo(
+    () =>
+      timeline.days.map((day) => {
+        const eventsOnDay = dayEventsByDate[day] ?? [];
+        const primaryEvent = eventsOnDay[0];
+        const dayStyle = primaryEvent ? EVENT_TYPE_STYLES[primaryEvent.type] : null;
+        const primaryEventStartDay = primaryEvent ? datePortion(primaryEvent.startDateTime) : day;
+        const primaryEventEndDay = primaryEvent?.endDateTime
+          ? datePortion(primaryEvent.endDateTime)
+          : primaryEventStartDay;
+        const dayDate = new Date(`${day}T00:00:00`);
+        return {
+          day,
+          weekdayLabel: WEEKDAY_SHORT_FORMATTER.format(dayDate),
+          dayNumberLabel: DAY_NUMBER_FORMATTER.format(dayDate),
+          eventsOnDay,
+          dayStyle,
+          primaryEventStartDay,
+          primaryEventEndDay,
+        };
+      }),
+    [dayEventsByDate, timeline.days],
+  );
 
   const projectRows = useMemo(() => {
     const grouped = new Map<
@@ -505,6 +782,23 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const toggleSubsystem = (id: string) => {
     setCollapsedSubsystems((previous) => ({ ...previous, [id]: !previous[id] }));
   };
+
+  const shiftTimelinePeriod = useCallback(
+    (direction: -1 | 1) => {
+      setViewAnchorDate((current) => {
+        if (viewInterval === "week") {
+          return addDaysToDay(current, direction * 7);
+        }
+
+        if (viewInterval === "month") {
+          return addMonthsToDay(current, direction);
+        }
+
+        return current;
+      });
+    },
+    [viewInterval],
+  );
 
   const closeEventModal = () => {
     setEventModalMode(null);
@@ -562,16 +856,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     openEditEventModalForDay(day, eventsOnDay[0]);
   };
 
-  const getColumnStyle = (day: string) => {
-    const events = dayEventsByDate[day];
-    if (!events?.length) {
-      return null;
-    }
-
-    return EVENT_TYPE_STYLES[events[0].type];
-  };
-
-  const queueTimelineLayerUpdate = () => {
+  const queueTimelineLayerUpdate = useCallback(() => {
     if (typeof window === "undefined") {
       return;
     }
@@ -582,10 +867,14 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
     timelineLayerGeometryFrameRef.current = window.requestAnimationFrame(() => {
       timelineLayerGeometryFrameRef.current = null;
+      const shell = timelineShellRef.current;
       const grid = timelineGridRef.current;
       if (!grid) {
-        setTimelineDayMilestoneUnderlayLayouts({});
-        setTimelineGridHeight(0);
+        setTimelineDayMilestoneUnderlayLayouts((previous) =>
+          Object.keys(previous).length ? {} : previous,
+        );
+        setTimelineGridHeight((previous) => (previous === 0 ? previous : 0));
+        setTimelineHeaderHeight((previous) => (previous === 0 ? previous : 0));
         return;
       }
 
@@ -602,12 +891,37 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         };
       });
 
-      setTimelineDayMilestoneUnderlayLayouts(layouts);
-      setTimelineGridHeight(timelineShellRef.current?.scrollHeight ?? grid.clientHeight);
-    });
-  };
+      setTimelineDayMilestoneUnderlayLayouts((previous) => {
+        const previousKeys = Object.keys(previous);
+        const nextKeys = Object.keys(layouts);
+        if (previousKeys.length !== nextKeys.length) {
+          return layouts;
+        }
 
-  const resolveMilestonePopupGeometry = (
+        for (let index = 0; index < nextKeys.length; index += 1) {
+          const key = nextKeys[index];
+          if (!key) {
+            continue;
+          }
+          const before = previous[key];
+          const after = layouts[key];
+          if (!before || !after || before.left !== after.left || before.width !== after.width) {
+            return layouts;
+          }
+        }
+
+        return previous;
+      });
+      const nextGridHeight = shell?.scrollHeight ?? grid.clientHeight;
+      const nextHeaderHeight = grid.clientHeight;
+      setTimelineGridHeight((previous) => (previous === nextGridHeight ? previous : nextGridHeight));
+      setTimelineHeaderHeight((previous) =>
+        previous === nextHeaderHeight ? previous : nextHeaderHeight,
+      );
+    });
+  }, [timeline.days]);
+
+  const resolveMilestonePopupGeometry = useCallback((
     popupStartDay: string | null,
     popupEndDay: string | null,
   ): MilestoneGeometry | null => {
@@ -661,9 +975,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       centerX: (left + right) / 2,
       centerY: gridHeight / 2,
     };
-  };
+  }, [timelineDayMilestoneUnderlayLayouts, timelineGridHeight]);
 
-  const updateHoveredMilestonePopup = (
+  const updateHoveredMilestonePopup = useCallback((
     target: HTMLElement,
     lines: string[],
     background: string,
@@ -684,22 +998,24 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       return;
     }
 
-    setHoveredMilestonePopup({
+    const nextPopup: HoveredMilestonePopup = {
       anchorStartDay: normalizedPopupStartDay,
       anchorEndDay: normalizedPopupEndDay,
       rotationDeg: isMultiDayEvent ? 45 : 90,
       lines,
       background,
       color,
-    });
-    queueTimelineLayerUpdate();
-  };
+    };
+    if (isSameHoveredMilestonePopup(hoveredMilestonePopupRef.current, nextPopup)) {
+      return;
+    }
 
-  const showDateCellMilestonePopup = (
-    anchor: HTMLElement,
-    eventsOnDay: EventRecord[],
-    eventStyle: EventStyle | null,
-  ) => {
+    hoveredMilestonePopupRef.current = nextPopup;
+    setHoveredMilestonePopupLayerRef.current(nextPopup);
+  }, []);
+
+  const showDateCellMilestonePopup = useCallback((anchor: HTMLElement, day: string) => {
+    const eventsOnDay = dayEventsByDate[day] ?? [];
     if (!eventsOnDay.length) {
       return;
     }
@@ -726,29 +1042,60 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     anchor.dataset.popupStartDay = anchorStartDay;
     anchor.dataset.popupEndDay = anchorEndDay;
 
+    const dayStyle = EVENT_TYPE_STYLES[primaryEvent.type];
     updateHoveredMilestonePopup(
       anchor,
       lines,
-      eventStyle?.columnBackground ?? "rgba(17, 33, 61, 0.16)",
-      eventStyle?.chipText ?? "var(--text-title)",
+      dayStyle.columnBackground,
+      dayStyle.chipText,
     );
-  };
+  }, [dayEventsByDate, timeline.days, updateHoveredMilestonePopup]);
 
-  const clearHoveredMilestonePopup = () => {
-    setHoveredMilestonePopup(null);
-  };
+  const clearHoveredMilestonePopup = useCallback(() => {
+    if (!hoveredMilestonePopupRef.current) {
+      return;
+    }
+    hoveredMilestonePopupRef.current = null;
+    setHoveredMilestonePopupLayerRef.current(null);
+  }, []);
 
-  const getTimelineDayOverlayHoverProps = (day: string) => {
-    const eventsOnDay = dayEventsByDate[day] ?? [];
-    const primaryEvent = eventsOnDay[0];
-    const dayStyle = primaryEvent ? EVENT_TYPE_STYLES[primaryEvent.type] : null;
+  const handleTimelineDayMouseEnter = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const day = event.currentTarget.dataset.timelineDay;
+    if (!day) {
+      return;
+    }
+    showDateCellMilestonePopup(event.currentTarget, day);
+  }, [showDateCellMilestonePopup]);
 
-    return {
-      onMouseEnter: (event: React.MouseEvent<HTMLElement>) =>
-        showDateCellMilestonePopup(event.currentTarget, eventsOnDay, dayStyle),
-      onMouseLeave: clearHoveredMilestonePopup,
-    };
-  };
+  const renderTimelineDayGridCells = (
+    rowKey: string,
+    gridRow: string | number,
+    includeTopBorder = false,
+  ) =>
+    timelineDayHeaderCells.map((cell, dayIndex) => (
+      <div
+        aria-hidden="true"
+        className="timeline-day-slot"
+        data-popup-end-day={cell.primaryEventEndDay}
+        data-popup-start-day={cell.primaryEventStartDay}
+        data-timeline-day={cell.day}
+        data-timeline-grid-cell="true"
+        key={`${rowKey}-${cell.day}`}
+        onMouseEnter={handleTimelineDayMouseEnter}
+        onMouseLeave={clearHoveredMilestonePopup}
+        style={{
+          gridRow,
+          gridColumn: dayIndex + firstDayGridColumn,
+          borderRight: `1px solid ${cell.dayStyle?.columnBorder ?? "var(--border-base)"}`,
+          borderTop: includeTopBorder ? "1px solid var(--border-base)" : "none",
+          background: cell.dayStyle?.columnBackground,
+          minHeight: "44px",
+          boxSizing: "border-box",
+          position: "relative",
+          zIndex: 0,
+        }}
+      />
+    ));
 
   useEffect(() => {
     queueTimelineLayerUpdate();
@@ -759,8 +1106,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       }
     };
   }, [
-    timeline.days,
-    dayEventsByDate,
+    queueTimelineLayerUpdate,
     timelineGridTemplate,
     showProjectCol,
     showSubsystemCol,
@@ -779,42 +1125,45 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       }
       window.removeEventListener("resize", queueTimelineLayerUpdate);
     };
-  }, []);
+  }, [queueTimelineLayerUpdate]);
 
-  const timelineDayMilestoneUnderlays = bootstrap.events
-    .map((event) => {
-      if (!timeline.days.length) {
-        return null;
-      }
+  const timelineDayMilestoneUnderlays = useMemo(() => {
+    if (!timeline.days.length) {
+      return [];
+    }
 
-      const timelineStart = timeline.days[0];
-      const timelineEnd = timeline.days[timeline.days.length - 1];
-      const eventStartDay = datePortion(event.startDateTime);
-      const eventEndDay = datePortion(event.endDateTime ?? event.startDateTime);
-      const clampedStartDay = eventStartDay < timelineStart ? timelineStart : eventStartDay;
-      const clampedEndDay = eventEndDay > timelineEnd ? timelineEnd : eventEndDay;
+    const timelineStart = timeline.days[0];
+    const timelineEnd = timeline.days[timeline.days.length - 1];
 
-      if (clampedStartDay > timelineEnd || clampedEndDay < timelineStart) {
-        return null;
-      }
+    return bootstrap.events
+      .map((event) => {
+          const eventStartDay = datePortion(event.startDateTime);
+          const eventEndDay = datePortion(event.endDateTime ?? event.startDateTime);
+          const clampedStartDay = eventStartDay < timelineStart ? timelineStart : eventStartDay;
+          const clampedEndDay = eventEndDay > timelineEnd ? timelineEnd : eventEndDay;
 
-      const geometry = resolveMilestonePopupGeometry(clampedStartDay, clampedEndDay);
-      if (!geometry) {
-        return null;
-      }
+          if (clampedStartDay > timelineEnd || clampedEndDay < timelineStart) {
+            return null;
+          }
 
-      const style = EVENT_TYPE_STYLES[event.type];
-      const isMultiDayEvent = eventStartDay !== eventEndDay;
+          const geometry = resolveMilestonePopupGeometry(clampedStartDay, clampedEndDay);
+          if (!geometry) {
+            return null;
+          }
 
-      return {
-        id: event.id,
-        lines: [event.title],
-        color: style.chipText,
-        rotationDeg: isMultiDayEvent ? 45 : 90,
-        geometry,
-      } satisfies TimelineDayMilestoneUnderlay;
-    })
-    .filter((entry): entry is TimelineDayMilestoneUnderlay => entry !== null);
+          const style = EVENT_TYPE_STYLES[event.type];
+          const isMultiDayEvent = eventStartDay !== eventEndDay;
+
+          return {
+            id: event.id,
+            lines: [event.title],
+            color: style.chipText,
+            rotationDeg: isMultiDayEvent ? 45 : 90,
+            geometry,
+          } satisfies TimelineDayMilestoneUnderlay;
+        })
+      .filter((entry): entry is TimelineDayMilestoneUnderlay => entry !== null);
+  }, [bootstrap.events, resolveMilestonePopupGeometry, timeline.days]);
 
   const activePersonFilterLabel =
     activePersonFilter === "all"
@@ -822,12 +1171,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       : membersById[activePersonFilter]?.name ?? "Selected person";
 
   const activeDayEvents = activeEventDay ? dayEventsByDate[activeEventDay] ?? [] : [];
-  const hoveredMilestonePopupGeometry = hoveredMilestonePopup
-    ? resolveMilestonePopupGeometry(
-        hoveredMilestonePopup.anchorStartDay,
-        hoveredMilestonePopup.anchorEndDay,
-      )
-    : null;
   const tooltipPortalTarget =
     typeof document === "undefined" ? null : timelineShellRef.current;
   const modalPortalTarget =
@@ -961,15 +1304,38 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               <select
                 aria-label="Timeline interval"
                 onChange={(candidate) =>
-                  setViewInterval(candidate.target.value as "all" | "week" | "month")
+                  setViewInterval(candidate.target.value as TimelineViewInterval)
                 }
                 value={viewInterval}
               >
-                <option value="all">All time</option>
-                <option value="week">This week</option>
-                <option value="month">This month</option>
+                <option value="all">All (recent window)</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
               </select>
             </label>
+            {viewInterval !== "all" ? (
+              <div aria-label="Timeline period controls" className="timeline-period-controls">
+                <button
+                  aria-label={`Previous ${viewInterval}`}
+                  className="icon-button timeline-period-button"
+                  onClick={() => shiftTimelinePeriod(-1)}
+                  title={`Previous ${viewInterval}`}
+                  type="button"
+                >
+                  <IconChevronLeft />
+                </button>
+                <span className="timeline-period-label">{timelinePeriodLabel}</span>
+                <button
+                  aria-label={`Next ${viewInterval}`}
+                  className="icon-button timeline-period-button"
+                  onClick={() => shiftTimelinePeriod(1)}
+                  title={`Next ${viewInterval}`}
+                  type="button"
+                >
+                  <IconChevronRight />
+                </button>
+              </div>
+            ) : null}
           </div>
           <button
             className="primary-action queue-toolbar-action"
@@ -1030,7 +1396,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 height: "100%",
                 position: "sticky",
                 left: `${subsystemStickyLeft}px`,
-                zIndex: 15,
+                zIndex: TIMELINE_LEFT_HEADER_Z_INDEX,
                 background: "var(--bg-panel)",
               }}
               type="button"
@@ -1068,7 +1434,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 height: "100%",
                 position: "sticky",
                 left: `${taskLabelStickyLeft}px`,
-                zIndex: 15,
+                zIndex: TIMELINE_LEFT_HEADER_Z_INDEX,
                 background: "var(--bg-panel)",
               }}
               type="button"
@@ -1107,7 +1473,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                   height: "100%",
                   position: "sticky",
                   left: 0,
-                  zIndex: 16,
+                  zIndex: TIMELINE_LEFT_PROJECT_HEADER_Z_INDEX,
                   background: "var(--bg-panel)",
                 }}
                 type="button"
@@ -1154,32 +1520,24 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               });
             })()}
 
-            {timeline.days.map((day, dayIndex) => {
-              const dateObject = new Date(`${day}T00:00:00`);
-              const eventsOnDay = dayEventsByDate[day] ?? [];
-              const primaryEvent = eventsOnDay[0];
-              const dayStyle = primaryEvent ? EVENT_TYPE_STYLES[primaryEvent.type] : null;
-              const primaryEventStartDay = primaryEvent ? datePortion(primaryEvent.startDateTime) : day;
-              const primaryEventEndDay = primaryEvent?.endDateTime
-                ? datePortion(primaryEvent.endDateTime)
-                : primaryEventStartDay;
-
+            {timelineDayHeaderCells.map((cell, dayIndex) => {
               return (
                 <div
                   className="timeline-day"
-                  data-timeline-day={day}
+                  data-timeline-day={cell.day}
                   ref={(node) => {
-                    timelineDayCellRefs.current[day] = node;
+                    timelineDayCellRefs.current[cell.day] = node;
                   }}
-                  {...getTimelineDayOverlayHoverProps(day)}
-                  key={day}
+                  onMouseEnter={handleTimelineDayMouseEnter}
+                  onMouseLeave={clearHoveredMilestonePopup}
+                  key={cell.day}
                   style={{
                     gridRow: "2",
                     gridColumn: dayIndex + firstDayGridColumn,
                     textAlign: "center",
                     fontSize: "9px",
                     padding: "6px 0",
-                    borderRight: `1px solid ${dayStyle?.columnBorder ?? "var(--border-base)"}`,
+                    borderRight: `1px solid ${cell.dayStyle?.columnBorder ?? "var(--border-base)"}`,
                     borderBottom: "2px solid var(--border-base)",
                     color: "var(--text-copy)",
                     textTransform: "uppercase",
@@ -1193,37 +1551,70 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     position: "sticky",
                     top: "27px",
                     zIndex: 12,
-                    background: dayStyle?.columnBackground ?? "var(--bg-panel)",
+                    background: cell.dayStyle?.columnBackground ?? "var(--bg-panel)",
                   }}
-                  data-popup-start-day={primaryEventStartDay}
-                  data-popup-end-day={primaryEventEndDay}
+                  data-popup-start-day={cell.primaryEventStartDay}
+                  data-popup-end-day={cell.primaryEventEndDay}
                 >
                   <span style={{ whiteSpace: "nowrap", fontSize: "8px" }}>
-                    {dateObject.toLocaleDateString(undefined, { weekday: "short" })}
+                    {cell.weekdayLabel}
                   </span>
                   <button
-                    className={`timeline-day-number-button${eventsOnDay.length ? " has-event" : ""}`}
-                    onClick={() => openEventModalForDay(day)}
+                    className={`timeline-day-number-button${cell.eventsOnDay.length ? " has-event" : ""}`}
+                    onClick={() => openEventModalForDay(cell.day)}
                     title={
-                      eventsOnDay.length
-                        ? `Edit milestone on ${day}`
-                        : `Add milestone on ${day}`
+                      cell.eventsOnDay.length
+                        ? `Edit milestone on ${cell.day}`
+                        : `Add milestone on ${cell.day}`
                     }
                     type="button"
                   >
                     <strong
                       style={{
                         fontSize: "11px",
-                        color: dayStyle ? dayStyle.chipText : "var(--text-title)",
+                        color: cell.dayStyle ? cell.dayStyle.chipText : "var(--text-title)",
                       }}
                     >
-                      {dateObject.toLocaleDateString(undefined, { day: "numeric" })}
+                      {cell.dayNumberLabel}
                     </strong>
                   </button>
                 </div>
               );
             })}
           </div>
+
+          {timelineSharedDayBackgrounds.length > 0 &&
+          timelineGridHeight > timelineHeaderHeight ? (
+            <div
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                left: 0,
+                top: `${timelineHeaderHeight}px`,
+                width: "100%",
+                minWidth: `${gridMinWidth}px`,
+                height: `${timelineGridHeight - timelineHeaderHeight}px`,
+                pointerEvents: "none",
+                zIndex: 1,
+              }}
+            >
+              {timelineSharedDayBackgrounds.map((backgroundColumn) => (
+                <div
+                  className="timeline-day-slot"
+                  key={`timeline-shared-day-background-${backgroundColumn.day}`}
+                  style={{
+                    position: "absolute",
+                    left: `${backgroundColumn.left}px`,
+                    top: 0,
+                    width: `${backgroundColumn.width}px`,
+                    height: "100%",
+                    borderRight: `1px solid ${backgroundColumn.style?.columnBorder ?? "var(--border-base)"}`,
+                    background: backgroundColumn.style?.columnBackground,
+                  }}
+                />
+              ))}
+            </div>
+          ) : null}
 
           {hasProjectColumn ? (
             projectRows.map((project, projectIndex) => {
@@ -1259,6 +1650,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     gridTemplateColumns: timelineGridTemplate,
                     background: projectBackground,
                     borderBottom: "1px solid var(--border-base)",
+                    position: "relative",
                   }}
                 >
                   {showProjectCol ? (
@@ -1269,7 +1661,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       gridColumn: "1",
                         position: "sticky",
                         left: 0,
-                        zIndex: 10,
+                        zIndex: TIMELINE_LEFT_PROJECT_COLUMN_Z_INDEX,
                         background: projectBackground,
                         borderRight: "1px solid var(--border-base)",
                         display: "flex",
@@ -1327,7 +1719,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             gridColumn: `${collapsedSummaryStart} / span ${collapsedSummarySpan}`,
                             position: "sticky",
                             left: `${collapsedSummaryStickyLeft}px`,
-                            zIndex: 8,
+                            zIndex: TIMELINE_LEFT_SUBSYSTEM_COLUMN_Z_INDEX,
                             background: projectBackground,
                             borderRight: "1px solid var(--border-base)",
                             boxSizing: "border-box",
@@ -1346,25 +1738,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         </div>
                       ) : null}
 
-                      {timeline.days.map((day, dayIndex) => {
-                        const dayStyle = getColumnStyle(day);
-                        const dayHoverProps = getTimelineDayOverlayHoverProps(day);
-                        return (
-                          <div
-                            key={`${project.id}-${day}`}
-                            {...dayHoverProps}
-                            style={{
-                              gridRow: "1",
-                              gridColumn: dayIndex + firstDayGridColumn,
-                              borderRight: `1px solid ${
-                                dayStyle?.columnBorder ?? "var(--border-base)"
-                              }`,
-                              background: dayStyle?.columnBackground,
-                              minHeight: "44px",
-                            }}
-                          />
-                        );
-                      })}
+                      {renderTimelineDayGridCells(`project-${project.id}-collapsed`, "1")}
 
                       {project.tasks.map((task) => (
                         <button
@@ -1377,7 +1751,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
                             height: "8px",
                             margin: "0 2px",
-                            zIndex: 5,
+                            position: "relative",
+                            zIndex: 6,
                             borderRadius: "2px",
                             border: "none",
                             cursor: "pointer",
@@ -1419,7 +1794,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                   gridColumn: `${subsystemColumnIndex}`,
                                   position: "sticky",
                                   left: `${subsystemStickyLeft}px`,
-                                  zIndex: 8,
+                                  zIndex: TIMELINE_LEFT_SUBSYSTEM_COLUMN_Z_INDEX,
                                   background: groupBackground,
                                   borderRight: "1px solid var(--border-base)",
                                   display: "flex",
@@ -1479,7 +1854,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                   gridColumn: `${taskLabelColumnIndex}`,
                                   position: "sticky",
                                   left: `${taskLabelStickyLeft}px`,
-                                  zIndex: 7,
+                                  zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
                                   background: groupBackground,
                                   borderRight: "1px solid var(--border-base)",
                                   boxSizing: "border-box",
@@ -1505,7 +1880,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                   gridColumn: `${taskLabelColumnIndex}`,
                                   position: "sticky",
                                   left: `${taskLabelStickyLeft}px`,
-                                  zIndex: 7,
+                                  zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
                                   background: groupBackground,
                                   borderRight: "1px solid var(--border-base)",
                                   boxSizing: "border-box",
@@ -1514,25 +1889,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             ) : null}
 
                             {collapsed
-                              ? timeline.days.map((day, dayIndex) => {
-                                  const dayStyle = getColumnStyle(day);
-                                  const dayHoverProps = getTimelineDayOverlayHoverProps(day);
-                                  return (
-                                    <div
-                                      key={`${subsystem.id}-${day}`}
-                                      {...dayHoverProps}
-                                      style={{
-                                        gridRow: subsystemRowStart,
-                                        gridColumn: dayIndex + firstDayGridColumn,
-                                        borderRight: `1px solid ${
-                                          dayStyle?.columnBorder ?? "var(--border-base)"
-                                        }`,
-                                        background: dayStyle?.columnBackground,
-                                        minHeight: "44px",
-                                      }}
-                                    />
-                                  );
-                                })
+                              ? renderTimelineDayGridCells(
+                                  `subsystem-${subsystem.id}-collapsed`,
+                                  `${subsystemRowStart}`,
+                                  subsystemRowStart > 1,
+                                )
                               : null}
 
                             {collapsed &&
@@ -1547,7 +1908,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                     gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
                                     height: "8px",
                                     margin: "0 2px",
-                                    zIndex: 5,
+                                    position: "relative",
+                                    zIndex: 6,
                                     borderRadius: "2px",
                                     border: "none",
                                     cursor: "pointer",
@@ -1562,6 +1924,14 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                   <EditableHoverIndicator className="editable-hover-indicator-compact" />
                                 </button>
                               ))}
+
+                            {!collapsed && subsystem.tasks.length === 0
+                              ? renderTimelineDayGridCells(
+                                  `subsystem-${subsystem.id}-empty`,
+                                  `${subsystemRowStart}`,
+                                  subsystemRowStart > 1,
+                                )
+                              : null}
 
                             {!collapsed
                               ? subsystem.tasks.map((task, taskIndex) => (
@@ -1585,7 +1955,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                           alignItems: "flex-start",
                                           position: "sticky",
                                           left: `${taskLabelStickyLeft}px`,
-                                          zIndex: 7,
+                                          zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
                                           background: groupBackground,
                                           overflow: "visible",
                                           borderTop:
@@ -1614,44 +1984,27 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                             "Unassigned"
                                           }
                                           style={{ fontSize: "0.7rem", color: "var(--text-copy)" }}
-                                        >
-                                          {(task.ownerId ? membersById[task.ownerId]?.name : null) ??
-                                            "Unassigned"}
-                                        </span>
-                                      </button>
-                                    ) : null}
-                                    {timeline.days.map((day, dayIndex) => {
-                                      const dayStyle = getColumnStyle(day);
-                                      const dayHoverProps = getTimelineDayOverlayHoverProps(day);
-                                      return (
-                                    <div
-                                      key={`${task.id}-${day}`}
-                                      {...dayHoverProps}
-                                      style={{
-                                            gridRow: subsystemRowStart + taskIndex,
-                                            gridColumn: dayIndex + firstDayGridColumn,
-                                            borderRight: `1px solid ${
-                                              dayStyle?.columnBorder ?? "var(--border-base)"
-                                            }`,
-                                            borderTop:
-                                              taskIndex === 0
-                                                ? "none"
-                                                : "1px solid var(--border-base)",
-                                            background: dayStyle?.columnBackground,
-                                            minHeight: "44px",
-                                          }}
-                                        />
-                                      );
-                                    })}
-                                    <button
-                                      className={`timeline-bar timeline-${task.status} editable-hover-target`}
-                                      onClick={() => openEditTaskModal(task)}
+                                          >
+                                            {(task.ownerId ? membersById[task.ownerId]?.name : null) ??
+                                              "Unassigned"}
+                                          </span>
+                                        </button>
+                                      ) : null}
+                                      {renderTimelineDayGridCells(
+                                        `subsystem-${subsystem.id}-task-${task.id}`,
+                                        subsystemRowStart + taskIndex,
+                                        subsystemRowStart + taskIndex > 1,
+                                      )}
+                                      <button
+                                        className={`timeline-bar timeline-${task.status} editable-hover-target`}
+                                        onClick={() => openEditTaskModal(task)}
                                       onMouseEnter={clearHoveredMilestonePopup}
                                       style={{
                                         gridRow: subsystemRowStart + taskIndex,
                                         gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
                                         margin: "6px 4px",
-                                        zIndex: 5,
+                                        position: "relative",
+                                        zIndex: 6,
                                         borderRadius: "4px",
                                         border: "none",
                                         color: "#fff",
@@ -1702,6 +2055,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                   gridTemplateColumns: timelineGridTemplate,
                   background: groupBackground,
                   borderBottom: "1px solid var(--border-base)",
+                  position: "relative",
                 }}
               >
                 {showSubsystemCol ? (
@@ -1712,7 +2066,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       gridColumn: `${subsystemColumnIndex}`,
                       position: "sticky",
                       left: `${subsystemStickyLeft}px`,
-                      zIndex: 8,
+                      zIndex: TIMELINE_LEFT_SUBSYSTEM_COLUMN_Z_INDEX,
                       background: groupBackground,
                       borderRight: "1px solid var(--border-base)",
                       display: "flex",
@@ -1782,7 +2136,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       alignItems: "center",
                       position: "sticky",
                       left: 0,
-                      zIndex: 9,
+                      zIndex: TIMELINE_LEFT_PROJECT_COLUMN_Z_INDEX,
                       background: groupBackground,
                       overflow: "visible",
                       whiteSpace: "nowrap",
@@ -1805,7 +2159,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       gridColumn: `${taskLabelColumnIndex}`,
                       position: "sticky",
                       left: `${taskLabelStickyLeft}px`,
-                      zIndex: 7,
+                      zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
                       background: groupBackground,
                       borderRight: "1px solid var(--border-base)",
                       boxSizing: "border-box",
@@ -1831,7 +2185,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       gridColumn: `${taskLabelColumnIndex}`,
                       position: "sticky",
                       left: `${taskLabelStickyLeft}px`,
-                      zIndex: 7,
+                      zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
                       background: groupBackground,
                       borderRight: "1px solid var(--border-base)",
                       boxSizing: "border-box",
@@ -1840,25 +2194,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 ) : null}
 
                 {collapsed
-                  ? timeline.days.map((day, dayIndex) => {
-                      const dayStyle = getColumnStyle(day);
-                      const dayHoverProps = getTimelineDayOverlayHoverProps(day);
-                      return (
-                        <div
-                          key={day}
-                          {...dayHoverProps}
-                          style={{
-                            gridRow: "1",
-                            gridColumn: dayIndex + firstDayGridColumn,
-                            borderRight: `1px solid ${
-                              dayStyle?.columnBorder ?? "var(--border-base)"
-                            }`,
-                            background: dayStyle?.columnBackground,
-                            minHeight: "44px",
-                          }}
-                        />
-                      );
-                    })
+                  ? renderTimelineDayGridCells(`subsystem-${subsystem.id}-collapsed`, "1")
                   : null}
 
                 {collapsed &&
@@ -1873,7 +2209,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
                         height: "8px",
                         margin: "0 2px",
-                        zIndex: 5,
+                        position: "relative",
+                        zIndex: 6,
                         borderRadius: "2px",
                         border: "none",
                         cursor: "pointer",
@@ -1888,6 +2225,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       <EditableHoverIndicator className="editable-hover-indicator-compact" />
                     </button>
                   ))}
+
+                {!collapsed && subsystem.tasks.length === 0
+                  ? renderTimelineDayGridCells(`subsystem-${subsystem.id}-empty`, "1")
+                  : null}
 
                 {!collapsed
                   ? subsystem.tasks.map((task, taskIndex) => (
@@ -1911,7 +2252,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                               alignItems: "flex-start",
                               position: "sticky",
                               left: `${taskLabelStickyLeft}px`,
-                              zIndex: 7,
+                              zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
                               background: groupBackground,
                               overflow: "visible",
                               borderTop:
@@ -1946,27 +2287,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             </span>
                           </button>
                         ) : null}
-                        {timeline.days.map((day, dayIndex) => {
-                          const dayStyle = getColumnStyle(day);
-                          const dayHoverProps = getTimelineDayOverlayHoverProps(day);
-                          return (
-                            <div
-                              key={day}
-                              {...dayHoverProps}
-                              style={{
-                                gridRow: taskIndex + 1,
-                                gridColumn: dayIndex + firstDayGridColumn,
-                                borderRight: `1px solid ${
-                                  dayStyle?.columnBorder ?? "var(--border-base)"
-                                }`,
-                                borderTop:
-                                  taskIndex === 0 ? "none" : "1px solid var(--border-base)",
-                                background: dayStyle?.columnBackground,
-                                minHeight: "44px",
-                              }}
-                            />
-                          );
-                        })}
+                        {renderTimelineDayGridCells(
+                          `subsystem-${subsystem.id}-task-${task.id}`,
+                          taskIndex + 1,
+                          taskIndex > 0,
+                        )}
                         <button
                           className={`timeline-bar timeline-${task.status} editable-hover-target`}
                           onClick={() => openEditTaskModal(task)}
@@ -1975,7 +2300,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             gridRow: taskIndex + 1,
                             gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
                             margin: "6px 4px",
-                            zIndex: 5,
+                            position: "relative",
+                            zIndex: 6,
                             borderRadius: "4px",
                             border: "none",
                             color: "#fff",
@@ -2042,40 +2368,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
           )
         : null}
 
-      {hoveredMilestonePopup && hoveredMilestonePopupGeometry && tooltipPortalTarget
-        ? createPortal(
-            <>
-              <div
-                aria-hidden="true"
-                className="timeline-day-event-overlay-column"
-                style={{
-                  background: withColumnOverlayTint(hoveredMilestonePopup.background),
-                  height: `${hoveredMilestonePopupGeometry.centerY * 2}px`,
-                  left: `${hoveredMilestonePopupGeometry.left}px`,
-                  top: "0px",
-                  width: `${hoveredMilestonePopupGeometry.width}px`,
-                }}
-              />
-              <div
-                className="timeline-day-event-overlay-tooltip"
-                role="presentation"
-                style={{
-                  transform: `translate(-50%, -50%) rotate(${hoveredMilestonePopup.rotationDeg}deg)`,
-                  left: `${hoveredMilestonePopupGeometry.centerX}px`,
-                  top: `${hoveredMilestonePopupGeometry.centerY}px`,
-                  color: "#ffffff",
-                }}
-              >
-                {hoveredMilestonePopup.lines.map((line, index) => (
-                  <span className="timeline-day-event-overlay-tooltip-item" key={`${line}-${index}`}>
-                    {line}
-                  </span>
-                ))}
-              </div>
-            </>,
-            tooltipPortalTarget,
-          )
-        : null}
+      <TimelineMilestoneHoverLayer
+        controllerRef={setHoveredMilestonePopupLayerRef}
+        portalTarget={tooltipPortalTarget}
+        resolveGeometry={resolveMilestonePopupGeometry}
+      />
 
       {eventModalMode && modalPortalTarget
         ? createPortal(

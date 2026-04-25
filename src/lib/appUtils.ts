@@ -59,22 +59,229 @@ export function joinList(values: string[]) {
     return values.join(", ");
 }
 
+function uniqueIds(values: Array<string | null | undefined>) {
+    return Array.from(
+        new Set(values.filter((value): value is string => Boolean(value))),
+    );
+}
+
+export type TaskTargetKind = "workstream" | "subsystem" | "mechanism" | "part-instance";
+
+export interface TaskTargetSelection {
+    kind: TaskTargetKind;
+    id: string;
+}
+
+export function getProjectTaskTargetLabel(
+    project: Pick<BootstrapPayload["projects"][number], "projectType"> | null | undefined,
+) {
+    return project?.projectType === "robot" ? "Subsystems" : "Workstreams";
+}
+
+function getTaskTargetArrays(payload: TaskPayload) {
+    return {
+        subsystemIds: payload.subsystemIds.length
+            ? payload.subsystemIds
+            : uniqueIds([payload.subsystemId]),
+        mechanismIds: payload.mechanismIds.length
+            ? payload.mechanismIds
+            : uniqueIds([payload.mechanismId]),
+        partInstanceIds: payload.partInstanceIds.length
+            ? payload.partInstanceIds
+            : uniqueIds([payload.partInstanceId]),
+    };
+}
+
+function removeId(ids: string[], id: string) {
+    return ids.filter((currentId) => currentId !== id);
+}
+
+function normalizeTaskTargetPayload(
+    payload: TaskPayload,
+    bootstrap: BootstrapPayload,
+    targets: {
+        subsystemIds: string[];
+        mechanismIds: string[];
+        partInstanceIds: string[];
+    },
+) {
+    const mechanismsById = Object.fromEntries(
+        bootstrap.mechanisms.map((mechanism) => [mechanism.id, mechanism]),
+    ) as Record<string, BootstrapPayload["mechanisms"][number]>;
+    const partInstancesById = Object.fromEntries(
+        bootstrap.partInstances.map((partInstance) => [partInstance.id, partInstance]),
+    ) as Record<string, BootstrapPayload["partInstances"][number]>;
+    let subsystemIds = uniqueIds(targets.subsystemIds);
+    let mechanismIds = uniqueIds(targets.mechanismIds);
+    const partInstanceIds = uniqueIds(targets.partInstanceIds);
+
+    mechanismIds.forEach((mechanismId) => {
+        const mechanism = mechanismsById[mechanismId];
+
+        if (mechanism) {
+            subsystemIds = uniqueIds([...subsystemIds, mechanism.subsystemId]);
+        }
+    });
+
+    partInstanceIds.forEach((partInstanceId) => {
+        const partInstance = partInstancesById[partInstanceId];
+
+        if (!partInstance) {
+            return;
+        }
+
+        subsystemIds = uniqueIds([...subsystemIds, partInstance.subsystemId]);
+
+        if (partInstance.mechanismId) {
+            mechanismIds = uniqueIds([...mechanismIds, partInstance.mechanismId]);
+        }
+    });
+
+    const normalizedSubsystemIds = uniqueIds(subsystemIds);
+    const normalizedMechanismIds = uniqueIds(mechanismIds);
+    const normalizedPartInstanceIds = uniqueIds(partInstanceIds);
+
+    return {
+        ...payload,
+        workstreamId: null,
+        workstreamIds: [],
+        subsystemId: normalizedSubsystemIds[0] ?? "",
+        subsystemIds: normalizedSubsystemIds,
+        mechanismId: normalizedMechanismIds[0] ?? null,
+        mechanismIds: normalizedMechanismIds,
+        partInstanceId: normalizedPartInstanceIds[0] ?? null,
+        partInstanceIds: normalizedPartInstanceIds,
+    };
+}
+
+export function setTaskPrimaryTargetSelection(
+    payload: TaskPayload,
+    bootstrap: BootstrapPayload,
+    subsystemId: string,
+): TaskPayload {
+    const selectedSubsystem = bootstrap.subsystems.find(
+        (subsystem) => subsystem.id === subsystemId,
+    );
+    if (!selectedSubsystem) {
+        return normalizeTaskTargetPayload(payload, bootstrap, {
+            subsystemIds: [],
+            mechanismIds: [],
+            partInstanceIds: [],
+        });
+    }
+
+    const mechanismIds = payload.mechanismIds.filter((mechanismId) =>
+        bootstrap.mechanisms.some(
+            (mechanism) =>
+                mechanism.id === mechanismId && mechanism.subsystemId === selectedSubsystem.id,
+        ),
+    );
+    const partInstanceIds = payload.partInstanceIds.filter((partInstanceId) =>
+        bootstrap.partInstances.some(
+            (partInstance) =>
+                partInstance.id === partInstanceId &&
+                partInstance.subsystemId === selectedSubsystem.id,
+        ),
+    );
+
+    return normalizeTaskTargetPayload(payload, bootstrap, {
+        subsystemIds: [selectedSubsystem.id],
+        mechanismIds,
+        partInstanceIds,
+    });
+}
+
+export function toggleTaskTargetSelection(
+    payload: TaskPayload,
+    bootstrap: BootstrapPayload,
+    selection: TaskTargetSelection,
+): TaskPayload {
+    const mechanismsById = Object.fromEntries(
+        bootstrap.mechanisms.map((mechanism) => [mechanism.id, mechanism]),
+    ) as Record<string, BootstrapPayload["mechanisms"][number]>;
+    const partInstancesById = Object.fromEntries(
+        bootstrap.partInstances.map((partInstance) => [partInstance.id, partInstance]),
+    ) as Record<string, BootstrapPayload["partInstances"][number]>;
+
+    let { subsystemIds, mechanismIds, partInstanceIds } =
+        getTaskTargetArrays(payload);
+
+    if (selection.kind === "workstream" || selection.kind === "subsystem") {
+        if (subsystemIds.includes(selection.id)) {
+            const removedMechanismIds = new Set(
+                bootstrap.mechanisms
+                    .filter((mechanism) => mechanism.subsystemId === selection.id)
+                    .map((mechanism) => mechanism.id),
+            );
+
+            subsystemIds = removeId(subsystemIds, selection.id);
+            mechanismIds = mechanismIds.filter(
+                (mechanismId) => mechanismsById[mechanismId]?.subsystemId !== selection.id,
+            );
+            partInstanceIds = partInstanceIds.filter((partInstanceId) => {
+                const partInstance = partInstancesById[partInstanceId];
+
+                return Boolean(
+                    partInstance &&
+                        partInstance.subsystemId !== selection.id &&
+                        (!partInstance.mechanismId ||
+                            !removedMechanismIds.has(partInstance.mechanismId)),
+                );
+            });
+        } else {
+            subsystemIds = uniqueIds([...subsystemIds, selection.id]);
+        }
+    }
+
+    if (selection.kind === "mechanism") {
+        const mechanism = mechanismsById[selection.id];
+
+        if (!mechanism) {
+            return payload;
+        }
+
+        if (mechanismIds.includes(selection.id)) {
+            mechanismIds = removeId(mechanismIds, selection.id);
+            partInstanceIds = partInstanceIds.filter(
+                (partInstanceId) =>
+                    partInstancesById[partInstanceId]?.mechanismId !== selection.id,
+            );
+        } else {
+            mechanismIds = uniqueIds([...mechanismIds, selection.id]);
+            subsystemIds = uniqueIds([...subsystemIds, mechanism.subsystemId]);
+        }
+    }
+
+    if (selection.kind === "part-instance") {
+        const partInstance = partInstancesById[selection.id];
+
+        if (!partInstance) {
+            return payload;
+        }
+
+        if (partInstanceIds.includes(selection.id)) {
+            partInstanceIds = removeId(partInstanceIds, selection.id);
+        } else {
+            partInstanceIds = uniqueIds([...partInstanceIds, selection.id]);
+            subsystemIds = uniqueIds([...subsystemIds, partInstance.subsystemId]);
+
+            if (partInstance.mechanismId) {
+                mechanismIds = uniqueIds([...mechanismIds, partInstance.mechanismId]);
+            }
+        }
+    }
+
+    return normalizeTaskTargetPayload(payload, bootstrap, {
+        subsystemIds,
+        mechanismIds,
+        partInstanceIds,
+    });
+}
+
 export function buildEmptyTaskPayload(bootstrap: BootstrapPayload): TaskPayload {
     const firstProject = bootstrap.projects[0]?.id ?? "";
-    const firstWorkstream =
-        bootstrap.workstreams.find((workstream) => workstream.projectId === firstProject)?.id ??
-        null;
     const firstSubsystem = getDefaultSubsystemId(bootstrap);
     const firstDiscipline = bootstrap.disciplines[0]?.id ?? "";
-    const firstMechanism =
-        bootstrap.mechanisms.find((mechanism) => mechanism.subsystemId === firstSubsystem)?.id ??
-        null;
-    const firstPartInstance =
-        firstMechanism
-            ? bootstrap.partInstances.find(
-                (partInstance) => partInstance.mechanismId === firstMechanism,
-            )?.id ?? null
-            : null;
     const firstEvent = bootstrap.events[0]?.id ?? null;
     const firstStudent =
         bootstrap.members.find((m) => m.role === "lead")?.id ??
@@ -86,13 +293,17 @@ export function buildEmptyTaskPayload(bootstrap: BootstrapPayload): TaskPayload 
 
     return {
         projectId: firstProject,
-        workstreamId: firstWorkstream,
+        workstreamId: null,
+        workstreamIds: [],
         title: "",
         summary: "",
         subsystemId: firstSubsystem,
+        subsystemIds: uniqueIds([firstSubsystem]),
         disciplineId: firstDiscipline,
-        mechanismId: firstMechanism,
-        partInstanceId: firstPartInstance,
+        mechanismId: null,
+        mechanismIds: [],
+        partInstanceId: null,
+        partInstanceIds: [],
         targetEventId: firstEvent,
         ownerId: firstStudent,
         mentorId: firstMentor,
@@ -301,7 +512,13 @@ export function buildEmptyPartInstancePayload(
     };
 }
 
-export const taskToPayload = (task: TaskRecord): TaskPayload => ({ ...task });
+export const taskToPayload = (task: TaskRecord): TaskPayload => ({
+    ...task,
+    workstreamIds: task.workstreamIds?.length ? task.workstreamIds : uniqueIds([task.workstreamId]),
+    subsystemIds: task.subsystemIds?.length ? task.subsystemIds : uniqueIds([task.subsystemId]),
+    mechanismIds: task.mechanismIds?.length ? task.mechanismIds : uniqueIds([task.mechanismId]),
+    partInstanceIds: task.partInstanceIds?.length ? task.partInstanceIds : uniqueIds([task.partInstanceId]),
+});
 
 export const purchaseToPayload = (item: PurchaseItemRecord): PurchaseItemPayload => ({
     ...item,

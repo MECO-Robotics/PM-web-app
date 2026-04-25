@@ -1,4 +1,5 @@
 import {
+  memo,
   useEffect,
   type Dispatch,
   type FormEvent,
@@ -100,6 +101,7 @@ const MANUFACTURING_VIEW_ORDER: readonly ManufacturingViewTab[] = [
   "fabrication",
 ];
 const INVENTORY_VIEW_ORDER: readonly InventoryViewTab[] = ["materials", "parts", "purchases"];
+const MemoizedTimelineView = memo(TimelineView);
 
 function getSwipeDirection<T extends string>(
   previousView: T,
@@ -203,16 +205,16 @@ function WorkspaceSectionPanel({
   isActive: boolean;
   tabSwitchDirection: TabSwitchDirection;
 }) {
-  const animationClass = isActive && !disableAnimations
+  if (!isActive) {
+    return null;
+  }
+
+  const animationClass = !disableAnimations
     ? ` workspace-tab-panel-enter workspace-tab-panel-enter-${tabSwitchDirection}`
     : "";
 
   return (
-    <div
-      className={`workspace-tab-panel${animationClass}`}
-      hidden={!isActive}
-      style={isActive ? undefined : { display: "none" }}
-    >
+    <div className={`workspace-tab-panel${animationClass}`}>
       {children}
     </div>
   );
@@ -231,15 +233,16 @@ function WorkspaceSubPanel({
   isActive: boolean;
   swipeDirection?: SwipeDirection;
 }) {
-  const panelAnimation =
-    isActive && !disableAnimations ? swipeDirection ?? "neutral" : undefined;
+  if (!isActive) {
+    return null;
+  }
+
+  const panelAnimation = !disableAnimations ? swipeDirection ?? "neutral" : undefined;
 
   return (
     <div
       className="workspace-tab-panel workspace-subtab-panel"
       data-swipe-direction={panelAnimation}
-      hidden={!isActive}
-      style={isActive ? undefined : { display: "none" }}
     >
       {children}
       <div className="tab-interaction-note" role="note">
@@ -451,7 +454,7 @@ export function WorkspaceContent({
           isActive={taskView === "timeline"}
           swipeDirection={taskSwipeDirection}
         >
-          <TimelineView
+          <MemoizedTimelineView
             activePersonFilter={activePersonFilter}
             bootstrap={bootstrap}
             isAllProjectsView={isAllProjectsView}

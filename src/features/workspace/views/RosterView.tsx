@@ -54,12 +54,12 @@ export const RosterView: React.FC<RosterViewProps> = ({
         const priority = Number(isAdminMentor(b)) - Number(isAdminMentor(a));
         return priority !== 0 ? priority : a.name.localeCompare(b.name);
     });
-    const getRoleBadge = (member: MemberRecord): { label: "L" | "A"; title: string } | null => {
+    const getRoleBadge = (member: MemberRecord): { label: "L" | "C"; title: string } | null => {
         if (isLeadStudent(member)) {
             return { label: "L", title: "Lead student" };
         }
         if (isAdminMentor(member)) {
-            return { label: "A", title: "Admin mentor" };
+            return { label: "C", title: "Core mentor" };
         }
         return null;
     };

@@ -14,6 +14,12 @@ import type {
   TaskRecord,
   WorkLogPayload,
 } from "@/types";
+import {
+  getProjectTaskTargetLabel,
+  setTaskPrimaryTargetSelection,
+  toggleTaskTargetSelection,
+  type TaskTargetKind,
+} from "@/lib/appUtils";
 
 interface TaskEditorModalProps {
   activeTask: TaskRecord | null;
@@ -41,8 +47,6 @@ export function TaskEditorModal({
   activeTask,
   bootstrap,
   closeTaskModal,
-  disciplinesById,
-  eventsById,
   handleTaskSubmit,
   isSavingTask,
   mechanismsById,
@@ -61,17 +65,87 @@ export function TaskEditorModal({
   const projectsById = Object.fromEntries(
     bootstrap.projects.map((project) => [project.id, project]),
   ) as Record<string, BootstrapPayload["projects"][number]>;
-  const workstreamsById = Object.fromEntries(
-    bootstrap.workstreams.map((workstream) => [workstream.id, workstream]),
-  ) as Record<string, BootstrapPayload["workstreams"][number]>;
-  const filteredWorkstreams = bootstrap.workstreams.filter(
-    (workstream) => workstream.projectId === taskDraft.projectId,
+  const subsystemsById = Object.fromEntries(
+    bootstrap.subsystems.map((subsystem) => [subsystem.id, subsystem]),
+  ) as Record<string, BootstrapPayload["subsystems"][number]>;
+  const selectedProject = taskDraft.projectId ? projectsById[taskDraft.projectId] : null;
+  const targetGroupLabel = getProjectTaskTargetLabel(selectedProject);
+  const targetFallback = `No ${targetGroupLabel === "Subsystems" ? "subsystem" : "workstream"}`;
+  const projectSubsystems = bootstrap.subsystems.filter(
+    (subsystem) => subsystem.projectId === taskDraft.projectId,
   );
-  const filteredMechanisms = bootstrap.mechanisms.filter(
-    (mechanism) => mechanism.subsystemId === taskDraft.subsystemId,
+  const selectedSubsystemIds =
+    taskDraft.subsystemIds.length > 0
+      ? taskDraft.subsystemIds
+      : taskDraft.subsystemId
+        ? [taskDraft.subsystemId]
+        : [];
+  const selectedPrimaryTargetId = selectedSubsystemIds[0] ?? "";
+  const projectMechanisms = bootstrap.mechanisms.filter(
+    (mechanism) => mechanism.subsystemId === selectedPrimaryTargetId,
   );
-  const filteredPartInstances = bootstrap.partInstances.filter(
-    (partInstance) => partInstance.mechanismId === taskDraft.mechanismId,
+  const projectPartInstances = bootstrap.partInstances.filter(
+    (partInstance) => partInstance.subsystemId === selectedPrimaryTargetId,
+  );
+  const selectedMechanismIds =
+    taskDraft.mechanismIds.length > 0
+      ? taskDraft.mechanismIds
+      : taskDraft.mechanismId
+        ? [taskDraft.mechanismId]
+        : [];
+  const selectedPartInstanceIds =
+    taskDraft.partInstanceIds.length > 0
+      ? taskDraft.partInstanceIds
+      : taskDraft.partInstanceId
+        ? [taskDraft.partInstanceId]
+        : [];
+  const getPartInstanceLabel = (partInstance: BootstrapPayload["partInstances"][number]) => {
+    const partDefinition = partDefinitionsById[partInstance.partDefinitionId];
+
+    return partDefinition ? `${partInstance.name} (${partDefinition.name})` : partInstance.name;
+  };
+  const selectedScopeChips = [
+    ...selectedMechanismIds.map((id) => ({
+      key: `mechanism-${id}`,
+      label: mechanismsById[id]?.name,
+    })),
+    ...selectedPartInstanceIds.map((id) => ({
+      key: `part-instance-${id}`,
+      label: partInstancesById[id] ? getPartInstanceLabel(partInstancesById[id]) : undefined,
+    })),
+  ].filter((chip): chip is { key: string; label: string } => Boolean(chip.label));
+  const updatePrimaryTarget = (subsystemId: string) => {
+    setTaskDraft((current) => setTaskPrimaryTargetSelection(current, bootstrap, subsystemId));
+  };
+  const toggleTarget = (kind: TaskTargetKind, id: string) => {
+    setTaskDraft((current) =>
+      toggleTaskTargetSelection(current, bootstrap, {
+        kind,
+        id,
+      }),
+    );
+  };
+  const renderTargetOption = (
+    kind: TaskTargetKind,
+    id: string,
+    label: string,
+    detail: string | null,
+    checked: boolean,
+  ) => (
+    <label
+      className={`task-target-option${checked ? " is-selected" : ""}`}
+      key={`${kind}-${id}`}
+    >
+      <input
+        checked={checked}
+        onChange={() => toggleTarget(kind, id)}
+        type="checkbox"
+      />
+      <span className="task-target-option-copy">
+        <span>{label}</span>
+        {detail ? <small>{detail}</small> : null}
+      </span>
+    </label>
   );
 
   return (
@@ -132,15 +206,21 @@ export function TaskEditorModal({
               onChange={(event) =>
                 setTaskDraft((current) => {
                   const projectId = event.target.value;
-                  const workstreamId =
-                    bootstrap.workstreams.find(
-                      (workstream) => workstream.projectId === projectId,
-                    )?.id ?? null;
+                  const subsystemId =
+                    bootstrap.subsystems.find((subsystem) => subsystem.projectId === projectId)
+                      ?.id ?? "";
 
                   return {
                     ...current,
                     projectId,
-                    workstreamId,
+                    workstreamId: null,
+                    workstreamIds: [],
+                    subsystemId,
+                    subsystemIds: subsystemId ? [subsystemId] : [],
+                    mechanismId: null,
+                    mechanismIds: [],
+                    partInstanceId: null,
+                    partInstanceIds: [],
                   };
                 })
               }
@@ -150,60 +230,6 @@ export function TaskEditorModal({
               {bootstrap.projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Workstream</span>
-            <select
-              onChange={(event) =>
-                setTaskDraft((current) => ({
-                  ...current,
-                  workstreamId: event.target.value || null,
-                }))
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={taskDraft.workstreamId ?? ""}
-            >
-              <option value="">Project-level task</option>
-              {filteredWorkstreams.map((workstream) => (
-                <option key={workstream.id} value={workstream.id}>
-                  {workstream.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Subsystem</span>
-            <select
-              onChange={(event) =>
-                setTaskDraft((current) => {
-                  const subsystemId = event.target.value;
-                  const nextMechanisms = bootstrap.mechanisms.filter(
-                    (mechanism) => mechanism.subsystemId === subsystemId,
-                  );
-                  const mechanismId = nextMechanisms[0]?.id ?? null;
-                  const partInstanceId = mechanismId
-                    ? bootstrap.partInstances.find(
-                        (partInstance) => partInstance.mechanismId === mechanismId,
-                      )?.id ?? null
-                    : null;
-
-                  return {
-                    ...current,
-                    subsystemId,
-                    mechanismId,
-                    partInstanceId,
-                  };
-                })
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={taskDraft.subsystemId}
-            >
-              {bootstrap.subsystems.map((subsystem) => (
-                <option key={subsystem.id} value={subsystem.id}>
-                  {subsystem.name}
                 </option>
               ))}
             </select>
@@ -224,59 +250,71 @@ export function TaskEditorModal({
               ))}
             </select>
           </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Mechanism</span>
-            <select
-              onChange={(event) =>
-                setTaskDraft((current) => {
-                  const mechanismId = event.target.value || null;
-                  const partInstanceId = mechanismId
-                    ? bootstrap.partInstances.find(
-                        (partInstance) => partInstance.mechanismId === mechanismId,
-                      )?.id ?? null
-                    : null;
-
-                  return {
-                    ...current,
-                    mechanismId,
-                    partInstanceId,
-                  };
-                })
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={taskDraft.mechanismId ?? ""}
-            >
-              <option value="">No mechanism</option>
-              {filteredMechanisms.map((mechanism) => (
-                <option key={mechanism.id} value={mechanism.id}>
-                  {mechanism.name}
+          <div className="field modal-wide task-target-picker">
+            <span style={{ color: "var(--text-title)" }}>Targets</span>
+            <label className="task-target-primary">
+              <span>{targetGroupLabel === "Subsystems" ? "Subsystem" : "Workstream"}</span>
+              <select
+                onChange={(event) => updatePrimaryTarget(event.target.value)}
+                required
+                style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+                value={selectedPrimaryTargetId}
+              >
+                <option value="" disabled>
+                  {targetFallback}
                 </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Part instance</span>
-            <select
-              onChange={(event) =>
-                setTaskDraft((current) => ({
-                  ...current,
-                  partInstanceId: event.target.value || null,
-                }))
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={taskDraft.partInstanceId ?? ""}
-            >
-              <option value="">No part instance</option>
-              {filteredPartInstances.map((partInstance) => (
-                <option key={partInstance.id} value={partInstance.id}>
-                  {partInstance.name}{" "}
-                  {partDefinitionsById[partInstance.partDefinitionId]
-                    ? `(${partDefinitionsById[partInstance.partDefinitionId].name})`
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </label>
+                {projectSubsystems.map((subsystem) => (
+                  <option key={subsystem.id} value={subsystem.id}>
+                    {subsystem.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="task-target-selected" aria-live="polite">
+              {selectedScopeChips.length > 0 ? (
+                selectedScopeChips.map((chip) => (
+                  <span className="task-target-chip" key={chip.key}>
+                    {chip.label}
+                  </span>
+                ))
+              ) : (
+                <span className="task-target-empty">All mechanisms and part instances</span>
+              )}
+            </div>
+            <div className="task-target-grid">
+              <div className="task-target-group">
+                <span className="task-target-group-title">Mechanisms</span>
+                {projectMechanisms.map((mechanism) =>
+                  renderTargetOption(
+                    "mechanism",
+                    mechanism.id,
+                    mechanism.name,
+                    subsystemsById[mechanism.subsystemId]?.name ?? null,
+                    selectedMechanismIds.includes(mechanism.id),
+                  ),
+                )}
+              </div>
+              <div className="task-target-group">
+                <span className="task-target-group-title">Part instances</span>
+                {projectPartInstances.map((partInstance) =>
+                  renderTargetOption(
+                    "part-instance",
+                    partInstance.id,
+                    getPartInstanceLabel(partInstance),
+                    [
+                      subsystemsById[partInstance.subsystemId]?.name,
+                      partInstance.mechanismId
+                        ? mechanismsById[partInstance.mechanismId]?.name
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" / ") || null,
+                    selectedPartInstanceIds.includes(partInstance.id),
+                  ),
+                )}
+              </div>
+            </div>
+          </div>
           <label className="field">
             <span style={{ color: "var(--text-title)" }}>Target event</span>
             <select
@@ -317,22 +355,6 @@ export function TaskEditorModal({
               ))}
             </select>
           </label>
-          <div className="field modal-wide" style={{ gap: "6px" }}>
-            <span style={{ color: "var(--text-title)" }}>Task traceability</span>
-            <small style={{ color: "var(--text-copy)" }}>
-              {(taskDraft.projectId ? projectsById[taskDraft.projectId]?.name : null) ?? "No project"}
-              {" / "}
-              {(taskDraft.workstreamId ? workstreamsById[taskDraft.workstreamId]?.name : null) ?? "Project-level task"}
-              {" / "}
-              {(taskDraft.disciplineId ? disciplinesById[taskDraft.disciplineId]?.name : null) ?? "No discipline"}
-              {" / "}
-              {(taskDraft.mechanismId ? mechanismsById[taskDraft.mechanismId]?.name : null) ?? "No mechanism"}
-              {" / "}
-              {(taskDraft.partInstanceId ? partInstancesById[taskDraft.partInstanceId]?.name : null) ?? "No part instance"}
-              {" / "}
-              {(taskDraft.targetEventId ? eventsById[taskDraft.targetEventId]?.title : null) ?? "No event"}
-            </small>
-          </div>
           <label className="field">
             <span style={{ color: "var(--text-title)" }}>Mentor</span>
             <select
@@ -426,22 +448,24 @@ export function TaskEditorModal({
               value={taskDraft.estimatedHours}
             />
           </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Actual hours</span>
-            <input
-              min="0"
-              onChange={(event) =>
-                setTaskDraft((current) => ({
-                  ...current,
-                  actualHours: Number(event.target.value),
-                }))
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              step="0.5"
-              type="number"
-              value={taskDraft.actualHours}
-            />
-          </label>
+          {taskModalMode === "edit" ? (
+            <label className="field">
+              <span style={{ color: "var(--text-title)" }}>Actual hours</span>
+              <input
+                min="0"
+                onChange={(event) =>
+                  setTaskDraft((current) => ({
+                    ...current,
+                    actualHours: Number(event.target.value),
+                  }))
+                }
+                style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+                step="0.5"
+                type="number"
+                value={taskDraft.actualHours}
+              />
+            </label>
+          ) : null}
           <label className="field modal-wide">
             <span style={{ color: "var(--text-title)" }}>Blockers</span>
             <input
@@ -575,8 +599,14 @@ export function WorkLogEditorModal({
               </option>
               {bootstrap.tasks.map((task) => {
                 const subsystemName =
-                  bootstrap.subsystems.find((subsystem) => subsystem.id === task.subsystemId)
-                    ?.name ?? "Unknown subsystem";
+                  task.subsystemIds
+                    .map(
+                      (subsystemId) =>
+                        bootstrap.subsystems.find((subsystem) => subsystem.id === subsystemId)
+                          ?.name,
+                    )
+                    .filter(Boolean)
+                    .join(", ") || "Unknown subsystem";
 
                 return (
                   <option key={task.id} value={task.id}>

@@ -62,7 +62,11 @@ export function WorkLogsView({
       }
 
       const task = taskById[workLog.taskId];
-      if (subsystemFilter !== "all" && task?.subsystemId !== subsystemFilter) {
+      if (
+        subsystemFilter !== "all" &&
+        task?.subsystemId !== subsystemFilter &&
+        !task?.subsystemIds.includes(subsystemFilter)
+      ) {
         return false;
       }
 
@@ -75,7 +79,11 @@ export function WorkLogsView({
         .join(" ")
         .toLowerCase();
       const taskText = `${task?.title ?? ""} ${task?.summary ?? ""}`.toLowerCase();
-      const subsystemText = task ? (subsystemsById[task.subsystemId]?.name ?? "") : "";
+      const subsystemText = task
+        ? task.subsystemIds
+            .map((subsystemId) => subsystemsById[subsystemId]?.name ?? "")
+            .join(" ")
+        : "";
 
       return (
         workLog.notes.toLowerCase().includes(query) ||
@@ -194,7 +202,12 @@ export function WorkLogsView({
 
         {workLogPagination.pageItems.map((workLog) => {
           const task = taskById[workLog.taskId];
-          const subsystemName = task ? subsystemsById[task.subsystemId]?.name ?? "Unknown subsystem" : "Unknown task";
+          const subsystemName = task
+            ? task.subsystemIds
+                .map((subsystemId) => subsystemsById[subsystemId]?.name ?? "")
+                .filter(Boolean)
+                .join(", ") || "Unknown subsystem"
+            : "Unknown task";
           const participantNames = workLog.participantIds
             .map((participantId) => membersById[participantId]?.name)
             .filter((name): name is string => Boolean(name));

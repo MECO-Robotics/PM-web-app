@@ -35,6 +35,9 @@ interface EventStyle {
   columnBorder: string;
   chipBackground: string;
   chipText: string;
+  darkColumnBorder: string;
+  darkChipBackground: string;
+  darkChipText: string;
 }
 
 interface MilestoneDraft {
@@ -52,30 +55,45 @@ const EVENT_TYPE_STYLES: Record<EventType, EventStyle> = {
     columnBorder: "rgba(22, 71, 142, 0.32)",
     chipBackground: "rgba(22, 71, 142, 0.18)",
     chipText: "#0d2e5c",
+    darkColumnBorder: "rgba(147, 197, 253, 0.48)",
+    darkChipBackground: "rgba(59, 130, 246, 0.22)",
+    darkChipText: "#bfdbfe",
   },
   competition: {
     label: "Competition",
     columnBorder: "rgba(76, 121, 207, 0.35)",
     chipBackground: "rgba(76, 121, 207, 0.2)",
     chipText: "#1f3f7a",
+    darkColumnBorder: "rgba(147, 197, 253, 0.5)",
+    darkChipBackground: "rgba(96, 165, 250, 0.24)",
+    darkChipText: "#dbeafe",
   },
   deadline: {
     label: "Deadline",
     columnBorder: "rgba(234, 28, 45, 0.36)",
     chipBackground: "rgba(234, 28, 45, 0.18)",
     chipText: "#8e1120",
+    darkColumnBorder: "rgba(251, 113, 133, 0.5)",
+    darkChipBackground: "rgba(244, 63, 94, 0.22)",
+    darkChipText: "#fecdd3",
   },
   "internal-review": {
     label: "Internal review",
     columnBorder: "rgba(36, 104, 71, 0.34)",
     chipBackground: "rgba(36, 104, 71, 0.18)",
     chipText: "#1d5338",
+    darkColumnBorder: "rgba(134, 239, 172, 0.46)",
+    darkChipBackground: "rgba(34, 197, 94, 0.2)",
+    darkChipText: "#bbf7d0",
   },
   demo: {
     label: "Demo",
     columnBorder: "rgba(84, 98, 123, 0.35)",
     chipBackground: "rgba(84, 98, 123, 0.22)",
     chipText: "#36475f",
+    darkColumnBorder: "rgba(203, 213, 225, 0.42)",
+    darkChipBackground: "rgba(148, 163, 184, 0.2)",
+    darkChipText: "#e2e8f0",
   },
 };
 
@@ -533,12 +551,15 @@ export function MilestonesView({
               </span>
               <TableCell label="Type" valueClassName="table-cell-pill">
                 <span
-                  className="pill status-pill"
+                  className="pill status-pill milestone-type-pill"
                   style={{
-                    background: eventStyle.chipBackground,
-                    border: `1px solid ${eventStyle.columnBorder}`,
-                    color: eventStyle.chipText,
-                  }}
+                    "--milestone-type-chip-bg": eventStyle.chipBackground,
+                    "--milestone-type-chip-border": eventStyle.columnBorder,
+                    "--milestone-type-chip-text": eventStyle.chipText,
+                    "--milestone-type-chip-bg-dark": eventStyle.darkChipBackground,
+                    "--milestone-type-chip-border-dark": eventStyle.darkColumnBorder,
+                    "--milestone-type-chip-text-dark": eventStyle.darkChipText,
+                  } as CSSProperties}
                 >
                   {eventStyle.label}
                 </span>

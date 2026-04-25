@@ -1,4 +1,6 @@
 import {
+  Suspense,
+  lazy,
   startTransition,
   useCallback,
   useEffect,
@@ -9,9 +11,6 @@ import {
 
 import "@/app/App.css";
 import { AuthStatusScreen, SignInScreen } from "@/features/auth";
-import { AppSidebar } from "@/components/layout";
-import { AppTopbar } from "@/components/layout";
-import { WorkspaceContent } from "@/features/workspace";
 import type {
   InventoryViewTab,
   ManufacturingViewTab,
@@ -100,7 +99,7 @@ import type {
   TaskRecord,
   WorkLogPayload,
 } from "@/types";
-import { EMPTY_BOOTSTRAP } from "@/features/workspace";
+import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared/bootstrapDefaults";
 import type {
   ArtifactModalMode,
   ManufacturingModalMode,
@@ -115,8 +114,45 @@ import type {
 } from "@/features/workspace";
 import { useAppAuth } from "@/app/useAppAuth";
 import { useAppShell } from "@/app/useAppShell";
-import { useWorkspaceDerivedData } from "@/features/workspace";
-import { WorkspaceModalHost } from "@/features/workspace";
+import { useWorkspaceDerivedData } from "@/features/workspace/useWorkspaceDerivedData";
+
+const AppTopbar = lazy(() =>
+  import("@/components/layout/AppTopbar").then((module) => ({
+    default: module.AppTopbar,
+  }))
+);
+
+const AppSidebar = lazy(() =>
+  import("@/components/layout/AppSidebar").then((module) => ({
+    default: module.AppSidebar,
+  }))
+);
+
+const WorkspaceContent = lazy(() =>
+  import("@/features/workspace/WorkspaceContent").then((module) => ({
+    default: module.WorkspaceContent,
+  }))
+);
+
+const WorkspaceModalHost = lazy(() =>
+  import("@/features/workspace/WorkspaceModalHost").then((module) => ({
+    default: module.WorkspaceModalHost,
+  }))
+);
+
+function WorkspaceShellLoading() {
+  return (
+    <section
+      aria-busy="true"
+      aria-live="polite"
+      className="workspace-shell-loading"
+      role="status"
+    >
+      <p className="eyebrow">MECO workspace</p>
+      <p className="workspace-shell-loading-copy">Loading workspace modules...</p>
+    </section>
+  );
+}
 
 function scopeBootstrapBySelection(
   payload: BootstrapPayload,
@@ -171,7 +207,9 @@ function scopeBootstrapBySelection(
   const scopedWorkstreamIds = new Set(scopedWorkstreams.map((workstream) => workstream.id));
   const scopedTasks = payload.tasks.filter(
     (task) =>
-      activeProjectIds.has(task.projectId) && scopedSubsystemIds.has(task.subsystemId),
+      activeProjectIds.has(task.projectId) &&
+      (scopedSubsystemIds.has(task.subsystemId) ||
+        task.subsystemIds.some((subsystemId) => scopedSubsystemIds.has(subsystemId))),
   );
   const scopedTaskIds = new Set(scopedTasks.map((task) => task.id));
   const scopedWorkLogs = payload.workLogs.filter((workLog) => scopedTaskIds.has(workLog.taskId));
@@ -729,32 +767,32 @@ export default function App() {
     taskModalMode,
   ]);
 
-  const openCreateTaskModal = () => {
+  const openCreateTaskModal = useCallback(() => {
     suppressNextAutoWorkspaceLoadRef.current = true;
     setShowTimelineCreateToggleInTaskModal(false);
     setActiveTaskId(null);
     setTaskDraft(buildEmptyTaskPayload(scopedBootstrap));
     setTaskDraftBlockers("");
     setTaskModalMode("create");
-  };
+  }, [scopedBootstrap]);
 
-  const openCreateTaskModalFromTimeline = () => {
+  const openCreateTaskModalFromTimeline = useCallback(() => {
     suppressNextAutoWorkspaceLoadRef.current = true;
     setShowTimelineCreateToggleInTaskModal(true);
     setActiveTaskId(null);
     setTaskDraft(buildEmptyTaskPayload(scopedBootstrap));
     setTaskDraftBlockers("");
     setTaskModalMode("create");
-  };
+  }, [scopedBootstrap]);
 
-  const openEditTaskModal = (task: TaskRecord) => {
+  const openEditTaskModal = useCallback((task: TaskRecord) => {
     suppressNextAutoWorkspaceLoadRef.current = true;
     setShowTimelineCreateToggleInTaskModal(false);
     setActiveTaskId(task.id);
     setTaskDraft(taskToPayload(task));
     setTaskDraftBlockers(joinList(task.blockers));
     setTaskModalMode("edit");
-  };
+  }, []);
 
   const closeTaskModal = () => {
     suppressNextAutoWorkspaceLoadRef.current = true;
@@ -966,6 +1004,11 @@ export default function App() {
     try {
       const payload: TaskPayload = {
         ...taskDraft,
+        workstreamId: null,
+        workstreamIds: [],
+        subsystemId: taskDraft.subsystemIds[0] ?? taskDraft.subsystemId,
+        mechanismId: taskDraft.mechanismIds[0] ?? null,
+        partInstanceId: taskDraft.partInstanceIds[0] ?? null,
         blockers: splitList(taskDraftBlockers),
       };
 
@@ -1587,6 +1630,19 @@ export default function App() {
       isAddSeasonPopupOpen,
   );
 
+  const isWorkspaceModalOpen = Boolean(
+    taskModalMode ||
+      workLogModalMode ||
+      purchaseModalMode ||
+      manufacturingModalMode ||
+      materialModalMode ||
+      partDefinitionModalMode ||
+      partInstanceModalMode ||
+      subsystemModalMode ||
+      mechanismModalMode ||
+      artifactModalMode,
+  );
+
   if (authBooting) {
     return (
       <AuthStatusScreen
@@ -1630,269 +1686,275 @@ export default function App() {
       className={`page-shell ${isDarkMode ? "dark-mode" : ""} ${isSidebarCollapsed ? "is-sidebar-collapsed" : ""} ${isSidebarOverlay ? "is-sidebar-overlay" : ""}`}
       style={pageShellStyle}
     >
-      <AppTopbar
-        activeTab={activeTab}
-        handleSignOut={handleSignOut}
-        inventoryView={inventoryView}
-        isLoadingData={isLoadingData}
-        loadWorkspace={loadWorkspace}
-        manufacturingView={manufacturingView}
-        sessionUser={sessionUser}
-        isNonRobotProject={isNonRobotProject}
-        setInventoryView={setInventoryView}
-        setManufacturingView={setManufacturingView}
-        setTaskView={setTaskView}
-        taskView={taskView}
-        projects={projectsInSelectedSeason}
-        selectedProjectId={selectedProjectId}
-        subsystemsLabel={subsystemsLabel}
-        onSelectProject={setSelectedProjectId}
-        isDarkMode={isDarkMode}
-        toggleDarkMode={toggleDarkMode}
-        toggleSidebar={toggleSidebar}
-        isSidebarCollapsed={isSidebarCollapsed}
-      />
+      <Suspense fallback={<WorkspaceShellLoading />}>
+        <AppTopbar
+          activeTab={activeTab}
+          handleSignOut={handleSignOut}
+          inventoryView={inventoryView}
+          isLoadingData={isLoadingData}
+          loadWorkspace={loadWorkspace}
+          manufacturingView={manufacturingView}
+          sessionUser={sessionUser}
+          isNonRobotProject={isNonRobotProject}
+          setInventoryView={setInventoryView}
+          setManufacturingView={setManufacturingView}
+          setTaskView={setTaskView}
+          taskView={taskView}
+          projects={projectsInSelectedSeason}
+          selectedProjectId={selectedProjectId}
+          subsystemsLabel={subsystemsLabel}
+          onSelectProject={setSelectedProjectId}
+          isDarkMode={isDarkMode}
+          toggleDarkMode={toggleDarkMode}
+          toggleSidebar={toggleSidebar}
+          isSidebarCollapsed={isSidebarCollapsed}
+        />
 
-      <AppSidebar
-        activeTab={activeTab}
-        items={navigationItems}
-        onSelectTab={handleSidebarTabSelect}
-        isCollapsed={isSidebarCollapsed}
-        seasons={bootstrap.seasons}
-        selectedSeasonId={selectedSeasonId}
-        onSelectSeason={setSelectedSeasonId}
-        onCreateSeason={handleCreateSeason}
-      />
+        <AppSidebar
+          activeTab={activeTab}
+          items={navigationItems}
+          onSelectTab={handleSidebarTabSelect}
+          isCollapsed={isSidebarCollapsed}
+          seasons={bootstrap.seasons}
+          selectedSeasonId={selectedSeasonId}
+          onSelectSeason={setSelectedSeasonId}
+          onCreateSeason={handleCreateSeason}
+        />
 
-      {isAddSeasonPopupOpen ? (
-        <div
-          className="modal-scrim"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              closeCreateSeasonPopup();
-            }
-          }}
-          role="presentation"
-        >
-          <section aria-modal="true" className="modal-card roster-edit-modal" role="dialog">
-            <div className="panel-header compact-header">
-              <div className="queue-section-header">
-                <h3>Add season</h3>
-                <p className="section-copy">
-                  Create a new season and switch the workspace to it.
-                </p>
-              </div>
-              <button className="icon-button" onClick={closeCreateSeasonPopup} type="button">
-                Close
-              </button>
-            </div>
-            <form className="modal-form" onSubmit={handleCreateSeasonSubmit}>
-              <label className="field modal-wide">
-                <span>Name</span>
-                <input
-                  autoFocus
-                  minLength={2}
-                  onChange={(event) => setSeasonNameDraft(event.target.value)}
-                  placeholder="2027 Season"
-                  required
-                  value={seasonNameDraft}
-                />
-              </label>
-              <div className="modal-actions modal-wide">
-                <button
-                  className="secondary-action"
-                  onClick={closeCreateSeasonPopup}
-                  type="button"
-                >
-                  Cancel
-                </button>
-                <button className="primary-action" disabled={isSavingSeason} type="submit">
-                  {isSavingSeason ? "Saving..." : "Add season"}
+        {isAddSeasonPopupOpen ? (
+          <div
+            className="modal-scrim"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) {
+                closeCreateSeasonPopup();
+              }
+            }}
+            role="presentation"
+          >
+            <section aria-modal="true" className="modal-card roster-edit-modal" role="dialog">
+              <div className="panel-header compact-header">
+                <div className="queue-section-header">
+                  <h3>Add season</h3>
+                  <p className="section-copy">
+                    Create a new season and switch the workspace to it.
+                  </p>
+                </div>
+                <button className="icon-button" onClick={closeCreateSeasonPopup} type="button">
+                  Close
                 </button>
               </div>
-            </form>
-          </section>
-        </div>
-      ) : null}
+              <form className="modal-form" onSubmit={handleCreateSeasonSubmit}>
+                <label className="field modal-wide">
+                  <span>Name</span>
+                  <input
+                    autoFocus
+                    minLength={2}
+                    onChange={(event) => setSeasonNameDraft(event.target.value)}
+                    placeholder="2027 Season"
+                    required
+                    value={seasonNameDraft}
+                  />
+                </label>
+                <div className="modal-actions modal-wide">
+                  <button
+                    className="secondary-action"
+                    onClick={closeCreateSeasonPopup}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button className="primary-action" disabled={isSavingSeason} type="submit">
+                    {isSavingSeason ? "Saving..." : "Add season"}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        ) : null}
 
-      {isSidebarOverlay ? (
-        <>
-          <button
-            aria-label="Close sidebar"
-            className="sidebar-overlay-scrim"
-            onClick={closeSidebarOverlay}
-            type="button"
+        {isSidebarOverlay ? (
+          <>
+            <button
+              aria-label="Close sidebar"
+              className="sidebar-overlay-scrim"
+              onClick={closeSidebarOverlay}
+              type="button"
+            />
+            <button
+              aria-hidden="true"
+              className="sidebar-overlay-topbar-scrim"
+              onClick={closeSidebarOverlay}
+              tabIndex={-1}
+              type="button"
+            />
+          </>
+        ) : null}
+
+        <WorkspaceContent
+          activePersonFilter={activePersonFilter}
+          activeTab={activeTab}
+          tabSwitchDirection={tabSwitchDirection}
+          artifacts={scopedArtifacts}
+          bootstrap={scopedBootstrap}
+          cncItems={cncItems}
+          dataMessage={dataMessage}
+          fabricationItems={fabricationItems}
+          handleCreateMember={handleCreateMember}
+          handleDeleteMember={handleDeleteMember}
+          handleTimelineEventDelete={handleTimelineEventDelete}
+          handleTimelineEventSave={handleTimelineEventSave}
+          handleUpdateMember={handleUpdateMember}
+          isAddPersonOpen={isAddPersonOpen}
+          isDeletingMember={isDeletingMember}
+          isEditPersonOpen={isEditPersonOpen}
+          isLoadingData={isLoadingData}
+          isAllProjectsView={isAllProjectsView}
+          isNonRobotProject={isNonRobotProject}
+          isSavingMember={isSavingMember}
+          memberEditDraft={memberEditDraft}
+          memberForm={memberForm}
+          membersById={membersById}
+          openCreateManufacturingModal={openCreateManufacturingModal}
+          openCreateArtifactModal={openCreateArtifactModal}
+          openCreateMaterialModal={openCreateMaterialModal}
+          openCreateMechanismModal={openCreateMechanismModal}
+          openCreatePartInstanceModal={openCreatePartInstanceModal}
+          openCreateSubsystemModal={openCreateSubsystemModal}
+          openCreatePartDefinitionModal={openCreatePartDefinitionModal}
+          openCreatePurchaseModal={openCreatePurchaseModal}
+          openCreateTaskModal={openCreateTaskModal}
+          openCreateTaskModalFromTimeline={openCreateTaskModalFromTimeline}
+          openCreateWorkLogModal={openCreateWorkLogModal}
+          openEditManufacturingModal={openEditManufacturingModal}
+          openEditArtifactModal={openEditArtifactModal}
+          openEditMaterialModal={openEditMaterialModal}
+          openEditMechanismModal={openEditMechanismModal}
+          openEditPartInstanceModal={openEditPartInstanceModal}
+          openEditSubsystemModal={openEditSubsystemModal}
+          openEditPartDefinitionModal={openEditPartDefinitionModal}
+          openEditPurchaseModal={openEditPurchaseModal}
+          openEditTaskModal={openEditTaskModal}
+          printItems={printItems}
+          rosterMentors={rosterMentors}
+          manufacturingView={manufacturingView}
+          inventoryView={inventoryView}
+          taskView={taskView}
+          selectMember={selectMember}
+          selectedMemberId={selectedMemberId}
+          setIsAddPersonOpen={setIsAddPersonOpen}
+          setIsEditPersonOpen={setIsEditPersonOpen}
+          setMemberEditDraft={setMemberEditDraft}
+          setMemberForm={setMemberForm}
+          setActivePersonFilter={setActivePersonFilter}
+          students={students}
+          disciplinesById={disciplinesById}
+          eventsById={eventsById}
+          mechanismsById={mechanismsById}
+          partDefinitionsById={partDefinitionsById}
+          partInstancesById={partInstancesById}
+          subsystemsById={subsystemsById}
+          timelineMilestoneCreateSignal={timelineMilestoneCreateSignal}
+          disablePanelAnimations={disablePanelAnimations}
+          onDismissDataMessage={clearDataMessage}
+        />
+      </Suspense>
+
+      {isWorkspaceModalOpen ? (
+        <Suspense fallback={null}>
+          <WorkspaceModalHost
+            activeArtifactId={activeArtifactId}
+            activePartDefinitionId={activePartDefinitionId}
+            activeMaterialId={activeMaterialId}
+            activeMechanismId={activeMechanismId}
+            activeSubsystemId={activeSubsystemId}
+            activeTask={activeTask}
+            bootstrap={scopedBootstrap}
+            closeManufacturingModal={closeManufacturingModal}
+            closeArtifactModal={closeArtifactModal}
+            closeMaterialModal={closeMaterialModal}
+            closeMechanismModal={closeMechanismModal}
+            closePartInstanceModal={closePartInstanceModal}
+            closePartDefinitionModal={closePartDefinitionModal}
+            closePurchaseModal={closePurchaseModal}
+            closeWorkLogModal={closeWorkLogModal}
+            closeSubsystemModal={closeSubsystemModal}
+            closeTaskModal={closeTaskModal}
+            disciplinesById={disciplinesById}
+            eventsById={eventsById}
+            handleDeleteMaterial={handleDeleteMaterial}
+            handleDeleteArtifact={handleDeleteArtifact}
+            handleDeletePartDefinition={handleDeletePartDefinition}
+            handleDeleteMechanism={handleDeleteMechanism}
+            handlePartInstanceSubmit={handlePartInstanceSubmit}
+            handleMechanismSubmit={handleMechanismSubmit}
+            handleManufacturingSubmit={handleManufacturingSubmit}
+            handleMaterialSubmit={handleMaterialSubmit}
+            handlePartDefinitionSubmit={handlePartDefinitionSubmit}
+            handleArtifactSubmit={handleArtifactSubmit}
+            handlePurchaseSubmit={handlePurchaseSubmit}
+            handleWorkLogSubmit={handleWorkLogSubmit}
+            handleSubsystemSubmit={handleSubsystemSubmit}
+            handleTaskSubmit={handleTaskSubmit}
+            isDeletingMaterial={isDeletingMaterial}
+            isDeletingArtifact={isDeletingArtifact}
+            isDeletingPartDefinition={isDeletingPartDefinition}
+            isDeletingMechanism={isDeletingMechanism}
+            isSavingManufacturing={isSavingManufacturing}
+            isSavingArtifact={isSavingArtifact}
+            isSavingMaterial={isSavingMaterial}
+            isSavingPartDefinition={isSavingPartDefinition}
+            isSavingPartInstance={isSavingPartInstance}
+            isSavingMechanism={isSavingMechanism}
+            isSavingPurchase={isSavingPurchase}
+            isSavingWorkLog={isSavingWorkLog}
+            isSavingSubsystem={isSavingSubsystem}
+            isSavingTask={isSavingTask}
+            artifactDraft={artifactDraft}
+            artifactModalMode={artifactModalMode}
+            manufacturingDraft={manufacturingDraft}
+            manufacturingModalMode={manufacturingModalMode}
+            materialDraft={materialDraft}
+            materialModalMode={materialModalMode}
+            mechanismsById={mechanismsById}
+            mentors={mentors}
+            mechanismDraft={mechanismDraft}
+            mechanismModalMode={mechanismModalMode}
+            partInstanceDraft={partInstanceDraft}
+            partInstanceModalMode={partInstanceModalMode}
+            partDefinitionDraft={partDefinitionDraft}
+            partDefinitionModalMode={partDefinitionModalMode}
+            partDefinitionsById={partDefinitionsById}
+            partInstancesById={partInstancesById}
+            purchaseDraft={purchaseDraft}
+            purchaseFinalCost={purchaseFinalCost}
+            purchaseModalMode={purchaseModalMode}
+            workLogDraft={workLogDraft}
+            workLogModalMode={workLogModalMode}
+            setArtifactDraft={setArtifactDraft}
+            setMechanismDraft={setMechanismDraft}
+            setManufacturingDraft={setManufacturingDraft}
+            setMaterialDraft={setMaterialDraft}
+            setPartInstanceDraft={setPartInstanceDraft}
+            setPartDefinitionDraft={setPartDefinitionDraft}
+            setPurchaseDraft={setPurchaseDraft}
+            setPurchaseFinalCost={setPurchaseFinalCost}
+            setWorkLogDraft={setWorkLogDraft}
+            setSubsystemDraft={setSubsystemDraft}
+            setSubsystemDraftRisks={setSubsystemDraftRisks}
+            setTaskDraft={setTaskDraft}
+            setTaskDraftBlockers={setTaskDraftBlockers}
+            showTimelineCreateToggleInTaskModal={showTimelineCreateToggleInTaskModal}
+            onSwitchTaskCreateToMilestone={switchTaskCreateToMilestone}
+            students={students}
+            subsystemDraft={subsystemDraft}
+            subsystemDraftRisks={subsystemDraftRisks}
+            subsystemModalMode={subsystemModalMode}
+            taskDraft={taskDraft}
+            taskDraftBlockers={taskDraftBlockers}
+            taskModalMode={taskModalMode}
           />
-          <button
-            aria-hidden="true"
-            className="sidebar-overlay-topbar-scrim"
-            onClick={closeSidebarOverlay}
-            tabIndex={-1}
-            type="button"
-          />
-        </>
+        </Suspense>
       ) : null}
-
-      <WorkspaceContent
-        activePersonFilter={activePersonFilter}
-        activeTab={activeTab}
-        tabSwitchDirection={tabSwitchDirection}
-        artifacts={scopedArtifacts}
-        bootstrap={scopedBootstrap}
-        cncItems={cncItems}
-        dataMessage={dataMessage}
-        fabricationItems={fabricationItems}
-        handleCreateMember={handleCreateMember}
-        handleDeleteMember={handleDeleteMember}
-        handleTimelineEventDelete={handleTimelineEventDelete}
-        handleTimelineEventSave={handleTimelineEventSave}
-        handleUpdateMember={handleUpdateMember}
-        isAddPersonOpen={isAddPersonOpen}
-        isDeletingMember={isDeletingMember}
-        isEditPersonOpen={isEditPersonOpen}
-        isLoadingData={isLoadingData}
-        isAllProjectsView={isAllProjectsView}
-        isNonRobotProject={isNonRobotProject}
-        isSavingMember={isSavingMember}
-        memberEditDraft={memberEditDraft}
-        memberForm={memberForm}
-        membersById={membersById}
-        openCreateManufacturingModal={openCreateManufacturingModal}
-        openCreateArtifactModal={openCreateArtifactModal}
-        openCreateMaterialModal={openCreateMaterialModal}
-        openCreateMechanismModal={openCreateMechanismModal}
-        openCreatePartInstanceModal={openCreatePartInstanceModal}
-        openCreateSubsystemModal={openCreateSubsystemModal}
-        openCreatePartDefinitionModal={openCreatePartDefinitionModal}
-        openCreatePurchaseModal={openCreatePurchaseModal}
-        openCreateTaskModal={openCreateTaskModal}
-        openCreateTaskModalFromTimeline={openCreateTaskModalFromTimeline}
-        openCreateWorkLogModal={openCreateWorkLogModal}
-        openEditManufacturingModal={openEditManufacturingModal}
-        openEditArtifactModal={openEditArtifactModal}
-        openEditMaterialModal={openEditMaterialModal}
-        openEditMechanismModal={openEditMechanismModal}
-        openEditPartInstanceModal={openEditPartInstanceModal}
-        openEditSubsystemModal={openEditSubsystemModal}
-        openEditPartDefinitionModal={openEditPartDefinitionModal}
-        openEditPurchaseModal={openEditPurchaseModal}
-        openEditTaskModal={openEditTaskModal}
-        printItems={printItems}
-        rosterMentors={rosterMentors}
-        manufacturingView={manufacturingView}
-        inventoryView={inventoryView}
-        taskView={taskView}
-        selectMember={selectMember}
-        selectedMemberId={selectedMemberId}
-        setIsAddPersonOpen={setIsAddPersonOpen}
-        setIsEditPersonOpen={setIsEditPersonOpen}
-        setMemberEditDraft={setMemberEditDraft}
-        setMemberForm={setMemberForm}
-        setActivePersonFilter={setActivePersonFilter}
-        students={students}
-        disciplinesById={disciplinesById}
-        eventsById={eventsById}
-        mechanismsById={mechanismsById}
-        partDefinitionsById={partDefinitionsById}
-        partInstancesById={partInstancesById}
-        subsystemsById={subsystemsById}
-        timelineMilestoneCreateSignal={timelineMilestoneCreateSignal}
-        disablePanelAnimations={disablePanelAnimations}
-        onDismissDataMessage={clearDataMessage}
-      />
-
-      <WorkspaceModalHost
-        activeArtifactId={activeArtifactId}
-        activePartDefinitionId={activePartDefinitionId}
-        activeMaterialId={activeMaterialId}
-        activeMechanismId={activeMechanismId}
-        activeSubsystemId={activeSubsystemId}
-        activeTask={activeTask}
-        bootstrap={scopedBootstrap}
-        closeManufacturingModal={closeManufacturingModal}
-        closeArtifactModal={closeArtifactModal}
-        closeMaterialModal={closeMaterialModal}
-        closeMechanismModal={closeMechanismModal}
-        closePartInstanceModal={closePartInstanceModal}
-        closePartDefinitionModal={closePartDefinitionModal}
-        closePurchaseModal={closePurchaseModal}
-        closeWorkLogModal={closeWorkLogModal}
-        closeSubsystemModal={closeSubsystemModal}
-        closeTaskModal={closeTaskModal}
-        disciplinesById={disciplinesById}
-        eventsById={eventsById}
-        handleDeleteMaterial={handleDeleteMaterial}
-        handleDeleteArtifact={handleDeleteArtifact}
-        handleDeletePartDefinition={handleDeletePartDefinition}
-        handleDeleteMechanism={handleDeleteMechanism}
-        handlePartInstanceSubmit={handlePartInstanceSubmit}
-        handleMechanismSubmit={handleMechanismSubmit}
-        handleManufacturingSubmit={handleManufacturingSubmit}
-        handleMaterialSubmit={handleMaterialSubmit}
-        handlePartDefinitionSubmit={handlePartDefinitionSubmit}
-        handleArtifactSubmit={handleArtifactSubmit}
-        handlePurchaseSubmit={handlePurchaseSubmit}
-        handleWorkLogSubmit={handleWorkLogSubmit}
-        handleSubsystemSubmit={handleSubsystemSubmit}
-        handleTaskSubmit={handleTaskSubmit}
-        isDeletingMaterial={isDeletingMaterial}
-        isDeletingArtifact={isDeletingArtifact}
-        isDeletingPartDefinition={isDeletingPartDefinition}
-        isDeletingMechanism={isDeletingMechanism}
-        isSavingManufacturing={isSavingManufacturing}
-        isSavingArtifact={isSavingArtifact}
-        isSavingMaterial={isSavingMaterial}
-        isSavingPartDefinition={isSavingPartDefinition}
-        isSavingPartInstance={isSavingPartInstance}
-        isSavingMechanism={isSavingMechanism}
-        isSavingPurchase={isSavingPurchase}
-        isSavingWorkLog={isSavingWorkLog}
-        isSavingSubsystem={isSavingSubsystem}
-        isSavingTask={isSavingTask}
-        artifactDraft={artifactDraft}
-        artifactModalMode={artifactModalMode}
-        manufacturingDraft={manufacturingDraft}
-        manufacturingModalMode={manufacturingModalMode}
-        materialDraft={materialDraft}
-        materialModalMode={materialModalMode}
-        mechanismsById={mechanismsById}
-        mentors={mentors}
-        mechanismDraft={mechanismDraft}
-        mechanismModalMode={mechanismModalMode}
-        partInstanceDraft={partInstanceDraft}
-        partInstanceModalMode={partInstanceModalMode}
-        partDefinitionDraft={partDefinitionDraft}
-        partDefinitionModalMode={partDefinitionModalMode}
-        partDefinitionsById={partDefinitionsById}
-        partInstancesById={partInstancesById}
-        purchaseDraft={purchaseDraft}
-        purchaseFinalCost={purchaseFinalCost}
-        purchaseModalMode={purchaseModalMode}
-        workLogDraft={workLogDraft}
-        workLogModalMode={workLogModalMode}
-        setArtifactDraft={setArtifactDraft}
-        setMechanismDraft={setMechanismDraft}
-        setManufacturingDraft={setManufacturingDraft}
-        setMaterialDraft={setMaterialDraft}
-        setPartInstanceDraft={setPartInstanceDraft}
-        setPartDefinitionDraft={setPartDefinitionDraft}
-        setPurchaseDraft={setPurchaseDraft}
-        setPurchaseFinalCost={setPurchaseFinalCost}
-        setWorkLogDraft={setWorkLogDraft}
-        setSubsystemDraft={setSubsystemDraft}
-        setSubsystemDraftRisks={setSubsystemDraftRisks}
-        setTaskDraft={setTaskDraft}
-        setTaskDraftBlockers={setTaskDraftBlockers}
-        showTimelineCreateToggleInTaskModal={showTimelineCreateToggleInTaskModal}
-        onSwitchTaskCreateToMilestone={switchTaskCreateToMilestone}
-        students={students}
-        subsystemDraft={subsystemDraft}
-        subsystemDraftRisks={subsystemDraftRisks}
-        subsystemModalMode={subsystemModalMode}
-        taskDraft={taskDraft}
-        taskDraftBlockers={taskDraftBlockers}
-        taskModalMode={taskModalMode}
-      />
     </main>
   );
 }

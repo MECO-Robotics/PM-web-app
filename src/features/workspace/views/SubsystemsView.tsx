@@ -90,15 +90,17 @@ export function SubsystemsView({
     }
 
     for (const task of bootstrap.tasks) {
-      initialCounts[task.subsystemId] = initialCounts[task.subsystemId] ?? {
-        mechanisms: 0,
-        parts: 0,
-        tasks: 0,
-        openTasks: 0,
-      };
-      initialCounts[task.subsystemId].tasks += 1;
-      if (task.status !== "complete") {
-        initialCounts[task.subsystemId].openTasks += 1;
+      for (const subsystemId of task.subsystemIds) {
+        initialCounts[subsystemId] = initialCounts[subsystemId] ?? {
+          mechanisms: 0,
+          parts: 0,
+          tasks: 0,
+          openTasks: 0,
+        };
+        initialCounts[subsystemId].tasks += 1;
+        if (task.status !== "complete") {
+          initialCounts[subsystemId].openTasks += 1;
+        }
       }
     }
 
@@ -126,7 +128,7 @@ export function SubsystemsView({
         .map((mechanism) => mechanism.name)
         .join(" ");
       const relatedTasks = bootstrap.tasks
-        .filter((task) => task.subsystemId === subsystem.id)
+        .filter((task) => task.subsystemId === subsystem.id || task.subsystemIds.includes(subsystem.id))
         .map((task) => `${task.title} ${task.summary}`)
         .join(" ");
       const relatedPartInstances = bootstrap.partInstances

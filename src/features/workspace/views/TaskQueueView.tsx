@@ -44,6 +44,22 @@ interface TaskQueueViewProps {
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
 }
 
+function taskTargetsSubsystem(task: TaskRecord, subsystemId: string) {
+  return task.subsystemId === subsystemId || task.subsystemIds.includes(subsystemId);
+}
+
+function formatNames(
+  ids: string[],
+  lookup: Record<string, { name?: string }>,
+  fallback: string,
+) {
+  if (ids.length === 0) {
+    return fallback;
+  }
+
+  return ids.map((id) => lookup[id]?.name ?? "Unknown").join(", ");
+}
+
 export function TaskQueueView({
   activePersonFilter,
   bootstrap,
@@ -118,7 +134,7 @@ export function TaskQueueView({
       result = result.filter((task) => task.status === statusFilter);
     }
     if (subsystemFilter !== "all") {
-      result = result.filter((task) => task.subsystemId === subsystemFilter);
+      result = result.filter((task) => taskTargetsSubsystem(task, subsystemFilter));
     }
     if (ownerFilter !== "all") {
       result = result.filter((task) => task.ownerId === ownerFilter);
@@ -156,7 +172,7 @@ export function TaskQueueView({
         return statusValues[task.status] ?? 0;
       }
       if (sortField === "subsystemId") {
-        return subsystemsById[task.subsystemId]?.name ?? "";
+        return formatNames(task.subsystemIds, subsystemsById, "");
       }
       if (sortField === "projectId") {
         return projectsById[task.projectId]?.name ?? "";
@@ -334,10 +350,15 @@ export function TaskQueueView({
         </div>
 
         {taskPagination.pageItems.map((task) => {
-          const linkedPart = task.partInstanceId
-            ? partInstancesById[task.partInstanceId]?.name ??
-            partDefinitionsById[partInstancesById[task.partInstanceId]?.partDefinitionId ?? ""]?.name
-            : null;
+          const linkedPartNames = task.partInstanceIds
+            .map((partInstanceId) => {
+              const partInstance = partInstancesById[partInstanceId];
+              return (
+                partInstance?.name ??
+                partDefinitionsById[partInstance?.partDefinitionId ?? ""]?.name
+              );
+            })
+            .filter((name): name is string => Boolean(name));
 
           return (
             <button
@@ -361,9 +382,9 @@ export function TaskQueueView({
                 <small>
                   {(task.disciplineId ? disciplinesById[task.disciplineId]?.name : null) ?? "No discipline"}
                   {" / "}
-                  {(task.mechanismId ? mechanismsById[task.mechanismId]?.name : null) ?? "No mechanism"}
+                  {formatNames(task.mechanismIds, mechanismsById, "No mechanism")}
                   {" / "}
-                  {linkedPart ?? "No part"}
+                  {linkedPartNames.length > 0 ? linkedPartNames.join(", ") : "No part"}
                   {task.targetEventId
                     ? ` / target ${eventsById[task.targetEventId]?.title ?? "event"}`
                     : ""}
@@ -371,7 +392,7 @@ export function TaskQueueView({
               </span>
               {showSubsystemCol ? (
                 <TableCell label="Subsystem">
-                  {(task.subsystemId ? subsystemsById[task.subsystemId]?.name : null) ?? "Unknown"}
+                  {formatNames(task.subsystemIds, subsystemsById, "Unknown")}
                 </TableCell>
               ) : null}
               {showOwnerCol ? (

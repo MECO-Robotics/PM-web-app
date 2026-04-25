@@ -5,8 +5,11 @@ import {
   buildEmptyTaskPayload,
   buildEmptyWorkLogPayload,
   getDefaultSubsystemId,
+  getProjectTaskTargetLabel,
   joinList,
+  setTaskPrimaryTargetSelection,
   splitList,
+  toggleTaskTargetSelection,
 } from "@/lib/appUtils";
 import type {
   BootstrapPayload,
@@ -160,12 +163,16 @@ function createBootstrap(overrides: Partial<BootstrapPayload> = {}): BootstrapPa
         id: "task-1",
         projectId: projectA.id,
         workstreamId: workstreamA.id,
+        workstreamIds: [workstreamA.id],
         title: "Initial task",
         summary: "",
         subsystemId: "subsystem-core",
+        subsystemIds: ["subsystem-core"],
         disciplineId: "discipline-mech",
         mechanismId: null,
+        mechanismIds: [],
         partInstanceId: null,
+        partInstanceIds: [],
         targetEventId: null,
         ownerId: null,
         mentorId: null,
@@ -232,15 +239,120 @@ describe("appUtils", () => {
     const payload = buildEmptyTaskPayload(createBootstrap());
 
     expect(payload.projectId).toBe("project-a");
-    expect(payload.workstreamId).toBe("workstream-a");
+    expect(payload.workstreamId).toBeNull();
+    expect(payload.workstreamIds).toEqual([]);
     expect(payload.subsystemId).toBe("subsystem-core");
-    expect(payload.mechanismId).toBe("mechanism-1");
-    expect(payload.partInstanceId).toBe("part-instance-1");
+    expect(payload.subsystemIds).toEqual(["subsystem-core"]);
+    expect(payload.mechanismId).toBeNull();
+    expect(payload.mechanismIds).toEqual([]);
+    expect(payload.partInstanceId).toBeNull();
+    expect(payload.partInstanceIds).toEqual([]);
     expect(payload.ownerId).toBe("lead-1");
     expect(payload.mentorId).toBe("mentor-1");
     expect(payload.targetEventId).toBe("event-1");
     expect(payload.priority).toBe("medium");
     expect(payload.status).toBe("not-started");
+  });
+
+  it("getProjectTaskTargetLabel rebrands subsystem targets by project type", () => {
+    const bootstrap = createBootstrap();
+
+    expect(getProjectTaskTargetLabel(bootstrap.projects[0])).toBe("Subsystems");
+    expect(getProjectTaskTargetLabel(bootstrap.projects[1])).toBe("Workstreams");
+  });
+
+  it("toggleTaskTargetSelection treats workstream selection as a subsystem alias", () => {
+    const bootstrap = createBootstrap();
+    const payload = {
+      ...buildEmptyTaskPayload(bootstrap),
+      workstreamId: null,
+      workstreamIds: [],
+      subsystemId: "",
+      subsystemIds: [],
+      mechanismId: null,
+      mechanismIds: [],
+      partInstanceId: null,
+      partInstanceIds: [],
+    };
+
+    const next = toggleTaskTargetSelection(payload, bootstrap, {
+      kind: "workstream",
+      id: "subsystem-secondary",
+    });
+
+    expect(next.workstreamId).toBeNull();
+    expect(next.workstreamIds).toEqual([]);
+    expect(next.subsystemId).toBe("subsystem-secondary");
+    expect(next.subsystemIds).toEqual(["subsystem-secondary"]);
+  });
+
+  it("setTaskPrimaryTargetSelection keeps the task on one subsystem and clears unrelated scope", () => {
+    const bootstrap = createBootstrap();
+    const payload = {
+      ...buildEmptyTaskPayload(bootstrap),
+      subsystemId: "subsystem-core",
+      subsystemIds: ["subsystem-core"],
+      mechanismId: "mechanism-1",
+      mechanismIds: ["mechanism-1"],
+      partInstanceId: "part-instance-1",
+      partInstanceIds: ["part-instance-1"],
+    };
+
+    const next = setTaskPrimaryTargetSelection(payload, bootstrap, "subsystem-secondary");
+
+    expect(next.subsystemId).toBe("subsystem-secondary");
+    expect(next.subsystemIds).toEqual(["subsystem-secondary"]);
+    expect(next.mechanismId).toBeNull();
+    expect(next.mechanismIds).toEqual([]);
+    expect(next.partInstanceId).toBeNull();
+    expect(next.partInstanceIds).toEqual([]);
+  });
+
+  it("toggleTaskTargetSelection selects implied mechanism and subsystem for a part instance", () => {
+    const bootstrap = createBootstrap();
+    const payload = {
+      ...buildEmptyTaskPayload(bootstrap),
+      mechanismId: null,
+      mechanismIds: [],
+      partInstanceId: null,
+      partInstanceIds: [],
+    };
+
+    const next = toggleTaskTargetSelection(payload, bootstrap, {
+      kind: "part-instance",
+      id: "part-instance-1",
+    });
+
+    expect(next.subsystemIds).toEqual(["subsystem-core"]);
+    expect(next.mechanismId).toBe("mechanism-1");
+    expect(next.mechanismIds).toEqual(["mechanism-1"]);
+    expect(next.partInstanceId).toBe("part-instance-1");
+    expect(next.partInstanceIds).toEqual(["part-instance-1"]);
+  });
+
+  it("toggleTaskTargetSelection removes child targets when a subsystem is deselected", () => {
+    const bootstrap = createBootstrap();
+    const payload = {
+      ...buildEmptyTaskPayload(bootstrap),
+      subsystemId: "subsystem-core",
+      subsystemIds: ["subsystem-core", "subsystem-secondary"],
+      mechanismId: "mechanism-1",
+      mechanismIds: ["mechanism-1"],
+      partInstanceId: "part-instance-1",
+      partInstanceIds: ["part-instance-1"],
+    };
+
+    const next = toggleTaskTargetSelection(payload, bootstrap, {
+      kind: "subsystem",
+      id: "subsystem-core",
+    });
+
+    expect(next.subsystemId).toBe("subsystem-secondary");
+    expect(next.subsystemIds).toEqual(["subsystem-secondary"]);
+    expect(next.mechanismId).toBeNull();
+    expect(next.mechanismIds).toEqual([]);
+    expect(next.partInstanceId).toBeNull();
+    expect(next.partInstanceIds).toEqual([]);
   });
 
   it("buildEmptyArtifactPayload clears workstream when it does not match project scope", () => {

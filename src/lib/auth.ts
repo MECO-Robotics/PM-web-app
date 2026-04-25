@@ -337,6 +337,12 @@ function reserveUniqueId(candidate: string, fallback: string, usedIds: Set<strin
   return id;
 }
 
+function uniqueIds(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(values.filter((value): value is string => Boolean(value))),
+  );
+}
+
 function classifyProjectBucket(project: Pick<ProjectRecord, "name" | "projectType">) {
   const name = project.name.toLowerCase();
 
@@ -559,19 +565,36 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
       typeof task.workstreamId === "string" && workstreamIds.has(task.workstreamId)
         ? task.workstreamId
         : inferredWorkstreamId;
+    const taskWorkstreamIds =
+      Array.isArray(task.workstreamIds) && task.workstreamIds.length > 0
+        ? task.workstreamIds.filter((workstreamId) => workstreamIds.has(workstreamId))
+        : uniqueIds([taskWorkstreamId]);
     const taskStartDate = isIsoDate(task.startDate) ? task.startDate : startDate;
     const taskDueDate = isIsoDate(task.dueDate) ? task.dueDate : taskStartDate;
+    const taskMechanismIds = Array.isArray(task.mechanismIds)
+      ? uniqueIds(task.mechanismIds)
+      : uniqueIds([task.mechanismId]);
+    const taskPartInstanceIds = Array.isArray(task.partInstanceIds)
+      ? uniqueIds(task.partInstanceIds)
+      : uniqueIds([task.partInstanceId]);
 
     return {
       id: task.id ?? `task-${index + 1}`,
       projectId: taskProjectId,
       workstreamId: taskWorkstreamId,
+      workstreamIds: taskWorkstreamIds,
       title: task.title ?? "Untitled task",
       summary: task.summary ?? "",
       subsystemId: taskSubsystemId,
+      subsystemIds:
+        Array.isArray(task.subsystemIds) && task.subsystemIds.length > 0
+          ? uniqueIds(task.subsystemIds)
+          : uniqueIds([taskSubsystemId]),
       disciplineId: task.disciplineId ?? defaultDisciplineId,
-      mechanismId: task.mechanismId ?? null,
-      partInstanceId: task.partInstanceId ?? null,
+      mechanismId: taskMechanismIds[0] ?? null,
+      mechanismIds: taskMechanismIds,
+      partInstanceId: taskPartInstanceIds[0] ?? null,
+      partInstanceIds: taskPartInstanceIds,
       targetEventId: task.targetEventId ?? null,
       ownerId: task.ownerId ?? null,
       mentorId: task.mentorId ?? null,
