@@ -1798,15 +1798,19 @@
 @media (max-width: 1180px) {
   .purchase-toolbar {
     width: 100%;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    justify-content: stretch;
+    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
+    justify-content: end;
+    justify-items: end;
+    margin-left: auto;
   }
 
   .materials-toolbar,
   .part-manager-toolbar {
     width: 100%;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    justify-content: stretch;
+    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
+    justify-content: end;
+    justify-items: end;
+    margin-left: auto;
   }
 
   .timeline-toolbar {
@@ -3389,34 +3393,42 @@
 
   .queue-toolbar {
     width: 100%;
-    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
-    justify-content: end;
-    justify-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: flex-start;
+    margin-left: auto;
   }
 
   .worklog-toolbar {
     flex: 1 1 420px;
     width: 100%;
-    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
-    justify-content: start;
-    justify-items: start;
-    margin-left: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: flex-start;
+    margin-left: auto;
   }
 
   .worklog-toolbar > * {
-    justify-self: start;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .filter-toolbar {
     width: 100%;
-    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
-    justify-content: end;
-    justify-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: flex-start;
+    margin-left: auto;
   }
 
   .filter-toolbar > * {
     width: auto;
-    justify-self: end;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .queue-toolbar-action {
@@ -3517,15 +3529,17 @@
   }
 
   .filter-toolbar {
-    grid-template-columns: repeat(auto-fit, minmax(150px, max-content));
-    justify-content: end;
-    justify-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: flex-start;
+    margin-left: auto;
   }
 
   .filter-toolbar > * {
     width: auto;
+    min-width: 0;
     max-width: 100%;
-    justify-self: end;
   }
 
   .toolbar-search {
