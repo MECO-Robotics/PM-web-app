@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "jest --runInBand",
+    "test": "jest",
+    "test:ci": "jest --ci --maxWorkers=50%",
     "test:watch": "jest --watch"
   },
   "dependencies": {
