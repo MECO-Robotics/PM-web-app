@@ -2,13 +2,8 @@ export { EMPTY_BOOTSTRAP } from "./bootstrapDefaults";
 export {
   WORKSPACE_PANEL_CLASS,
   type DropdownOption,
-  type InventoryViewTab,
-  type ManufacturingViewTab,
   type MembersById,
-  type NavigationItem,
   type SubsystemsById,
-  type TaskViewTab,
-  type ViewTab,
 } from "./workspaceTypes";
 export {
   type ArtifactModalMode,

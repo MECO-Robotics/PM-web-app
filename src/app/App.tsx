@@ -1,6 +1,5 @@
 import {
   Suspense,
-  lazy,
   startTransition,
   useCallback,
   useEffect,
@@ -11,13 +10,13 @@ import {
 
 import "@/app/App.css";
 import { AuthStatusScreen, SignInScreen } from "@/features/auth";
+import type { FilterSelection } from "@/features/workspace";
 import type {
-  FilterSelection,
   InventoryViewTab,
   ManufacturingViewTab,
   TaskViewTab,
   ViewTab,
-} from "@/features/workspace";
+} from "@/lib/workspaceNavigation";
 import {
   artifactToPayload,
   buildEmptyArtifactPayload,
@@ -111,6 +110,7 @@ import type {
   WorkstreamPayload,
 } from "@/types";
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared/bootstrapDefaults";
+import { useWorkspaceDerivedData } from "@/features/workspace/useWorkspaceDerivedData";
 import type {
   ArtifactModalMode,
   ManufacturingModalMode,
@@ -126,166 +126,33 @@ import type {
 } from "@/features/workspace";
 import { useAppAuth } from "@/app/useAppAuth";
 import { useAppShell } from "@/app/useAppShell";
-import { useWorkspaceDerivedData } from "@/features/workspace/useWorkspaceDerivedData";
+import {
+  AppSidebar,
+  AppTopbar,
+  WorkspaceContent,
+  WorkspaceModalHost,
+  WorkspaceShellLoading,
+} from "@/app/workspaceShell";
+import {
+  getSinglePersonFilterId,
+  isElevatedMemberRole,
+  scopeBootstrapBySelection,
+} from "@/app/workspaceStateUtils";
 
-const AppTopbar = lazy(() =>
-  import("@/components/layout/AppTopbar").then((module) => ({
-    default: module.AppTopbar,
-  }))
-);
-
-const AppSidebar = lazy(() =>
-  import("@/components/layout/AppSidebar").then((module) => ({
-    default: module.AppSidebar,
-  }))
-);
-
-const WorkspaceContent = lazy(() =>
-  import("@/features/workspace/WorkspaceContent").then((module) => ({
-    default: module.WorkspaceContent,
-  }))
-);
-
-const WorkspaceModalHost = lazy(() =>
-  import("@/features/workspace/WorkspaceModalHost").then((module) => ({
-    default: module.WorkspaceModalHost,
-  }))
-);
-
-function WorkspaceShellLoading() {
-  return (
-    <section
-      aria-busy="true"
-      aria-live="polite"
-      className="workspace-shell-loading"
-      role="status"
-    >
-      <p className="eyebrow">MECO workspace</p>
-      <p className="workspace-shell-loading-copy">Loading workspace modules...</p>
-    </section>
-  );
+interface InteractiveTutorialStep {
+  id: string;
+  title: string;
+  instruction: string;
+  selector: string;
 }
 
-function scopeBootstrapBySelection(
-  payload: BootstrapPayload,
-  selectedSeasonId: string | null,
-  selectedProjectId: string | null,
-): BootstrapPayload {
-  const seasonScopedProjects = selectedSeasonId
-    ? payload.projects.filter((project) => project.seasonId === selectedSeasonId)
-    : payload.projects;
-  const selectedProjectIsValid =
-    selectedProjectId !== null &&
-    seasonScopedProjects.some((project) => project.id === selectedProjectId);
-  const activeProjectIds = new Set(
-    (selectedProjectIsValid
-      ? seasonScopedProjects.filter((project) => project.id === selectedProjectId)
-      : seasonScopedProjects
-    ).map((project) => project.id),
-  );
-  const scopedSeasons = selectedSeasonId
-    ? payload.seasons.filter((season) => season.id === selectedSeasonId)
-    : payload.seasons;
-  const scopedProjects = seasonScopedProjects.filter((project) =>
-    activeProjectIds.has(project.id),
-  );
-  const scopedWorkstreams = payload.workstreams.filter((workstream) =>
-    activeProjectIds.has(workstream.projectId),
-  );
-  const scopedSubsystems = payload.subsystems.filter((subsystem) =>
-    activeProjectIds.has(subsystem.projectId),
-  );
-  const scopedSubsystemIds = new Set(scopedSubsystems.map((subsystem) => subsystem.id));
-  const scopedMechanisms = payload.mechanisms.filter((mechanism) =>
-    scopedSubsystemIds.has(mechanism.subsystemId),
-  );
-  const scopedMechanismIds = new Set(scopedMechanisms.map((mechanism) => mechanism.id));
-  const scopedPartInstances = payload.partInstances.filter(
-    (partInstance) =>
-      scopedSubsystemIds.has(partInstance.subsystemId) &&
-      (!partInstance.mechanismId || scopedMechanismIds.has(partInstance.mechanismId)),
-  );
-  const scopedPurchaseItems = payload.purchaseItems.filter((item) =>
-    scopedSubsystemIds.has(item.subsystemId),
-  );
-  const scopedManufacturingItems = payload.manufacturingItems.filter((item) =>
-    scopedSubsystemIds.has(item.subsystemId),
-  );
-  const scopedEvents = payload.events.filter(
-    (event) => {
-      const eventProjectIds = event.projectIds ?? [];
-      if (eventProjectIds.length > 0) {
-        return eventProjectIds.some((projectId) => activeProjectIds.has(projectId));
-      }
-
-      return (
-        event.relatedSubsystemIds.length === 0 ||
-        event.relatedSubsystemIds.some((subsystemId) => scopedSubsystemIds.has(subsystemId))
-      );
-    },
-  );
-  const scopedWorkstreamIds = new Set(scopedWorkstreams.map((workstream) => workstream.id));
-  const scopedTasks = payload.tasks.filter(
-    (task) =>
-      activeProjectIds.has(task.projectId) &&
-      (scopedSubsystemIds.has(task.subsystemId) ||
-        task.subsystemIds.some((subsystemId) => scopedSubsystemIds.has(subsystemId))),
-  );
-  const scopedTaskIds = new Set(scopedTasks.map((task) => task.id));
-  const scopedWorkLogs = payload.workLogs.filter((workLog) => scopedTaskIds.has(workLog.taskId));
-  const scopedQaReports = payload.qaReports.filter((report) => scopedTaskIds.has(report.taskId));
-  const scopedQaReportIds = new Set(scopedQaReports.map((report) => report.id));
-  const scopedRisks = payload.risks.filter((risk) => {
-    if (risk.attachmentType === "project" && !activeProjectIds.has(risk.attachmentId)) {
-      return false;
-    }
-
-    if (
-      risk.attachmentType === "workstream" &&
-      !scopedWorkstreamIds.has(risk.attachmentId)
-    ) {
-      return false;
-    }
-
-    if (risk.mitigationTaskId && !scopedTaskIds.has(risk.mitigationTaskId)) {
-      return false;
-    }
-
-    if (risk.sourceType === "qa-report" && !scopedQaReportIds.has(risk.sourceId)) {
-      return false;
-    }
-
-    return true;
-  });
-  const scopedMembers = selectedSeasonId
-    ? payload.members.filter((member) => member.seasonId === selectedSeasonId)
-    : payload.members;
-
-  return {
-    ...payload,
-    seasons: scopedSeasons,
-    projects: scopedProjects,
-    workstreams: scopedWorkstreams,
-    subsystems: scopedSubsystems,
-    mechanisms: scopedMechanisms,
-    partInstances: scopedPartInstances,
-    purchaseItems: scopedPurchaseItems,
-    manufacturingItems: scopedManufacturingItems,
-    events: scopedEvents,
-    members: scopedMembers,
-    tasks: scopedTasks,
-    workLogs: scopedWorkLogs,
-    qaReports: scopedQaReports,
-    risks: scopedRisks,
-  };
-}
-
-function isElevatedMemberRole(role: MemberPayload["role"]): boolean {
-  return role === "lead" || role === "admin";
-}
-
-function getSinglePersonFilterId(selection: FilterSelection) {
-  return selection.length === 1 ? selection[0] : null;
+interface InteractiveTutorialReturnState {
+  activeTab: ViewTab;
+  taskView: TaskViewTab;
+  manufacturingView: ManufacturingViewTab;
+  inventoryView: InventoryViewTab;
+  selectedSeasonId: string | null;
+  selectedProjectId: string | null;
 }
 
 export default function App() {
@@ -298,6 +165,25 @@ export default function App() {
   const [bootstrap, setBootstrap] = useState<BootstrapPayload>(EMPTY_BOOTSTRAP);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataMessage, setDataMessage] = useState<string | null>(null);
+  const [interactiveTutorialStepIndex, setInteractiveTutorialStepIndex] = useState<number | null>(
+    null,
+  );
+  const [interactiveTutorialReturnState, setInteractiveTutorialReturnState] =
+    useState<InteractiveTutorialReturnState | null>(null);
+  const [interactiveTutorialSeasonName, setInteractiveTutorialSeasonName] = useState<
+    string | null
+  >(null);
+  const [isInteractiveTutorialTargetReady, setIsInteractiveTutorialTargetReady] =
+    useState(false);
+  const [interactiveTutorialSpotlightRect, setInteractiveTutorialSpotlightRect] =
+    useState<{
+      top: number;
+      left: number;
+      width: number;
+      height: number;
+    } | null>(null);
+  const interactiveTutorialCardRef = useRef<HTMLElement | null>(null);
+  const interactiveTutorialTargetRef = useRef<HTMLElement | null>(null);
 
   const {
     isDarkMode,
@@ -559,6 +445,101 @@ export default function App() {
     () => new Set<ViewTab>(navigationItems.map((item) => item.value)),
     [navigationItems],
   );
+  const interactiveTutorialSteps = useMemo<InteractiveTutorialStep[]>(() => {
+    const steps: InteractiveTutorialStep[] = [
+      {
+        id: "season",
+        title: "Season selector",
+        instruction:
+          "Use the season picker in the sidebar and keep the fake Tutorial season selected while you practice.",
+        selector: '[data-tutorial-target="season-select"]',
+      },
+      {
+        id: "project",
+        title: "Project selector",
+        instruction:
+          "Pick a project inside the fake Tutorial season from the topbar project dropdown.",
+        selector: '[data-tutorial-target="project-select"]',
+      },
+      {
+        id: "tasks-tab",
+        title: "Tasks tab",
+        instruction:
+          "Open Tasks from the sidebar to land on the planning surface.",
+        selector: '[data-tutorial-target="sidebar-tab-tasks"]',
+      },
+      {
+        id: "task-queue",
+        title: "Task subview",
+        instruction:
+          "Switch to Queue from task subtabs so the tutorial covers subview controls too.",
+        selector: '[data-tutorial-target="task-view-queue"]',
+      },
+      {
+        id: "worklogs-tab",
+        title: "Work logs tab",
+        instruction:
+          "Open Work logs from the sidebar.",
+        selector: '[data-tutorial-target="sidebar-tab-worklogs"]',
+      },
+    ];
+
+    if (visibleTabs.has("manufacturing")) {
+      steps.push({
+        id: "manufacturing-tab",
+        title: "Manufacturing tab",
+        instruction:
+          "Open Manufacturing to walk through the process-specific queue area.",
+        selector: '[data-tutorial-target="sidebar-tab-manufacturing"]',
+      });
+    }
+
+    if (visibleTabs.has("inventory")) {
+      steps.push({
+        id: "inventory-tab",
+        title: "Inventory tab",
+        instruction:
+          "Open Inventory to cover materials, parts, purchases, or documents.",
+        selector: '[data-tutorial-target="sidebar-tab-inventory"]',
+      });
+    }
+
+    if (visibleTabs.has("subsystems")) {
+      steps.push({
+        id: "workflow-tab",
+        title: "Workflow/Subsystems tab",
+        instruction:
+          "Open Workflow or Subsystems to cover ownership structures.",
+        selector: '[data-tutorial-target="sidebar-tab-subsystems"]',
+      });
+    }
+
+    steps.push(
+      {
+        id: "roster-tab",
+        title: "Roster tab",
+        instruction:
+          "Open Roster to cover people management and person filters.",
+        selector: '[data-tutorial-target="sidebar-tab-roster"]',
+      },
+      {
+        id: "help-tab",
+        title: "Help tab",
+        instruction:
+          "Return to Help to complete the interactive tutorial loop.",
+        selector: '[data-tutorial-target="sidebar-tab-help"]',
+      },
+    );
+
+    return steps;
+  }, [visibleTabs]);
+  const isInteractiveTutorialActive = interactiveTutorialStepIndex !== null;
+  const currentInteractiveTutorialStep =
+    interactiveTutorialStepIndex !== null
+      ? interactiveTutorialSteps[interactiveTutorialStepIndex] ?? null
+      : null;
+  const interactiveTutorialStepNumber =
+    interactiveTutorialStepIndex !== null ? interactiveTutorialStepIndex + 1 : 0;
 
   useEffect(() => {
     if (!visibleTabs.has(activeTab)) {
@@ -2064,6 +2045,252 @@ export default function App() {
     [activeTab, closeSidebarOverlay, navigationItems],
   );
 
+  const closeInteractiveTutorial = useCallback(() => {
+    if (interactiveTutorialTargetRef.current) {
+      interactiveTutorialTargetRef.current = null;
+    }
+
+    setInteractiveTutorialStepIndex(null);
+    setIsInteractiveTutorialTargetReady(false);
+    setInteractiveTutorialSpotlightRect(null);
+    setInteractiveTutorialSeasonName(null);
+
+    if (interactiveTutorialReturnState) {
+      setActiveTab(interactiveTutorialReturnState.activeTab);
+      setTaskView(interactiveTutorialReturnState.taskView);
+      setManufacturingView(interactiveTutorialReturnState.manufacturingView);
+      setInventoryView(interactiveTutorialReturnState.inventoryView);
+      setSelectedSeasonId(interactiveTutorialReturnState.selectedSeasonId);
+      setSelectedProjectId(interactiveTutorialReturnState.selectedProjectId);
+    }
+
+    setInteractiveTutorialReturnState(null);
+  }, [interactiveTutorialReturnState]);
+
+  const advanceInteractiveTutorial = useCallback(() => {
+    if (interactiveTutorialStepIndex === null) {
+      return;
+    }
+
+    if (interactiveTutorialStepIndex >= interactiveTutorialSteps.length - 1) {
+      closeInteractiveTutorial();
+      return;
+    }
+
+    setInteractiveTutorialStepIndex(interactiveTutorialStepIndex + 1);
+  }, [
+    closeInteractiveTutorial,
+    interactiveTutorialStepIndex,
+    interactiveTutorialSteps.length,
+  ]);
+
+  const startInteractiveTutorial = useCallback(() => {
+    if (interactiveTutorialStepIndex !== null) {
+      return;
+    }
+
+    setInteractiveTutorialReturnState({
+      activeTab,
+      taskView,
+      manufacturingView,
+      inventoryView,
+      selectedSeasonId,
+      selectedProjectId,
+    });
+
+    const tutorialProject =
+      bootstrap.projects.find(
+        (project) =>
+          project.projectType === "robot" &&
+          (selectedSeasonId ? project.seasonId === selectedSeasonId : true),
+      ) ??
+      bootstrap.projects.find((project) => project.projectType === "robot") ??
+      bootstrap.projects[0] ??
+      null;
+
+    if (tutorialProject) {
+      setSelectedSeasonId(tutorialProject.seasonId);
+      setSelectedProjectId(tutorialProject.id);
+      const tutorialSeasonName =
+        bootstrap.seasons.find((season) => season.id === tutorialProject.seasonId)?.name ??
+        "Tutorial season";
+      setInteractiveTutorialSeasonName(`${tutorialSeasonName} (fake sandbox)`);
+    } else {
+      setInteractiveTutorialSeasonName("Tutorial season (fake sandbox)");
+    }
+
+    setActiveTab("tasks");
+    setTaskView("timeline");
+    setManufacturingView("cnc");
+    setInventoryView("materials");
+    setIsInteractiveTutorialTargetReady(false);
+    setInteractiveTutorialStepIndex(0);
+
+    if (isSidebarCollapsed) {
+      toggleSidebar();
+    }
+    closeSidebarOverlay();
+  }, [
+    activeTab,
+    bootstrap.projects,
+    bootstrap.seasons,
+    closeSidebarOverlay,
+    interactiveTutorialStepIndex,
+    inventoryView,
+    isSidebarCollapsed,
+    manufacturingView,
+    selectedProjectId,
+    selectedSeasonId,
+    taskView,
+    toggleSidebar,
+  ]);
+
+  useEffect(() => {
+    if (interactiveTutorialStepIndex === null) {
+      return;
+    }
+
+    if (interactiveTutorialSteps.length === 0) {
+      closeInteractiveTutorial();
+      return;
+    }
+
+    if (interactiveTutorialStepIndex >= interactiveTutorialSteps.length) {
+      setInteractiveTutorialStepIndex(interactiveTutorialSteps.length - 1);
+    }
+  }, [
+    closeInteractiveTutorial,
+    interactiveTutorialStepIndex,
+    interactiveTutorialSteps.length,
+  ]);
+
+  useEffect(() => {
+    if (interactiveTutorialTargetRef.current) {
+      interactiveTutorialTargetRef.current = null;
+    }
+
+    setIsInteractiveTutorialTargetReady(false);
+    setInteractiveTutorialSpotlightRect(null);
+
+    if (!currentInteractiveTutorialStep) {
+      return;
+    }
+
+    let frameId: number | null = null;
+    let attempts = 0;
+    const maxAttempts = 24;
+    let resizeObserver: ResizeObserver | null = null;
+    const updateSpotlightRect = () => {
+      const activeTarget = interactiveTutorialTargetRef.current;
+      if (!activeTarget || !activeTarget.isConnected) {
+        return;
+      }
+
+      const rect = activeTarget.getBoundingClientRect();
+      setInteractiveTutorialSpotlightRect({
+        top: Math.max(6, rect.top - 6),
+        left: Math.max(6, rect.left - 6),
+        width: Math.max(20, rect.width + 12),
+        height: Math.max(20, rect.height + 12),
+      });
+    };
+
+    const setHighlightTarget = () => {
+      const target = document.querySelector<HTMLElement>(currentInteractiveTutorialStep.selector);
+
+      if (!target) {
+        if (attempts < maxAttempts) {
+          attempts += 1;
+          frameId = window.requestAnimationFrame(setHighlightTarget);
+        }
+        return;
+      }
+
+      target.scrollIntoView({
+        behavior: attempts > 0 ? "smooth" : "auto",
+        block: "center",
+        inline: "nearest",
+      });
+      interactiveTutorialTargetRef.current = target;
+
+      updateSpotlightRect();
+      window.addEventListener("resize", updateSpotlightRect);
+      window.addEventListener("scroll", updateSpotlightRect, true);
+      if (typeof ResizeObserver !== "undefined") {
+        resizeObserver = new ResizeObserver(() => {
+          updateSpotlightRect();
+        });
+        resizeObserver.observe(target);
+      }
+
+      setIsInteractiveTutorialTargetReady(true);
+    };
+
+    setHighlightTarget();
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      window.removeEventListener("resize", updateSpotlightRect);
+      window.removeEventListener("scroll", updateSpotlightRect, true);
+      if (interactiveTutorialTargetRef.current) {
+        interactiveTutorialTargetRef.current = null;
+      }
+      setIsInteractiveTutorialTargetReady(false);
+      setInteractiveTutorialSpotlightRect(null);
+    };
+  }, [currentInteractiveTutorialStep]);
+
+  useEffect(() => {
+    if (!currentInteractiveTutorialStep) {
+      return;
+    }
+
+    const handleClickCapture = (event: MouseEvent) => {
+      const targetNode = event.target as Node | null;
+      if (!targetNode) {
+        return;
+      }
+
+      const isTutorialPanelClick = interactiveTutorialCardRef.current?.contains(targetNode);
+      if (isTutorialPanelClick) {
+        return;
+      }
+
+      const highlightedTarget = interactiveTutorialTargetRef.current;
+      const isTargetClick = highlightedTarget?.contains(targetNode);
+
+      if (!isTargetClick) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+
+      window.setTimeout(() => {
+        advanceInteractiveTutorial();
+      }, 0);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeInteractiveTutorial();
+      }
+    };
+
+    document.addEventListener("click", handleClickCapture, true);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("click", handleClickCapture, true);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [advanceInteractiveTutorial, closeInteractiveTutorial, currentInteractiveTutorialStep]);
+
   useEffect(() => {
     if (!isSidebarOverlay) {
       return;
@@ -2129,7 +2356,8 @@ export default function App() {
       artifactModalMode ||
       workstreamModalMode ||
       isAddSeasonPopupOpen ||
-      robotProjectModalMode,
+      robotProjectModalMode ||
+      isInteractiveTutorialActive,
   );
 
   const isWorkspaceModalOpen = Boolean(
@@ -2436,8 +2664,65 @@ export default function App() {
           timelineMilestoneCreateSignal={timelineMilestoneCreateSignal}
           disablePanelAnimations={disablePanelAnimations}
           onDismissDataMessage={clearDataMessage}
+          onStartInteractiveTutorial={startInteractiveTutorial}
         />
       </Suspense>
+
+      {currentInteractiveTutorialStep ? (
+        <aside
+          aria-label="Interactive tutorial"
+          className="interactive-tutorial-overlay"
+          role="dialog"
+        >
+          {interactiveTutorialSpotlightRect ? (
+            <div
+              className="interactive-tutorial-spotlight"
+              style={{
+                top: `${interactiveTutorialSpotlightRect.top}px`,
+                left: `${interactiveTutorialSpotlightRect.left}px`,
+                width: `${interactiveTutorialSpotlightRect.width}px`,
+                height: `${interactiveTutorialSpotlightRect.height}px`,
+              }}
+            />
+          ) : (
+            <div className="interactive-tutorial-dim" />
+          )}
+          <section className="interactive-tutorial-card" ref={interactiveTutorialCardRef}>
+            <div className="interactive-tutorial-header">
+              <p className="eyebrow">Interactive tutorial</p>
+              <p className="interactive-tutorial-progress">
+                Step {interactiveTutorialStepNumber} of {interactiveTutorialSteps.length}
+              </p>
+            </div>
+            <h3>{currentInteractiveTutorialStep.title}</h3>
+            <p>{currentInteractiveTutorialStep.instruction}</p>
+            <p className="interactive-tutorial-context">
+              Fake tutorial season: {interactiveTutorialSeasonName ?? "Tutorial season"}
+            </p>
+            <p className="interactive-tutorial-hint">
+              {isInteractiveTutorialTargetReady
+                ? "Click the highlighted control to continue."
+                : "Waiting for the next highlighted control to appear..."}
+            </p>
+            <div className="interactive-tutorial-actions">
+              <button
+                className="secondary-action"
+                onClick={closeInteractiveTutorial}
+                type="button"
+              >
+                End tutorial
+              </button>
+              <button
+                className="secondary-action"
+                onClick={advanceInteractiveTutorial}
+                type="button"
+              >
+                Skip step
+              </button>
+            </div>
+          </section>
+        </aside>
+      ) : null}
 
       {isWorkspaceModalOpen ? (
         <Suspense fallback={null}>

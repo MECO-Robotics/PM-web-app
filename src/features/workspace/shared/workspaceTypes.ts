@@ -1,26 +1,4 @@
-import type { ReactNode } from "react";
-
 import type { BootstrapPayload } from "@/types";
-
-export type ViewTab =
-  | "tasks"
-  | "worklogs"
-  | "manufacturing"
-  | "inventory"
-  | "subsystems"
-  | "roster"
-  | "help";
-
-export type TaskViewTab = "timeline" | "queue" | "milestones";
-export type ManufacturingViewTab = "cnc" | "prints" | "fabrication";
-export type InventoryViewTab = "materials" | "parts" | "purchases";
-
-export interface NavigationItem {
-  value: ViewTab;
-  label: string;
-  icon: ReactNode;
-  count: number;
-}
 
 export interface DropdownOption {
   id: string;

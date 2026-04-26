@@ -1,4 +1,4 @@
-import type { NavigationItem, ViewTab } from "@/features/workspace";
+import type { NavigationItem, ViewTab } from "@/lib/workspaceNavigation";
 import type { SeasonRecord } from "@/types";
 
 const CREATE_SEASON_OPTION_VALUE = "__create_new_season__";
@@ -38,6 +38,7 @@ export function AppSidebar({
             key={value}
             className="tab"
             data-active={isActive ? "true" : "false"}
+            data-tutorial-target={`sidebar-tab-${value}`}
             onClick={() => onSelectTab(value)}
             type="button"
           >
@@ -61,6 +62,7 @@ export function AppSidebar({
           <span className="sidebar-context-label">Season</span>
           <select
             className="sidebar-context-select"
+            data-tutorial-target="season-select"
             onChange={(event) => {
               const nextValue = event.target.value;
               if (nextValue === CREATE_SEASON_OPTION_VALUE) {

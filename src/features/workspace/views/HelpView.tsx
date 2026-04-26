@@ -164,11 +164,13 @@ const HELP_TUTORIAL_STEPS: Array<{
 interface HelpViewProps {
   tutorialInitiallyOpen?: boolean;
   tutorialInitiallyComplete?: boolean;
+  onStartInteractiveTutorial?: () => void;
 }
 
 export function HelpView({
   tutorialInitiallyOpen = false,
   tutorialInitiallyComplete = false,
+  onStartInteractiveTutorial,
 }: HelpViewProps) {
   const [isTutorialOpen, setIsTutorialOpen] = useState(tutorialInitiallyOpen);
   const [activeTutorialStep, setActiveTutorialStep] = useState(0);
@@ -250,10 +252,17 @@ export function HelpView({
           </p>
         </div>
         <button
-          aria-controls="help-tutorial-dialog"
+          aria-controls={onStartInteractiveTutorial ? undefined : "help-tutorial-dialog"}
           className="primary-action help-tutorial-launch"
           data-tutorial-launch="help"
-          onClick={openTutorial}
+          onClick={() => {
+            if (onStartInteractiveTutorial) {
+              onStartInteractiveTutorial();
+              return;
+            }
+
+            openTutorial();
+          }}
           type="button"
         >
           <IconHelp />

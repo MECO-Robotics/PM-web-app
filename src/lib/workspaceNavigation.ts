@@ -1,0 +1,71 @@
+import type { ReactNode } from "react";
+
+export type ViewTab =
+  | "tasks"
+  | "worklogs"
+  | "manufacturing"
+  | "inventory"
+  | "subsystems"
+  | "roster"
+  | "help";
+
+export type TaskViewTab = "timeline" | "queue" | "milestones";
+export type ManufacturingViewTab = "cnc" | "prints" | "fabrication";
+export type InventoryViewTab = "materials" | "parts" | "purchases";
+
+export interface NavigationItem {
+  value: ViewTab;
+  label: string;
+  icon: ReactNode;
+  count: number;
+}
+
+export interface ViewOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+export const TASK_VIEW_ORDER: readonly TaskViewTab[] = ["timeline", "queue", "milestones"];
+export const MANUFACTURING_VIEW_ORDER: readonly ManufacturingViewTab[] = [
+  "cnc",
+  "prints",
+  "fabrication",
+];
+export const INVENTORY_VIEW_ORDER: readonly InventoryViewTab[] = [
+  "materials",
+  "parts",
+  "purchases",
+];
+
+export const TASK_VIEW_OPTIONS: readonly ViewOption<TaskViewTab>[] = [
+  { value: "timeline", label: "Timeline" },
+  { value: "queue", label: "Queue" },
+  { value: "milestones", label: "Milestones" },
+];
+
+export const MANUFACTURING_VIEW_OPTIONS: readonly ViewOption<ManufacturingViewTab>[] = [
+  { value: "cnc", label: "CNC" },
+  { value: "prints", label: "3D print" },
+  { value: "fabrication", label: "Fabrication" },
+];
+
+export const ROBOT_INVENTORY_VIEW_OPTIONS: readonly ViewOption<InventoryViewTab>[] = [
+  { value: "materials", label: "Materials" },
+  { value: "parts", label: "Parts" },
+  { value: "purchases", label: "Purchases" },
+];
+
+export const NON_ROBOT_INVENTORY_VIEW_OPTIONS: readonly ViewOption<InventoryViewTab>[] = [
+  { value: "materials", label: "Documents" },
+  { value: "purchases", label: "Purchases" },
+];
+
+export const BASE_SECTION_LABELS: Record<ViewTab, string> = {
+  tasks: "Tasks",
+  worklogs: "Worklogs",
+  manufacturing: "Manufacturing",
+  inventory: "Inventory",
+  subsystems: "Subsystems",
+  roster: "Roster",
+  help: "Help",
+};

@@ -9,7 +9,7 @@ import {
   IconTasks,
   IconWorkLogs,
 } from "@/components/shared";
-import type { NavigationItem } from "@/features/workspace";
+import type { NavigationItem } from "@/lib/workspaceNavigation";
 import type { BootstrapPayload } from "@/types";
 
 interface UseWorkspaceDerivedDataArgs {

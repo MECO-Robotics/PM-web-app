@@ -5,7 +5,7 @@ import {
   type MembersById,
   type SubsystemsById,
 } from "@/features/workspace/shared";
-import { ManufacturingQueueView } from "@/features/workspace/views";
+import { ManufacturingQueueView } from "./ManufacturingQueueView";
 
 interface CncViewProps {
   activePersonFilter: FilterSelection;

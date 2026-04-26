@@ -862,6 +862,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       }),
     [dayEventsByDate, timeline.days],
   );
+  const subsystemRows = timeline.subsystemRows;
 
   const projectRows = useMemo(() => {
     const grouped = new Map<
@@ -869,14 +870,14 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       {
         id: string;
         name: string;
-        subsystems: typeof timeline.subsystemRows;
+        subsystems: typeof subsystemRows;
         taskCount: number;
         completeCount: number;
         tasks: Array<TaskRecord & { offset: number; span: number }>;
       }
     >();
 
-    timeline.subsystemRows.forEach((subsystem) => {
+    subsystemRows.forEach((subsystem) => {
       const existing = grouped.get(subsystem.projectId);
       if (existing) {
         existing.subsystems.push(subsystem);
@@ -897,7 +898,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     });
 
     return Array.from(grouped.values());
-  }, [timeline.subsystemRows]);
+  }, [subsystemRows]);
 
   const playTimelineColumnUnfoldAnimation = useCallback((column: TimelineColumnKey) => {
     setUnfoldingTimelineColumn(column);
@@ -1041,7 +1042,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     setIsDeletingEvent(false);
   };
 
-  const openCreateEventModalForDay = (day: string) => {
+  const openCreateEventModalForDay = useCallback((day: string) => {
     setEventModalMode("create");
     setActiveEventId(null);
     setActiveEventDay(day);
@@ -1054,7 +1055,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     setEventEndDate("");
     setEventEndTime("");
     setEventError(null);
-  };
+  }, [scopedProjectIds]);
 
   useEffect(() => {
     if (triggerCreateMilestoneToken <= 0) {
@@ -1062,7 +1063,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     }
 
     openCreateEventModalForDay(localTodayDate());
-  }, [triggerCreateMilestoneToken]);
+  }, [openCreateEventModalForDay, triggerCreateMilestoneToken]);
 
   const openEditEventModalForDay = (day: string, event: EventRecord) => {
     const eventProjectIds = getEventProjectIds(event, subsystemsById);

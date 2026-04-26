@@ -21,6 +21,15 @@ import type {
   TaskRecord,
 } from "@/types";
 import {
+  INVENTORY_VIEW_ORDER,
+  MANUFACTURING_VIEW_ORDER,
+  TASK_VIEW_ORDER,
+  type InventoryViewTab,
+  type ManufacturingViewTab,
+  type TaskViewTab,
+  type ViewTab,
+} from "@/lib/workspaceNavigation";
+import {
   ArtifactInventoryView,
   CncView,
   FabricationView,
@@ -37,13 +46,7 @@ import {
   WorkflowView,
   WorkLogsView,
 } from "@/features/workspace/views";
-import type {
-  FilterSelection,
-  InventoryViewTab,
-  ManufacturingViewTab,
-  TaskViewTab,
-  ViewTab,
-} from "@/features/workspace/shared";
+import type { FilterSelection } from "@/features/workspace/shared";
 
 type WorkspaceSubviewTab =
   | TaskViewTab
@@ -92,13 +95,6 @@ const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> = {
     "Use this page as a quick reference for how to navigate tabs, manage scoped project data, and follow the common add/edit workflows used across the workspace.",
 };
 
-const TASK_VIEW_ORDER: readonly TaskViewTab[] = ["timeline", "queue", "milestones"];
-const MANUFACTURING_VIEW_ORDER: readonly ManufacturingViewTab[] = [
-  "cnc",
-  "prints",
-  "fabrication",
-];
-const INVENTORY_VIEW_ORDER: readonly InventoryViewTab[] = ["materials", "parts", "purchases"];
 const DOCUMENT_ARTIFACT_KINDS: readonly ArtifactKind[] = ["document", "nontechnical"];
 const MemoizedTimelineView = memo(TimelineView);
 
@@ -199,6 +195,7 @@ interface WorkspaceContentProps {
   timelineMilestoneCreateSignal: number;
   disablePanelAnimations?: boolean;
   onDismissDataMessage: () => void;
+  onStartInteractiveTutorial?: () => void;
 }
 
 function WorkspaceSectionPanel({
@@ -402,6 +399,7 @@ export function WorkspaceContent({
   timelineMilestoneCreateSignal,
   disablePanelAnimations = false,
   onDismissDataMessage,
+  onStartInteractiveTutorial,
 }: WorkspaceContentProps) {
   const effectiveInventoryView =
     isNonRobotProject && inventoryView === "parts" ? "materials" : inventoryView;
@@ -749,7 +747,7 @@ export function WorkspaceContent({
           disableAnimations={disablePanelAnimations}
           isActive
         >
-          <HelpView />
+          <HelpView onStartInteractiveTutorial={onStartInteractiveTutorial} />
         </WorkspaceSubPanel>
       </WorkspaceSectionPanel>
     </div>

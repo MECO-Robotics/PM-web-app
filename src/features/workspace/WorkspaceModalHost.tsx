@@ -13,7 +13,7 @@ import {
   TaskEditorModal,
   WorkLogEditorModal,
   WorkstreamEditorModal,
-} from "@/features/workspace";
+} from "./WorkspaceModals";
 import type {
   ArtifactModalMode,
   ManufacturingModalMode,

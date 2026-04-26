@@ -7,61 +7,36 @@ import {
   MECO_MAIN_LOGO_WIDTH,
   MECO_PROFILE_AVATAR_SIZE,
 } from "@/lib/branding";
+import {
+  BASE_SECTION_LABELS,
+  MANUFACTURING_VIEW_OPTIONS,
+  NON_ROBOT_INVENTORY_VIEW_OPTIONS,
+  ROBOT_INVENTORY_VIEW_OPTIONS,
+  TASK_VIEW_OPTIONS,
+  type InventoryViewTab,
+  type ManufacturingViewTab,
+  type TaskViewTab,
+  type ViewOption,
+  type ViewTab,
+} from "@/lib/workspaceNavigation";
 import type { SessionUser } from "@/lib/auth";
 import type { ProjectRecord } from "@/types";
-import type {
-  InventoryViewTab,
-  ManufacturingViewTab,
-  TaskViewTab,
-  ViewTab,
-} from "@/features/workspace";
 import { IconEdit, IconEye, IconRefresh } from "@/components/shared";
 
 const ADD_ROBOT_PROJECT_VALUE = "__add_robot_project__";
-
-const TASK_VIEW_OPTIONS: { value: TaskViewTab; label: string }[] = [
-  { value: "timeline", label: "Timeline" },
-  { value: "queue", label: "Queue" },
-  { value: "milestones", label: "Milestones" },
-];
-
-const MANUFACTURING_VIEW_OPTIONS: { value: ManufacturingViewTab; label: string }[] = [
-  { value: "cnc", label: "CNC" },
-  { value: "prints", label: "3D print" },
-  { value: "fabrication", label: "Fabrication" },
-];
-
-const ROBOT_INVENTORY_VIEW_OPTIONS: { value: InventoryViewTab; label: string }[] = [
-  { value: "materials", label: "Materials" },
-  { value: "parts", label: "Parts" },
-  { value: "purchases", label: "Purchases" },
-];
-
-const NON_ROBOT_INVENTORY_VIEW_OPTIONS: { value: InventoryViewTab; label: string }[] = [
-  { value: "materials", label: "Documents" },
-  { value: "purchases", label: "Purchases" },
-];
-
-const BASE_SECTION_LABELS: Record<ViewTab, string> = {
-  tasks: "Tasks",
-  worklogs: "Worklogs",
-  manufacturing: "Manufacturing",
-  inventory: "Inventory",
-  subsystems: "Subsystems",
-  roster: "Roster",
-  help: "Help",
-};
 
 function TopbarTabs<T extends string>({
   activeValue,
   ariaLabel,
   onChange,
   options,
+  tutorialPrefix,
 }: {
   activeValue: T;
   ariaLabel: string;
   onChange: Dispatch<SetStateAction<T>>;
-  options: { label: string; value: T }[];
+  options: readonly ViewOption<T>[];
+  tutorialPrefix?: string;
 }) {
   return (
     <div className="tabbar workspace-section-tabs app-topbar-section-tabs" aria-label={ariaLabel} role="group">
@@ -74,6 +49,9 @@ function TopbarTabs<T extends string>({
             aria-pressed={isActive}
             className="tab"
             data-active={isActive ? "true" : "false"}
+            data-tutorial-target={
+              tutorialPrefix ? `${tutorialPrefix}-${option.value}` : undefined
+            }
             onClick={() => onChange(option.value)}
             type="button"
           >
@@ -119,6 +97,7 @@ function TopbarNavigation({
             ariaLabel="Task views"
             onChange={setTaskView}
             options={TASK_VIEW_OPTIONS}
+            tutorialPrefix="task-view"
           />
         </>
       );
@@ -131,6 +110,7 @@ function TopbarNavigation({
             ariaLabel="Manufacturing views"
             onChange={setManufacturingView}
             options={MANUFACTURING_VIEW_OPTIONS}
+            tutorialPrefix="manufacturing-view"
           />
         </>
       );
@@ -147,6 +127,7 @@ function TopbarNavigation({
                 ? NON_ROBOT_INVENTORY_VIEW_OPTIONS
                 : ROBOT_INVENTORY_VIEW_OPTIONS
             }
+            tutorialPrefix="inventory-view"
           />
         </>
       );
@@ -270,6 +251,7 @@ export function AppTopbar({
           </label>
           <select
             className="app-topbar-project-select"
+            data-tutorial-target="project-select"
             id="app-topbar-project-select"
             onChange={(event) => handleProjectChange(event.target.value)}
             value={selectedProjectId ?? ""}

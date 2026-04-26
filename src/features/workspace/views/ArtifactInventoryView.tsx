@@ -10,17 +10,17 @@ import type {
 import {
   ColumnFilterDropdown,
   EditableHoverIndicator,
+  getStatusPillClassName,
   type FilterSelection,
   FilterDropdown,
   PaginationControls,
+  WORKSPACE_PANEL_CLASS,
   SearchToolbarInput,
   TableCell,
   filterSelectionIncludes,
   useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
-import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
-import { getStatusPillClassName } from "@/features/workspace/shared";
 
 interface ArtifactInventoryViewProps {
   bootstrap: BootstrapPayload;
@@ -88,7 +88,10 @@ export function ArtifactInventoryView({
   const [workstreamFilter, setWorkstreamFilter] = useState<FilterSelection>([]);
   const [statusFilter, setStatusFilter] = useState<FilterSelection>([]);
   const [showArchivedArtifacts, setShowArchivedArtifacts] = useState(false);
-  const artifactKinds = kinds.length > 0 ? kinds : [createKind ?? "document"];
+  const artifactKinds = useMemo(
+    () => (kinds.length > 0 ? kinds : [createKind ?? "document"]),
+    [createKind, kinds],
+  );
   const primaryKind = createKind ?? artifactKinds[0] ?? "document";
 
   const workstreamOptions = useMemo(
