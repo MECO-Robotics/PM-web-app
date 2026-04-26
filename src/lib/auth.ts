@@ -22,12 +22,16 @@ import type {
   ProjectRecord,
   PurchaseItemPayload,
   PurchaseItemRecord,
+  QaReportPayload,
+  QaReportRecord,
   SeasonCreatePayload,
   SeasonRecord,
   SubsystemPayload,
   SubsystemRecord,
   TaskPayload,
   TaskRecord,
+  TestResultPayload,
+  TestResultRecord,
   WorkLogPayload,
   WorkLogRecord,
   WorkstreamPayload,
@@ -459,7 +463,7 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
 
     seasons = seasonIds.map((seasonId) => ({
       id: seasonId,
-      name: seasonIdsFromProjects.length > 0 ? toTitleFromId(seasonId) : "Default Season",
+      name: seasonIdsFromProjects.length > 0 ? toTitleFromId(seasonId) : "Tutorial season",
       type: "season",
       startDate,
       endDate,
@@ -905,6 +909,28 @@ export async function fetchBootstrap(
   return normalizeBootstrapPayload(payload);
 }
 
+export async function startInteractiveTutorialSession(onUnauthorized?: () => void) {
+  const response = await requestApi<{ ok: boolean }>(
+    "/tutorial/session/start",
+    {
+      method: "POST",
+    },
+    onUnauthorized,
+  );
+  return response.ok;
+}
+
+export async function resetInteractiveTutorialSession(onUnauthorized?: () => void) {
+  const response = await requestApi<{ ok: boolean }>(
+    "/tutorial/session/reset",
+    {
+      method: "POST",
+    },
+    onUnauthorized,
+  );
+  return response.ok;
+}
+
 export async function createTask(
   payload: TaskPayload,
   onUnauthorized?: () => void,
@@ -984,6 +1010,44 @@ export async function createWorkLogRecord(
 ) {
   const response = await requestApi<{ item: WorkLogRecord }>(
     "/work-logs",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createQaReportRecord(
+  payload: QaReportPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: QaReportRecord }>(
+    "/qa-reports",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createTestResultRecord(
+  payload: TestResultPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: TestResultRecord }>(
+    "/test-results",
     {
       method: "POST",
       headers: {

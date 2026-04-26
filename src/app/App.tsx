@@ -26,7 +26,9 @@ import {
   buildEmptyPartDefinitionPayload,
   buildEmptyPartInstancePayload,
   buildEmptyPurchasePayload,
+  buildEmptyQaReportPayload,
   buildEmptyWorkLogPayload,
+  buildEmptyTestResultPayload,
   buildEmptySubsystemPayload,
   buildEmptyTaskPayload,
   buildEmptyWorkstreamPayload,
@@ -50,8 +52,10 @@ import {
   createMaterialRecord,
   createMemberRecord,
   createProjectRecord,
+  createQaReportRecord,
   createSeasonRecord,
   createMechanismRecord,
+  createTestResultRecord,
   createWorkLogRecord,
   createWorkstreamRecord,
   createSubsystemRecord,
@@ -68,6 +72,8 @@ import {
   deleteTaskRecord,
   deleteArtifactRecord,
   fetchBootstrap,
+  resetInteractiveTutorialSession,
+  startInteractiveTutorialSession,
   updateManufacturingItemRecord,
   updateMaterialRecord,
   updateMemberRecord,
@@ -102,10 +108,12 @@ import type {
   ProjectPayload,
   PurchaseItemPayload,
   PurchaseItemRecord,
+  QaReportPayload,
   SubsystemPayload,
   SubsystemRecord,
   TaskPayload,
   TaskRecord,
+  TestResultPayload,
   WorkLogPayload,
   WorkstreamPayload,
 } from "@/types";
@@ -113,12 +121,14 @@ import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared/bootstrapDefaults";
 import { useWorkspaceDerivedData } from "@/features/workspace/useWorkspaceDerivedData";
 import type {
   ArtifactModalMode,
+  EventReportModalMode,
   ManufacturingModalMode,
   MaterialModalMode,
   MechanismModalMode,
   PartDefinitionModalMode,
   PartInstanceModalMode,
   PurchaseModalMode,
+  QaReportModalMode,
   SubsystemModalMode,
   TaskModalMode,
   WorkLogModalMode,
@@ -139,8 +149,34 @@ import {
   scopeBootstrapBySelection,
 } from "@/app/workspaceStateUtils";
 
+type InteractiveTutorialStepId =
+  | "season"
+  | "project"
+  | "tasks-tab"
+  | "task-timeline"
+  | "task-queue"
+  | "create-task"
+  | "task-milestones"
+  | "worklogs-tab"
+  | "create-worklog"
+  | "manufacturing-tab"
+  | "manufacturing-cnc"
+  | "manufacturing-prints"
+  | "manufacturing-fabrication"
+  | "inventory-tab"
+  | "inventory-materials"
+  | "inventory-parts"
+  | "create-part"
+  | "inventory-purchases"
+  | "workflow-tab"
+  | "create-subsystem"
+  | "create-mechanism"
+  | "roster-tab"
+  | "create-student"
+  | "help-tab";
+
 interface InteractiveTutorialStep {
-  id: string;
+  id: InteractiveTutorialStepId;
   title: string;
   instruction: string;
   selector: string;
@@ -153,6 +189,15 @@ interface InteractiveTutorialReturnState {
   inventoryView: InventoryViewTab;
   selectedSeasonId: string | null;
   selectedProjectId: string | null;
+}
+
+interface InteractiveTutorialCreationCounts {
+  tasks: number;
+  workLogs: number;
+  partDefinitions: number;
+  subsystems: number;
+  mechanisms: number;
+  students: number;
 }
 
 export default function App() {
@@ -173,6 +218,22 @@ export default function App() {
   const [interactiveTutorialSeasonName, setInteractiveTutorialSeasonName] = useState<
     string | null
   >(null);
+  const [interactiveTutorialSeasonId, setInteractiveTutorialSeasonId] = useState<string | null>(
+    null,
+  );
+  const [interactiveTutorialProjectId, setInteractiveTutorialProjectId] = useState<string | null>(
+    null,
+  );
+  const [interactiveTutorialProjectName, setInteractiveTutorialProjectName] = useState<
+    string | null
+  >(null);
+  const [interactiveTutorialBootstrapSnapshot, setInteractiveTutorialBootstrapSnapshot] =
+    useState<BootstrapPayload | null>(null);
+  const [interactiveTutorialBaselineCounts, setInteractiveTutorialBaselineCounts] =
+    useState<InteractiveTutorialCreationCounts | null>(null);
+  const [interactiveTutorialStepError, setInteractiveTutorialStepError] = useState<string | null>(
+    null,
+  );
   const [isInteractiveTutorialTargetReady, setIsInteractiveTutorialTargetReady] =
     useState(false);
   const [interactiveTutorialSpotlightRect, setInteractiveTutorialSpotlightRect] =
@@ -237,6 +298,17 @@ export default function App() {
     buildEmptyWorkLogPayload(EMPTY_BOOTSTRAP),
   );
   const [isSavingWorkLog, setIsSavingWorkLog] = useState(false);
+  const [qaReportModalMode, setQaReportModalMode] = useState<QaReportModalMode>(null);
+  const [qaReportDraft, setQaReportDraft] = useState<QaReportPayload>(
+    buildEmptyQaReportPayload(EMPTY_BOOTSTRAP),
+  );
+  const [isSavingQaReport, setIsSavingQaReport] = useState(false);
+  const [eventReportModalMode, setEventReportModalMode] = useState<EventReportModalMode>(null);
+  const [eventReportDraft, setEventReportDraft] = useState<TestResultPayload>(
+    buildEmptyTestResultPayload(EMPTY_BOOTSTRAP),
+  );
+  const [eventReportFindings, setEventReportFindings] = useState("");
+  const [isSavingEventReport, setIsSavingEventReport] = useState(false);
 
   const [purchaseModalMode, setPurchaseModalMode] =
     useState<PurchaseModalMode>(null);
@@ -449,84 +521,188 @@ export default function App() {
     const steps: InteractiveTutorialStep[] = [
       {
         id: "season",
-        title: "Season selector",
+        title: "Pick the tutorial season",
         instruction:
-          "Use the season picker in the sidebar and keep the fake Tutorial season selected while you practice.",
+          "Use the sidebar season picker and choose the fake Tutorial season sandbox.",
         selector: '[data-tutorial-target="season-select"]',
       },
       {
         id: "project",
-        title: "Project selector",
+        title: "Pick the tutorial project",
         instruction:
-          "Pick a project inside the fake Tutorial season from the topbar project dropdown.",
+          "Use the topbar project selector and choose the tutorial robot project in that fake season.",
         selector: '[data-tutorial-target="project-select"]',
       },
       {
         id: "tasks-tab",
-        title: "Tasks tab",
+        title: "Open Tasks",
         instruction:
-          "Open Tasks from the sidebar to land on the planning surface.",
+          "Open Tasks from the sidebar to start in planning.",
         selector: '[data-tutorial-target="sidebar-tab-tasks"]',
       },
       {
-        id: "task-queue",
-        title: "Task subview",
+        id: "task-timeline",
+        title: "Task Timeline view",
         instruction:
-          "Switch to Queue from task subtabs so the tutorial covers subview controls too.",
+          "Use the task view tabs and open Timeline.",
+        selector: '[data-tutorial-target="task-view-timeline"]',
+      },
+      {
+        id: "task-queue",
+        title: "Task Queue view",
+        instruction:
+          "Switch from Timeline to Queue.",
         selector: '[data-tutorial-target="task-view-queue"]',
       },
       {
+        id: "create-task",
+        title: "Create a task",
+        instruction:
+          "Use Add in Queue, fill the form, and save a new task in the tutorial project.",
+        selector: '[data-tutorial-target="create-task-button"]',
+      },
+      {
+        id: "task-milestones",
+        title: "Task Milestones view",
+        instruction:
+          "Switch to the Milestones subview so the tutorial covers every task view.",
+        selector: '[data-tutorial-target="task-view-milestones"]',
+      },
+      {
         id: "worklogs-tab",
-        title: "Work logs tab",
+        title: "Open Work logs",
         instruction:
           "Open Work logs from the sidebar.",
         selector: '[data-tutorial-target="sidebar-tab-worklogs"]',
       },
+      {
+        id: "create-worklog",
+        title: "Create a work log",
+        instruction:
+          "Use Add in Work logs, attach it to a real task, and save it.",
+        selector: '[data-tutorial-target="create-worklog-button"]',
+      },
     ];
 
     if (visibleTabs.has("manufacturing")) {
-      steps.push({
-        id: "manufacturing-tab",
-        title: "Manufacturing tab",
-        instruction:
-          "Open Manufacturing to walk through the process-specific queue area.",
-        selector: '[data-tutorial-target="sidebar-tab-manufacturing"]',
-      });
+      steps.push(
+        {
+          id: "manufacturing-tab",
+          title: "Open Manufacturing",
+          instruction:
+            "Open Manufacturing from the sidebar.",
+          selector: '[data-tutorial-target="sidebar-tab-manufacturing"]',
+        },
+        {
+          id: "manufacturing-cnc",
+          title: "Manufacturing CNC view",
+          instruction:
+            "Switch to CNC.",
+          selector: '[data-tutorial-target="manufacturing-view-cnc"]',
+        },
+        {
+          id: "manufacturing-prints",
+          title: "Manufacturing 3D print view",
+          instruction:
+            "Switch to 3D print.",
+          selector: '[data-tutorial-target="manufacturing-view-prints"]',
+        },
+        {
+          id: "manufacturing-fabrication",
+          title: "Manufacturing Fabrication view",
+          instruction:
+            "Switch to Fabrication so all manufacturing views are covered.",
+          selector: '[data-tutorial-target="manufacturing-view-fabrication"]',
+        },
+      );
     }
 
     if (visibleTabs.has("inventory")) {
-      steps.push({
-        id: "inventory-tab",
-        title: "Inventory tab",
-        instruction:
-          "Open Inventory to cover materials, parts, purchases, or documents.",
-        selector: '[data-tutorial-target="sidebar-tab-inventory"]',
-      });
+      steps.push(
+        {
+          id: "inventory-tab",
+          title: "Open Inventory",
+          instruction:
+            "Open Inventory from the sidebar.",
+          selector: '[data-tutorial-target="sidebar-tab-inventory"]',
+        },
+        {
+          id: "inventory-materials",
+          title: "Inventory Materials view",
+          instruction:
+            "Switch to Materials (or Documents in non-robot mode).",
+          selector: '[data-tutorial-target="inventory-view-materials"]',
+        },
+        {
+          id: "inventory-parts",
+          title: "Inventory Parts view",
+          instruction:
+            "Switch to Parts.",
+          selector: '[data-tutorial-target="inventory-view-parts"]',
+        },
+        {
+          id: "create-part",
+          title: "Create a part definition",
+          instruction:
+            "Use Add in Parts, complete the modal, and save a new part definition.",
+          selector: '[data-tutorial-target="create-part-button"]',
+        },
+        {
+          id: "inventory-purchases",
+          title: "Inventory Purchases view",
+          instruction:
+            "Switch to Purchases so every inventory view is covered.",
+          selector: '[data-tutorial-target="inventory-view-purchases"]',
+        },
+      );
     }
 
     if (visibleTabs.has("subsystems")) {
-      steps.push({
-        id: "workflow-tab",
-        title: "Workflow/Subsystems tab",
-        instruction:
-          "Open Workflow or Subsystems to cover ownership structures.",
-        selector: '[data-tutorial-target="sidebar-tab-subsystems"]',
-      });
+      steps.push(
+        {
+          id: "workflow-tab",
+          title: "Open Workflow/Subsystems",
+          instruction:
+            "Open Workflow or Subsystems from the sidebar.",
+          selector: '[data-tutorial-target="sidebar-tab-subsystems"]',
+        },
+        {
+          id: "create-subsystem",
+          title: "Create a subsystem",
+          instruction:
+            "Use Add subsystem, fill the form, and save it.",
+          selector: '[data-tutorial-target="create-subsystem-button"]',
+        },
+        {
+          id: "create-mechanism",
+          title: "Create a mechanism",
+          instruction:
+            "Use a subsystem row Add mechanism button, fill the modal, and save it.",
+          selector: '[data-tutorial-target="create-mechanism-button"]',
+        },
+      );
     }
 
     steps.push(
       {
         id: "roster-tab",
-        title: "Roster tab",
+        title: "Open Roster",
         instruction:
-          "Open Roster to cover people management and person filters.",
+          "Open Roster from the sidebar.",
         selector: '[data-tutorial-target="sidebar-tab-roster"]',
       },
       {
-        id: "help-tab",
-        title: "Help tab",
+        id: "create-student",
+        title: "Create a student",
         instruction:
-          "Return to Help to complete the interactive tutorial loop.",
+          "Use the Students add button, keep role as Student, and save the new person.",
+        selector: '[data-tutorial-target="create-student-button"]',
+      },
+      {
+        id: "help-tab",
+        title: "Return to Help",
+        instruction:
+          "Return to Help to finish the full tutorial loop.",
         selector: '[data-tutorial-target="sidebar-tab-help"]',
       },
     );
@@ -540,6 +716,205 @@ export default function App() {
       : null;
   const interactiveTutorialStepNumber =
     interactiveTutorialStepIndex !== null ? interactiveTutorialStepIndex + 1 : 0;
+  const isInteractiveTutorialDropdownStep = useCallback(
+    (step: InteractiveTutorialStep) => step.id === "season" || step.id === "project",
+    [],
+  );
+  const isInteractiveTutorialCreationStep = useCallback(
+    (step: InteractiveTutorialStep) =>
+      step.id === "create-task" ||
+      step.id === "create-worklog" ||
+      step.id === "create-part" ||
+      step.id === "create-subsystem" ||
+      step.id === "create-mechanism" ||
+      step.id === "create-student",
+    [],
+  );
+  const getInteractiveTutorialCreationCounts = useCallback(
+    (
+      payload: BootstrapPayload,
+      tutorialProjectId: string | null,
+      tutorialSeasonId: string | null,
+    ): InteractiveTutorialCreationCounts => {
+      const scopedTasks = tutorialProjectId
+        ? payload.tasks.filter((task) => task.projectId === tutorialProjectId)
+        : payload.tasks;
+      const scopedTaskIds = new Set(scopedTasks.map((task) => task.id));
+      const scopedSubsystems = tutorialProjectId
+        ? payload.subsystems.filter((subsystem) => subsystem.projectId === tutorialProjectId)
+        : payload.subsystems;
+      const scopedSubsystemIds = new Set(scopedSubsystems.map((subsystem) => subsystem.id));
+      const scopedStudents = tutorialSeasonId
+        ? payload.members.filter(
+            (member) => member.role === "student" && member.seasonId === tutorialSeasonId,
+          )
+        : payload.members.filter((member) => member.role === "student");
+
+      return {
+        tasks: scopedTasks.length,
+        workLogs: payload.workLogs.filter((workLog) => scopedTaskIds.has(workLog.taskId)).length,
+        partDefinitions: payload.partDefinitions.length,
+        subsystems: scopedSubsystems.length,
+        mechanisms: payload.mechanisms.filter((mechanism) =>
+          scopedSubsystemIds.has(mechanism.subsystemId),
+        ).length,
+        students: scopedStudents.length,
+      };
+    },
+    [],
+  );
+  const isInteractiveTutorialCreateStepModalInteraction = useCallback(
+    (step: InteractiveTutorialStep, node: Node) => {
+      if (!isInteractiveTutorialCreationStep(step)) {
+        return false;
+      }
+
+      const element = node instanceof Element ? node : node.parentElement;
+      return Boolean(element?.closest(".modal-card"));
+    },
+    [isInteractiveTutorialCreationStep],
+  );
+  const hasInteractiveTutorialAlternativeOption = useCallback(
+    (step: InteractiveTutorialStep, target: HTMLSelectElement) => {
+      const expectedValue =
+        step.id === "season" ? interactiveTutorialSeasonId : interactiveTutorialProjectId;
+      if (!expectedValue) {
+        return false;
+      }
+
+      return Array.from(target.options).some((option) => {
+        if (option.disabled) {
+          return false;
+        }
+
+        const optionValue = option.value.trim();
+        if (!optionValue || optionValue === expectedValue) {
+          return false;
+        }
+
+        const optionLabel = option.textContent?.trim().toLowerCase() ?? "";
+        if (optionLabel === "create new season" || optionLabel === "add robot") {
+          return false;
+        }
+
+        return true;
+      });
+    },
+    [interactiveTutorialProjectId, interactiveTutorialSeasonId],
+  );
+  const interactiveTutorialSpotlightBounds = interactiveTutorialSpotlightRect
+    ? {
+      top: Math.max(0, interactiveTutorialSpotlightRect.top),
+      left: Math.max(0, interactiveTutorialSpotlightRect.left),
+      right: Math.max(
+        0,
+        interactiveTutorialSpotlightRect.left + interactiveTutorialSpotlightRect.width,
+      ),
+      bottom: Math.max(
+        0,
+        interactiveTutorialSpotlightRect.top + interactiveTutorialSpotlightRect.height,
+      ),
+    }
+    : null;
+  const isInteractiveTutorialStepComplete = useCallback(
+    (step: InteractiveTutorialStep) => {
+      if (isInteractiveTutorialCreationStep(step)) {
+        if (!interactiveTutorialBaselineCounts) {
+          return false;
+        }
+
+        const currentCounts = getInteractiveTutorialCreationCounts(
+          bootstrap,
+          interactiveTutorialProjectId,
+          interactiveTutorialSeasonId,
+        );
+        switch (step.id) {
+          case "create-task":
+            return currentCounts.tasks > interactiveTutorialBaselineCounts.tasks;
+          case "create-worklog":
+            return currentCounts.workLogs > interactiveTutorialBaselineCounts.workLogs;
+          case "create-part":
+            return (
+              currentCounts.partDefinitions > interactiveTutorialBaselineCounts.partDefinitions
+            );
+          case "create-subsystem":
+            return currentCounts.subsystems > interactiveTutorialBaselineCounts.subsystems;
+          case "create-mechanism":
+            return currentCounts.mechanisms > interactiveTutorialBaselineCounts.mechanisms;
+          case "create-student":
+            return currentCounts.students > interactiveTutorialBaselineCounts.students;
+          default:
+            return false;
+        }
+      }
+
+      const target = document.querySelector<HTMLElement>(step.selector);
+      if (!target) {
+        return false;
+      }
+
+      switch (step.id) {
+        case "season":
+          return (
+            target instanceof HTMLSelectElement &&
+            typeof interactiveTutorialSeasonId === "string" &&
+            target.value === interactiveTutorialSeasonId
+          );
+        case "project":
+          return (
+            target instanceof HTMLSelectElement &&
+            typeof interactiveTutorialProjectId === "string" &&
+            target.value === interactiveTutorialProjectId
+          );
+        default:
+          return target.getAttribute("data-active") === "true";
+      }
+    },
+    [
+      bootstrap,
+      getInteractiveTutorialCreationCounts,
+      interactiveTutorialBaselineCounts,
+      interactiveTutorialProjectId,
+      interactiveTutorialSeasonId,
+      isInteractiveTutorialCreationStep,
+    ],
+  );
+  const getInteractiveTutorialStepError = useCallback(
+    (step: InteractiveTutorialStep) => {
+      switch (step.id) {
+        case "season":
+          if (!interactiveTutorialSeasonId) {
+            return "Tutorial season is unavailable. End tutorial and reload the page.";
+          }
+          return `Select ${interactiveTutorialSeasonName ?? "Tutorial season"} to complete this step.`;
+        case "project":
+          if (!interactiveTutorialProjectId) {
+            return "Tutorial project is unavailable. End tutorial and reload the page.";
+          }
+          return `Select ${interactiveTutorialProjectName ?? "the tutorial robot project"} to complete this step.`;
+        case "create-task":
+          return "Create and save one new task to continue.";
+        case "create-worklog":
+          return "Create and save one new work log to continue.";
+        case "create-part":
+          return "Create and save one new part definition to continue.";
+        case "create-subsystem":
+          return "Create and save one new subsystem to continue.";
+        case "create-mechanism":
+          return "Create and save one new mechanism to continue.";
+        case "create-student":
+          return "Create and save one new student to continue.";
+        default:
+          return "Complete the highlighted interaction to continue.";
+      }
+    },
+    [
+      interactiveTutorialProjectId,
+      interactiveTutorialProjectName,
+      interactiveTutorialSeasonId,
+      interactiveTutorialSeasonName,
+    ],
+  );
 
   useEffect(() => {
     if (!visibleTabs.has(activeTab)) {
@@ -927,6 +1302,28 @@ export default function App() {
     setWorkLogModalMode(null);
   };
 
+  const openCreateQaReportModal = () => {
+    setQaReportDraft(
+      buildEmptyQaReportPayload(scopedBootstrap, getSinglePersonFilterId(activePersonFilter)),
+    );
+    setQaReportModalMode("create");
+  };
+
+  const closeQaReportModal = () => {
+    setQaReportModalMode(null);
+  };
+
+  const openCreateEventReportModal = () => {
+    setEventReportDraft(buildEmptyTestResultPayload(scopedBootstrap));
+    setEventReportFindings("");
+    setEventReportModalMode("create");
+  };
+
+  const closeEventReportModal = () => {
+    setEventReportModalMode(null);
+    setEventReportFindings("");
+  };
+
   const openCreatePurchaseModal = () => {
     setActivePurchaseId(null);
     setPurchaseDraft(buildEmptyPurchasePayload(bootstrap));
@@ -1244,6 +1641,89 @@ export default function App() {
       setDataMessage(toErrorMessage(error));
     } finally {
       setIsSavingWorkLog(false);
+    }
+  };
+
+  const handleQaReportSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSavingQaReport(true);
+    setDataMessage(null);
+
+    try {
+      const taskExists = bootstrap.tasks.some((task) => task.id === qaReportDraft.taskId);
+      if (!taskExists) {
+        setDataMessage("Please choose a real task before saving the QA report.");
+        return;
+      }
+
+      const participantIds = Array.from(
+        new Set(
+          qaReportDraft.participantIds.filter((participantId) =>
+            bootstrap.members.some((member) => member.id === participantId),
+          ),
+        ),
+      );
+      if (participantIds.length === 0) {
+        setDataMessage("Please choose at least one participant before saving the QA report.");
+        return;
+      }
+
+      const payload: QaReportPayload = {
+        ...qaReportDraft,
+        participantIds,
+        notes: qaReportDraft.notes.trim(),
+      };
+
+      await createQaReportRecord(payload, handleUnauthorized);
+      await loadWorkspace();
+      closeQaReportModal();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingQaReport(false);
+    }
+  };
+
+  const handleEventReportSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSavingEventReport(true);
+    setDataMessage(null);
+
+    try {
+      const eventExists = bootstrap.events.some((item) => item.id === eventReportDraft.eventId);
+      if (!eventExists) {
+        setDataMessage("Please choose a real event before saving the event report.");
+        return;
+      }
+
+      const normalizedTitle = eventReportDraft.title.trim();
+      if (normalizedTitle.length < 2) {
+        setDataMessage("Please provide an event report title before saving.");
+        return;
+      }
+
+      const findings = Array.from(
+        new Set(
+          eventReportFindings
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0),
+        ),
+      );
+
+      const payload: TestResultPayload = {
+        ...eventReportDraft,
+        title: normalizedTitle,
+        findings,
+      };
+
+      await createTestResultRecord(payload, handleUnauthorized);
+      await loadWorkspace();
+      closeEventReportModal();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingEventReport(false);
     }
   };
 
@@ -2045,7 +2525,10 @@ export default function App() {
     [activeTab, closeSidebarOverlay, navigationItems],
   );
 
-  const closeInteractiveTutorial = useCallback(() => {
+  const closeInteractiveTutorial = useCallback(async () => {
+    const returnState = interactiveTutorialReturnState;
+    const bootstrapSnapshot = interactiveTutorialBootstrapSnapshot;
+
     if (interactiveTutorialTargetRef.current) {
       interactiveTutorialTargetRef.current = null;
     }
@@ -2054,18 +2537,39 @@ export default function App() {
     setIsInteractiveTutorialTargetReady(false);
     setInteractiveTutorialSpotlightRect(null);
     setInteractiveTutorialSeasonName(null);
+    setInteractiveTutorialSeasonId(null);
+    setInteractiveTutorialProjectId(null);
+    setInteractiveTutorialProjectName(null);
+    setInteractiveTutorialBootstrapSnapshot(null);
+    setInteractiveTutorialBaselineCounts(null);
+    setInteractiveTutorialStepError(null);
 
-    if (interactiveTutorialReturnState) {
-      setActiveTab(interactiveTutorialReturnState.activeTab);
-      setTaskView(interactiveTutorialReturnState.taskView);
-      setManufacturingView(interactiveTutorialReturnState.manufacturingView);
-      setInventoryView(interactiveTutorialReturnState.inventoryView);
-      setSelectedSeasonId(interactiveTutorialReturnState.selectedSeasonId);
-      setSelectedProjectId(interactiveTutorialReturnState.selectedProjectId);
+    if (bootstrapSnapshot) {
+      startTransition(() => {
+        setBootstrap(bootstrapSnapshot);
+      });
+    }
+
+    if (returnState) {
+      setActiveTab(returnState.activeTab);
+      setTaskView(returnState.taskView);
+      setManufacturingView(returnState.manufacturingView);
+      setInventoryView(returnState.inventoryView);
+      setSelectedSeasonId(returnState.selectedSeasonId);
+      setSelectedProjectId(returnState.selectedProjectId);
     }
 
     setInteractiveTutorialReturnState(null);
-  }, [interactiveTutorialReturnState]);
+    try {
+      await resetInteractiveTutorialSession(handleUnauthorized);
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    }
+  }, [
+    handleUnauthorized,
+    interactiveTutorialBootstrapSnapshot,
+    interactiveTutorialReturnState,
+  ]);
 
   const advanceInteractiveTutorial = useCallback(() => {
     if (interactiveTutorialStepIndex === null) {
@@ -2073,7 +2577,7 @@ export default function App() {
     }
 
     if (interactiveTutorialStepIndex >= interactiveTutorialSteps.length - 1) {
-      closeInteractiveTutorial();
+      void closeInteractiveTutorial();
       return;
     }
 
@@ -2084,8 +2588,16 @@ export default function App() {
     interactiveTutorialSteps.length,
   ]);
 
-  const startInteractiveTutorial = useCallback(() => {
+  const startInteractiveTutorial = useCallback(async () => {
     if (interactiveTutorialStepIndex !== null) {
+      return;
+    }
+
+    setDataMessage(null);
+    try {
+      await startInteractiveTutorialSession(handleUnauthorized);
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
       return;
     }
 
@@ -2097,33 +2609,62 @@ export default function App() {
       selectedSeasonId,
       selectedProjectId,
     });
+    setInteractiveTutorialBootstrapSnapshot(structuredClone(bootstrap));
 
+    const tutorialSeason =
+      bootstrap.seasons.find((season) => season.name.toLowerCase() === "tutorial season") ??
+      bootstrap.seasons.find((season) => season.id === "default-season") ??
+      bootstrap.seasons[0] ??
+      null;
+    const projectsInTutorialSeason = tutorialSeason
+      ? bootstrap.projects.filter((project) => project.seasonId === tutorialSeason.id)
+      : [];
     const tutorialProject =
-      bootstrap.projects.find(
-        (project) =>
-          project.projectType === "robot" &&
-          (selectedSeasonId ? project.seasonId === selectedSeasonId : true),
-      ) ??
+      projectsInTutorialSeason.find((project) => project.projectType === "robot") ??
+      projectsInTutorialSeason[0] ??
       bootstrap.projects.find((project) => project.projectType === "robot") ??
       bootstrap.projects[0] ??
       null;
+    const tutorialSeasonId = tutorialSeason?.id ?? null;
+    const tutorialProjectId = tutorialProject?.id ?? null;
 
-    if (tutorialProject) {
-      setSelectedSeasonId(tutorialProject.seasonId);
-      setSelectedProjectId(tutorialProject.id);
-      const tutorialSeasonName =
-        bootstrap.seasons.find((season) => season.id === tutorialProject.seasonId)?.name ??
-        "Tutorial season";
-      setInteractiveTutorialSeasonName(`${tutorialSeasonName} (fake sandbox)`);
+    if (tutorialSeason) {
+      const nonTutorialSeasonId =
+        bootstrap.seasons.find((season) => season.id !== tutorialSeason.id)?.id ??
+        tutorialSeason.id;
+      const seasonSelectionForTutorialStart =
+        selectedSeasonId && selectedSeasonId !== tutorialSeason.id
+          ? selectedSeasonId
+          : nonTutorialSeasonId;
+
+      setSelectedSeasonId(seasonSelectionForTutorialStart);
+      setInteractiveTutorialSeasonId(tutorialSeason.id);
+      setInteractiveTutorialSeasonName(`${tutorialSeason.name} (fake sandbox)`);
     } else {
+      setInteractiveTutorialSeasonId(null);
       setInteractiveTutorialSeasonName("Tutorial season (fake sandbox)");
     }
+
+    if (tutorialProject) {
+      setSelectedProjectId(null);
+      setInteractiveTutorialProjectId(tutorialProject.id);
+      setInteractiveTutorialProjectName(tutorialProject.name);
+    } else {
+      setSelectedProjectId(null);
+      setInteractiveTutorialProjectId(null);
+      setInteractiveTutorialProjectName(null);
+    }
+
+    setInteractiveTutorialBaselineCounts(
+      getInteractiveTutorialCreationCounts(bootstrap, tutorialProjectId, tutorialSeasonId),
+    );
 
     setActiveTab("tasks");
     setTaskView("timeline");
     setManufacturingView("cnc");
     setInventoryView("materials");
     setIsInteractiveTutorialTargetReady(false);
+    setInteractiveTutorialStepError(null);
     setInteractiveTutorialStepIndex(0);
 
     if (isSidebarCollapsed) {
@@ -2132,9 +2673,12 @@ export default function App() {
     closeSidebarOverlay();
   }, [
     activeTab,
+    bootstrap,
     bootstrap.projects,
     bootstrap.seasons,
     closeSidebarOverlay,
+    getInteractiveTutorialCreationCounts,
+    handleUnauthorized,
     interactiveTutorialStepIndex,
     inventoryView,
     isSidebarCollapsed,
@@ -2151,7 +2695,7 @@ export default function App() {
     }
 
     if (interactiveTutorialSteps.length === 0) {
-      closeInteractiveTutorial();
+      void closeInteractiveTutorial();
       return;
     }
 
@@ -2171,6 +2715,7 @@ export default function App() {
 
     setIsInteractiveTutorialTargetReady(false);
     setInteractiveTutorialSpotlightRect(null);
+    setInteractiveTutorialStepError(null);
 
     if (!currentInteractiveTutorialStep) {
       return;
@@ -2263,33 +2808,140 @@ export default function App() {
 
       const highlightedTarget = interactiveTutorialTargetRef.current;
       const isTargetClick = highlightedTarget?.contains(targetNode);
+      const activeStep = currentInteractiveTutorialStep;
 
       if (!isTargetClick) {
+        if (isInteractiveTutorialCreateStepModalInteraction(activeStep, targetNode)) {
+          return;
+        }
+
         event.preventDefault();
         event.stopPropagation();
         return;
       }
 
+      if (isInteractiveTutorialDropdownStep(activeStep)) {
+        const isDropdownSelectionComplete = isInteractiveTutorialStepComplete(activeStep);
+        if (highlightedTarget instanceof HTMLSelectElement) {
+          if (
+            activeStep.id !== "season" &&
+            isDropdownSelectionComplete &&
+            !hasInteractiveTutorialAlternativeOption(activeStep, highlightedTarget)
+          ) {
+            setInteractiveTutorialStepError(null);
+            advanceInteractiveTutorial();
+            return;
+          }
+        }
+
+        if (!isDropdownSelectionComplete) {
+          setInteractiveTutorialStepError(getInteractiveTutorialStepError(activeStep));
+          return;
+        }
+
+        setInteractiveTutorialStepError(null);
+        return;
+      }
+
+      if (isInteractiveTutorialCreationStep(activeStep)) {
+        setInteractiveTutorialStepError(null);
+        return;
+      }
+
       window.setTimeout(() => {
-        advanceInteractiveTutorial();
+        if (isInteractiveTutorialStepComplete(activeStep)) {
+          setInteractiveTutorialStepError(null);
+          advanceInteractiveTutorial();
+          return;
+        }
+
+        setInteractiveTutorialStepError(getInteractiveTutorialStepError(activeStep));
+      }, 100);
+    };
+
+    const handleChangeCapture = (event: Event) => {
+      const activeStep = currentInteractiveTutorialStep;
+      if (!isInteractiveTutorialDropdownStep(activeStep)) {
+        return;
+      }
+
+      const targetNode = event.target as Node | null;
+      if (!targetNode) {
+        return;
+      }
+
+      const highlightedTarget = interactiveTutorialTargetRef.current;
+      const isTargetChange = highlightedTarget?.contains(targetNode);
+      if (!isTargetChange) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        if (isInteractiveTutorialStepComplete(activeStep)) {
+          setInteractiveTutorialStepError(null);
+          advanceInteractiveTutorial();
+          return;
+        }
+
+        setInteractiveTutorialStepError(getInteractiveTutorialStepError(activeStep));
       }, 0);
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        closeInteractiveTutorial();
+        void closeInteractiveTutorial();
       }
     };
 
     document.addEventListener("click", handleClickCapture, true);
+    document.addEventListener("change", handleChangeCapture, true);
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("click", handleClickCapture, true);
+      document.removeEventListener("change", handleChangeCapture, true);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [advanceInteractiveTutorial, closeInteractiveTutorial, currentInteractiveTutorialStep]);
+  }, [
+    advanceInteractiveTutorial,
+    closeInteractiveTutorial,
+    currentInteractiveTutorialStep,
+    getInteractiveTutorialStepError,
+    hasInteractiveTutorialAlternativeOption,
+    isInteractiveTutorialCreateStepModalInteraction,
+    isInteractiveTutorialCreationStep,
+    isInteractiveTutorialDropdownStep,
+    isInteractiveTutorialStepComplete,
+  ]);
+
+  useEffect(() => {
+    if (!currentInteractiveTutorialStep) {
+      return;
+    }
+
+    if (!isInteractiveTutorialCreationStep(currentInteractiveTutorialStep)) {
+      return;
+    }
+
+    if (!isInteractiveTutorialStepComplete(currentInteractiveTutorialStep)) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setInteractiveTutorialStepError(null);
+      advanceInteractiveTutorial();
+    }, 120);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    advanceInteractiveTutorial,
+    currentInteractiveTutorialStep,
+    isInteractiveTutorialCreationStep,
+    isInteractiveTutorialStepComplete,
+  ]);
 
   useEffect(() => {
     if (!isSidebarOverlay) {
@@ -2346,6 +2998,8 @@ export default function App() {
     activeTimelineTaskDetailId ||
     taskModalMode ||
       workLogModalMode ||
+      qaReportModalMode ||
+      eventReportModalMode ||
       purchaseModalMode ||
       manufacturingModalMode ||
       materialModalMode ||
@@ -2364,6 +3018,8 @@ export default function App() {
     activeTimelineTaskDetailId ||
     taskModalMode ||
       workLogModalMode ||
+      qaReportModalMode ||
+      eventReportModalMode ||
       purchaseModalMode ||
       manufacturingModalMode ||
       materialModalMode ||
@@ -2624,6 +3280,8 @@ export default function App() {
           openCreateTaskModal={openCreateTaskModal}
           openCreateTaskModalFromTimeline={openCreateTaskModalFromTimeline}
           openCreateWorkLogModal={openCreateWorkLogModal}
+          openCreateQaReportModal={openCreateQaReportModal}
+          openCreateEventReportModal={openCreateEventReportModal}
           openCreateWorkstreamModal={openCreateWorkstreamModal}
           openEditWorkstreamModal={openEditWorkstreamModal}
           onCncQuickStatusChange={handleCncQuickStatusChange}
@@ -2674,18 +3332,56 @@ export default function App() {
           className="interactive-tutorial-overlay"
           role="dialog"
         >
-          {interactiveTutorialSpotlightRect ? (
-            <div
-              className="interactive-tutorial-spotlight"
-              style={{
-                top: `${interactiveTutorialSpotlightRect.top}px`,
-                left: `${interactiveTutorialSpotlightRect.left}px`,
-                width: `${interactiveTutorialSpotlightRect.width}px`,
-                height: `${interactiveTutorialSpotlightRect.height}px`,
-              }}
-            />
+          {interactiveTutorialSpotlightRect && interactiveTutorialSpotlightBounds ? (
+            <>
+              <div
+                className="interactive-tutorial-dim"
+                style={{
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: `${interactiveTutorialSpotlightBounds.top}px`,
+                }}
+              />
+              <div
+                className="interactive-tutorial-dim"
+                style={{
+                  top: `${interactiveTutorialSpotlightBounds.top}px`,
+                  left: 0,
+                  width: `${interactiveTutorialSpotlightBounds.left}px`,
+                  height: `${interactiveTutorialSpotlightRect.height}px`,
+                }}
+              />
+              <div
+                className="interactive-tutorial-dim"
+                style={{
+                  top: `${interactiveTutorialSpotlightBounds.top}px`,
+                  left: `${interactiveTutorialSpotlightBounds.right}px`,
+                  right: 0,
+                  height: `${interactiveTutorialSpotlightRect.height}px`,
+                }}
+              />
+              <div
+                className="interactive-tutorial-dim"
+                style={{
+                  top: `${interactiveTutorialSpotlightBounds.bottom}px`,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                }}
+              />
+              <div
+                className="interactive-tutorial-spotlight"
+                style={{
+                  top: `${interactiveTutorialSpotlightRect.top}px`,
+                  left: `${interactiveTutorialSpotlightRect.left}px`,
+                  width: `${interactiveTutorialSpotlightRect.width}px`,
+                  height: `${interactiveTutorialSpotlightRect.height}px`,
+                }}
+              />
+            </>
           ) : (
-            <div className="interactive-tutorial-dim" />
+            <div className="interactive-tutorial-dim" style={{ inset: 0 }} />
           )}
           <section className="interactive-tutorial-card" ref={interactiveTutorialCardRef}>
             <div className="interactive-tutorial-header">
@@ -2699,11 +3395,21 @@ export default function App() {
             <p className="interactive-tutorial-context">
               Fake tutorial season: {interactiveTutorialSeasonName ?? "Tutorial season"}
             </p>
+            {interactiveTutorialProjectName ? (
+              <p className="interactive-tutorial-context">
+                Tutorial project: {interactiveTutorialProjectName}
+              </p>
+            ) : null}
             <p className="interactive-tutorial-hint">
               {isInteractiveTutorialTargetReady
-                ? "Click the highlighted control to continue."
+                ? isInteractiveTutorialCreationStep(currentInteractiveTutorialStep)
+                  ? "Use Add, complete the modal, and save to continue."
+                  : "Use the highlighted control to continue."
                 : "Waiting for the next highlighted control to appear..."}
             </p>
+            {interactiveTutorialStepError ? (
+              <p className="interactive-tutorial-error">{interactiveTutorialStepError}</p>
+            ) : null}
             <div className="interactive-tutorial-actions">
               <button
                 className="secondary-action"
@@ -2711,13 +3417,6 @@ export default function App() {
                 type="button"
               >
                 End tutorial
-              </button>
-              <button
-                className="secondary-action"
-                onClick={advanceInteractiveTutorial}
-                type="button"
-              >
-                Skip step
               </button>
             </div>
           </section>
@@ -2743,6 +3442,8 @@ export default function App() {
             closePartInstanceModal={closePartInstanceModal}
             closePartDefinitionModal={closePartDefinitionModal}
             closePurchaseModal={closePurchaseModal}
+            closeQaReportModal={closeQaReportModal}
+            closeEventReportModal={closeEventReportModal}
             closeTimelineTaskDetailsModal={closeTimelineTaskDetailsModal}
             closeWorkLogModal={closeWorkLogModal}
             closeSubsystemModal={closeSubsystemModal}
@@ -2767,6 +3468,8 @@ export default function App() {
             handlePartDefinitionSubmit={handlePartDefinitionSubmit}
             handleArtifactSubmit={handleArtifactSubmit}
             handlePurchaseSubmit={handlePurchaseSubmit}
+            handleQaReportSubmit={handleQaReportSubmit}
+            handleEventReportSubmit={handleEventReportSubmit}
             handleWorkLogSubmit={handleWorkLogSubmit}
             handleSubsystemSubmit={handleSubsystemSubmit}
             handleTaskSubmit={handleTaskSubmit}
@@ -2783,6 +3486,8 @@ export default function App() {
             isSavingPartInstance={isSavingPartInstance}
             isSavingMechanism={isSavingMechanism}
             isSavingPurchase={isSavingPurchase}
+            isSavingQaReport={isSavingQaReport}
+            isSavingEventReport={isSavingEventReport}
             isSavingWorkLog={isSavingWorkLog}
             isSavingSubsystem={isSavingSubsystem}
             isSavingTask={isSavingTask}
@@ -2806,6 +3511,11 @@ export default function App() {
             purchaseDraft={purchaseDraft}
             purchaseFinalCost={purchaseFinalCost}
             purchaseModalMode={purchaseModalMode}
+            qaReportDraft={qaReportDraft}
+            qaReportModalMode={qaReportModalMode}
+            eventReportDraft={eventReportDraft}
+            eventReportFindings={eventReportFindings}
+            eventReportModalMode={eventReportModalMode}
             workLogDraft={workLogDraft}
             workLogModalMode={workLogModalMode}
             workstreamDraft={workstreamDraft}
@@ -2818,6 +3528,9 @@ export default function App() {
             setPartDefinitionDraft={setPartDefinitionDraft}
             setPurchaseDraft={setPurchaseDraft}
             setPurchaseFinalCost={setPurchaseFinalCost}
+            setQaReportDraft={setQaReportDraft}
+            setEventReportDraft={setEventReportDraft}
+            setEventReportFindings={setEventReportFindings}
             setWorkLogDraft={setWorkLogDraft}
             setWorkstreamDraft={setWorkstreamDraft}
             setSubsystemDraft={setSubsystemDraft}
