@@ -357,4 +357,205 @@ describe("TimelineView", () => {
     expect(markup).toContain('aria-label="Next month"');
     expect(markup).toContain("April 2026");
   });
+
+  it("marks the timeline grid as motion-capable for period changes", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(TimelineView, {
+        bootstrap: createBootstrap(),
+        isAllProjectsView: false,
+        activePersonFilter: [],
+        setActivePersonFilter: jest.fn(),
+        membersById,
+        openEditTaskModal: jest.fn(),
+        openCreateTaskModal: jest.fn(),
+        onDeleteTimelineEvent: jest.fn(),
+        onSaveTimelineEvent: jest.fn(),
+        triggerCreateMilestoneToken: 0,
+      }),
+    );
+
+    expect(markup).toContain('class="timeline-grid-motion"');
+  });
+
+  it("defines timeline period animations for every timeline navigation direction", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+
+    expect(css).toMatch(
+      /\.timeline-grid-motion\[data-period-motion="left"\]\s*\{[\s\S]*timeline-period-swipe-left-in/,
+    );
+    expect(css).toMatch(
+      /\.timeline-grid-motion\[data-period-motion="right"\]\s*\{[\s\S]*timeline-period-swipe-right-in/,
+    );
+    expect(css).toMatch(
+      /\.timeline-grid-motion\[data-period-motion="neutral"\]\s*\{[\s\S]*timeline-period-glide-in/,
+    );
+  });
+
+  it("keeps timeline period animations from adding horizontal scroll overflow", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const getKeyframesBlock = (name: string) => {
+      const start = css.indexOf(`@keyframes ${name}`);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const blockStart = css.indexOf("{", start);
+      let depth = 0;
+
+      for (let index = blockStart; index < css.length; index += 1) {
+        if (css[index] === "{") {
+          depth += 1;
+        }
+
+        if (css[index] === "}") {
+          depth -= 1;
+        }
+
+        if (depth === 0) {
+          return css.slice(start, index + 1);
+        }
+      }
+
+      return css.slice(start);
+    };
+
+    for (const keyframes of [
+      "timeline-period-swipe-left-in",
+      "timeline-period-swipe-right-in",
+    ]) {
+      expect(getKeyframesBlock(keyframes)).not.toMatch(
+        /translate3d\(\s*-?\d+px\s*,\s*0\s*,\s*0\s*\)/,
+      );
+    }
+  });
+
+  it("marks project, subsystem, and task columns as unfold-animation surfaces", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(TimelineView, {
+        bootstrap: createBootstrap(),
+        isAllProjectsView: true,
+        activePersonFilter: [],
+        setActivePersonFilter: jest.fn(),
+        membersById,
+        openEditTaskModal: jest.fn(),
+        openCreateTaskModal: jest.fn(),
+        onDeleteTimelineEvent: jest.fn(),
+        onSaveTimelineEvent: jest.fn(),
+        triggerCreateMilestoneToken: 0,
+      }),
+    );
+
+    expect(markup).toContain("timeline-column-motion");
+    expect(markup).toContain('data-timeline-column="project"');
+    expect(markup).toContain('data-timeline-column="subsystem"');
+    expect(markup).toContain('data-timeline-column="task"');
+  });
+
+  it("defines unfold animations for timeline columns and expanded rows", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const getKeyframesBlock = (name: string) => {
+      const start = css.indexOf(`@keyframes ${name}`);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const blockStart = css.indexOf("{", start);
+      let depth = 0;
+
+      for (let index = blockStart; index < css.length; index += 1) {
+        if (css[index] === "{") {
+          depth += 1;
+        }
+
+        if (css[index] === "}") {
+          depth -= 1;
+        }
+
+        if (depth === 0) {
+          return css.slice(start, index + 1);
+        }
+      }
+
+      return css.slice(start);
+    };
+
+    expect(css).toMatch(
+      /\.timeline-column-motion\[data-column-motion="unfolding"\]\s*\{[\s\S]*timeline-column-unfold-in 160ms/,
+    );
+    expect(css).toMatch(
+      /\.timeline-row-motion\[data-row-motion="unfolding"\][\s\S]*timeline-row-unfold-in 160ms/,
+    );
+    expect(getKeyframesBlock("timeline-column-unfold-in")).not.toMatch(/transform:/);
+    expect(getKeyframesBlock("timeline-row-unfold-in")).not.toMatch(/transform:/);
+  });
+
+  it("keeps timeline period and filter motion subtle", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+
+    expect(css).toMatch(
+      /\.timeline-grid-motion\[data-period-motion="left"\]\s*\{[\s\S]*timeline-period-swipe-left-in 180ms/,
+    );
+    expect(css).toMatch(
+      /\.timeline-grid-motion\[data-period-motion="right"\]\s*\{[\s\S]*timeline-period-swipe-right-in 180ms/,
+    );
+    expect(css).toMatch(
+      /\.timeline-grid-motion\[data-period-motion="neutral"\]\s*\{[\s\S]*timeline-period-glide-in 160ms/,
+    );
+    expect(css).toMatch(
+      /@keyframes filter-results-settle\s*\{[\s\S]*opacity: 0\.98/,
+    );
+  });
+
+  it("prevents timeline label reveal overlays from doubling visible source text", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const getRule = (selectorStart: string, options?: { pseudo?: boolean }) => {
+      let start = css.indexOf(selectorStart);
+      while (start >= 0) {
+        const blockStart = css.indexOf("{", start);
+        const selector = css.slice(start, blockStart);
+        const hasPseudo = selector.includes("::after");
+        if (options?.pseudo === undefined || options.pseudo === hasPseudo) {
+          const blockEnd = css.indexOf("}", blockStart);
+
+          return css.slice(start, blockEnd + 1);
+        }
+
+        start = css.indexOf(selectorStart, blockStart);
+      }
+
+      expect(start).toBeGreaterThanOrEqual(0);
+      const blockStart = css.indexOf("{", start);
+      const blockEnd = css.indexOf("}", blockStart);
+
+      return css.slice(start, blockEnd + 1);
+    };
+
+    expect(getRule(".timeline-ellipsis-reveal[data-full-text]::after", { pseudo: true })).toMatch(
+      /color:\s*var\(--timeline-reveal-color/,
+    );
+    expect(getRule(".timeline-ellipsis-reveal[data-full-text]:hover", { pseudo: false })).toMatch(
+      /color:\s*transparent/,
+    );
+    expect(
+      getRule(".timeline-merged-cell-column:hover .timeline-ellipsis-reveal[data-full-text]", {
+        pseudo: false,
+      }),
+    ).toMatch(/color:\s*transparent/);
+  });
+
+  it("lets unfolded sideways timeline labels use the full row span before truncating", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const getRule = (selectorStart: string) => {
+      const start = css.indexOf(selectorStart);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const blockStart = css.indexOf("{", start);
+      const blockEnd = css.indexOf("}", blockStart);
+
+      return css.slice(start, blockEnd + 1);
+    };
+
+    const rotatedRule = getRule(".timeline-merged-cell-text.is-rotated");
+    expect(rotatedRule).toMatch(/writing-mode:\s*vertical-rl/);
+    expect(rotatedRule).toMatch(/text-orientation:\s*mixed/);
+    expect(rotatedRule).toMatch(/max-height:\s*calc\(100% - 16px\)/);
+    expect(rotatedRule).not.toMatch(/rotate\(-90deg\)/);
+
+    expect(
+      getRule(".timeline-merged-cell-text.is-rotated .timeline-merged-cell-title"),
+    ).toMatch(/max-height:\s*100%/);
+  });
 });

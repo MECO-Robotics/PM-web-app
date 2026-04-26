@@ -14,6 +14,7 @@ import {
   filterSelectionIncludes,
   filterSelectionIntersects,
   formatFilterSelectionLabel,
+  useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
 import type { DropdownOption, MembersById, SubsystemsById } from "@/features/workspace/shared";
@@ -130,6 +131,12 @@ export function WorkLogsView({
     search,
   ]);
   const workLogPagination = useWorkspacePagination(workLogs);
+  const workLogFilterMotionClass = useFilterChangeMotionClass([
+    activePersonFilter,
+    search,
+    sortMode,
+    subsystemFilter,
+  ]);
 
   const activePersonFilterLabel =
     formatFilterSelectionLabel("All roster", bootstrap.members, activePersonFilter);
@@ -197,7 +204,7 @@ export function WorkLogsView({
         </div>
       </div>
 
-      <div className="table-shell">
+      <div className={`table-shell ${workLogFilterMotionClass}`}>
         <div
           className="ops-table ops-table-header worklog-table"
           style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}

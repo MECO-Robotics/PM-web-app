@@ -131,6 +131,7 @@ interface WorkspaceContentProps {
   dataMessage: string | null;
   disciplinesById: Record<string, BootstrapPayload["disciplines"][number]>;
   eventsById: Record<string, BootstrapPayload["events"][number]>;
+  externalMembers: BootstrapPayload["members"];
   fabricationItems: ManufacturingItemRecord[];
   handleCreateMember: (event: FormEvent<HTMLFormElement>) => void;
   handleDeleteMember: (id: string) => void;
@@ -334,6 +335,7 @@ export function WorkspaceContent({
   dataMessage,
   disciplinesById,
   eventsById,
+  externalMembers,
   fabricationItems,
   handleCreateMember,
   handleDeleteMember,
@@ -712,6 +714,7 @@ export function WorkspaceContent({
             isSavingMember={isSavingMember}
             memberEditDraft={memberEditDraft}
             memberForm={memberForm}
+            externalMembers={externalMembers}
             rosterMentors={rosterMentors}
             selectMember={selectMember}
             selectedMemberId={selectedMemberId}

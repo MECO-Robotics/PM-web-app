@@ -26,6 +26,13 @@ function renderTopbar(
     name: "Operations",
     projectType: "operations",
   },
+  myView: {
+    isActive: boolean;
+    memberName: string | null;
+  } = {
+    isActive: false,
+    memberName: "Ava Chen",
+  },
 ) {
   return renderToStaticMarkup(
     React.createElement(AppTopbar, {
@@ -40,6 +47,7 @@ function renderTopbar(
       manufacturingView: "cnc",
       onCreateRobot: jest.fn(),
       onEditSelectedRobot: jest.fn(),
+      onToggleMyView: jest.fn(),
       onSelectProject: jest.fn(),
       projects: [
         {
@@ -53,6 +61,8 @@ function renderTopbar(
       ],
       selectedProjectId: selectedProject.id,
       sessionUser: null,
+      isMyViewActive: myView.isActive,
+      myViewMemberName: myView.memberName,
       setInventoryView: jest.fn(),
       setManufacturingView: jest.fn(),
       setTaskView: jest.fn(),
@@ -87,5 +97,24 @@ describe("AppTopbar", () => {
     });
 
     expect(markup).toContain("Edit robot name");
+  });
+
+  it("renders My View as an active topbar filter toggle", () => {
+    const markup = renderTopbar(
+      false,
+      {
+        id: "project-robot",
+        name: "Robot",
+        projectType: "robot",
+      },
+      {
+        isActive: true,
+        memberName: "Ava Chen",
+      },
+    );
+
+    expect(markup).toContain("My View");
+    expect(markup).toContain('aria-pressed="true"');
+    expect(markup).toContain("Showing Ava Chen");
   });
 });

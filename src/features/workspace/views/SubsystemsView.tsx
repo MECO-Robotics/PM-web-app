@@ -5,6 +5,7 @@ import type { BootstrapPayload, MechanismRecord, SubsystemRecord } from "@/types
 import {
   SearchToolbarInput,
   TableCell,
+  useFilterChangeMotionClass,
 } from "@/features/workspace/shared";
 import { getDefaultSubsystemId } from "@/lib/appUtils";
 import type { MembersById } from "@/features/workspace/shared";
@@ -178,6 +179,7 @@ export function SubsystemsView({
 
   const selectedSubsystem =
     filteredSubsystems.find((subsystem) => subsystem.id === selectedSubsystemId) ?? null;
+  const subsystemFilterMotionClass = useFilterChangeMotionClass([search]);
 
   return (
     <section className={`panel dense-panel subsystem-manager-shell ${WORKSPACE_PANEL_CLASS}`}>
@@ -214,7 +216,7 @@ export function SubsystemsView({
           </div>
         </div>
 
-        <div className="table-shell subsystem-manager-list-shell">
+        <div className={`table-shell subsystem-manager-list-shell ${subsystemFilterMotionClass}`}>
           <div
             className="ops-table ops-table-header subsystem-manager-table-header"
             style={{
@@ -247,6 +249,7 @@ export function SubsystemsView({
                   (candidate) => candidate.id === subsystem.parentSubsystemId,
                 )
               : null;
+            const subsystemDescription = subsystem.description.trim();
             const subsystemMechanisms = [...bootstrap.mechanisms]
               .filter((mechanism) => mechanism.subsystemId === subsystem.id)
               .sort((left, right) => left.name.localeCompare(right.name));
@@ -286,14 +289,18 @@ export function SubsystemsView({
                 >
                   <TableCell label="Subsystem">
                     <span className="subsystem-cell-meta">
-                      <strong>{subsystem.name}</strong>
-                      <small>{subsystem.description}</small>
-                      <small>Iteration {subsystem.iteration}</small>
-                      <small>
-                        {subsystem.parentSubsystemId
-                          ? `Parent: ${parentSubsystem?.name ?? "Unknown"}`
-                          : "Parent: No parent (root)"}
-                      </small>
+                      <strong className="subsystem-cell-title">{subsystem.name}</strong>
+                      {subsystemDescription ? (
+                        <span className="subsystem-cell-description">{subsystemDescription}</span>
+                      ) : null}
+                      <span className="subsystem-cell-details" aria-label="Subsystem metadata">
+                        <small>Iteration {subsystem.iteration}</small>
+                        <small>
+                          {subsystem.parentSubsystemId
+                            ? `Parent: ${parentSubsystem?.name ?? "Unknown"}`
+                            : "Root subsystem"}
+                        </small>
+                      </span>
                     </span>
                   </TableCell>
                   <TableCell label="Lead">

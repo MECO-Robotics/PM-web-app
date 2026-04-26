@@ -16,6 +16,7 @@ import {
   SearchToolbarInput,
   TableCell,
   filterSelectionIncludes,
+  useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
@@ -123,6 +124,11 @@ export function ArtifactInventoryView({
     });
   }, [artifactKinds, artifacts, search, statusFilter, workstreamFilter]);
   const artifactPagination = useWorkspacePagination(filteredArtifacts);
+  const artifactFilterMotionClass = useFilterChangeMotionClass([
+    search,
+    statusFilter,
+    workstreamFilter,
+  ]);
 
   const sectionTitle = title ?? "Documents";
   const addLabel = "Add document";
@@ -177,7 +183,7 @@ export function ArtifactInventoryView({
         </div>
       </div>
 
-      <div className="table-shell">
+      <div className={`table-shell ${artifactFilterMotionClass}`}>
         <div
           className="ops-table ops-table-header materials-table"
           style={{ "--workspace-grid-template": ARTIFACT_GRID_TEMPLATE } as CSSProperties}

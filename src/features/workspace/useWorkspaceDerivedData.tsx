@@ -50,6 +50,11 @@ export function useWorkspaceDerivedData({
     [bootstrap.members],
   );
 
+  const externalMembers = useMemo(
+    () => bootstrap.members.filter((member) => member.role === "external"),
+    [bootstrap.members],
+  );
+
   const membersById = useMemo(() => recordById(bootstrap.members), [bootstrap.members]);
   const subsystemsById = useMemo(() => recordById(bootstrap.subsystems), [bootstrap.subsystems]);
   const disciplinesById = useMemo(() => recordById(bootstrap.disciplines), [bootstrap.disciplines]);
@@ -178,6 +183,7 @@ export function useWorkspaceDerivedData({
     cncItems,
     disciplinesById,
     eventsById,
+    externalMembers,
     fabricationItems,
     mechanismsById,
     mentors,

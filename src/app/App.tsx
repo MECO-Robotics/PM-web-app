@@ -31,6 +31,7 @@ import {
   buildEmptySubsystemPayload,
   buildEmptyTaskPayload,
   buildEmptyWorkstreamPayload,
+  findMemberForSessionUser,
   joinList,
   mechanismToPayload,
   manufacturingToPayload,
@@ -463,6 +464,14 @@ export default function App() {
     () => scopeBootstrapBySelection(bootstrap, selectedSeasonId, selectedProjectId),
     [bootstrap, selectedProjectId, selectedSeasonId],
   );
+  const signedInMember = useMemo(
+    () => findMemberForSessionUser(scopedBootstrap.members, sessionUser),
+    [scopedBootstrap.members, sessionUser],
+  );
+  const isMyViewActive =
+    Boolean(signedInMember) &&
+    activePersonFilter.length === 1 &&
+    activePersonFilter[0] === signedInMember?.id;
   const selectedProject = useMemo(
     () =>
       projectsInSelectedSeason.find((project) => project.id === selectedProjectId) ?? null,
@@ -516,6 +525,7 @@ export default function App() {
     cncItems,
     disciplinesById,
     eventsById,
+    externalMembers,
     fabricationItems,
     mechanismsById,
     mentors,
@@ -568,6 +578,19 @@ export default function App() {
         : null,
     );
   }, []);
+
+  const toggleMyView = useCallback(() => {
+    if (!signedInMember) {
+      return;
+    }
+
+    setDataMessage(null);
+    setActivePersonFilter((current) =>
+      current.length === 1 && current[0] === signedInMember.id
+        ? []
+        : [signedInMember.id],
+    );
+  }, [signedInMember]);
 
   const loadWorkspace = useCallback(async () => {
     setIsLoadingData(true);
@@ -1225,19 +1248,48 @@ export default function App() {
           )
         : null;
 
-      if (manufacturingDraft.process !== "fabrication" && !selectedPartDefinition) {
+      if (!selectedPartDefinition) {
         setDataMessage(
-          "Please choose a real part from the Parts tab before saving the CNC or 3D print job.",
+          "Please choose a real part from the Parts tab before saving the manufacturing job.",
         );
         return;
       }
 
+      const selectedPartInstanceIds =
+        manufacturingDraft.partInstanceIds.length > 0
+          ? manufacturingDraft.partInstanceIds
+          : manufacturingDraft.partInstanceId
+            ? [manufacturingDraft.partInstanceId]
+            : [];
+      const selectedPartInstances = selectedPartInstanceIds
+        .map((partInstanceId) =>
+          bootstrap.partInstances.find((partInstance) => partInstance.id === partInstanceId),
+        )
+        .filter((partInstance): partInstance is BootstrapPayload["partInstances"][number] => {
+          if (!partInstance) {
+            return false;
+          }
+
+          return (
+            !selectedPartDefinition ||
+            partInstance.partDefinitionId === selectedPartDefinition.id
+          );
+        });
+
+      if (selectedPartInstances.length === 0) {
+        setDataMessage("Select at least one part instance for this manufacturing job.");
+        return;
+      }
+
+      const primaryPartInstance = selectedPartInstances[0] ?? null;
+
       const payload: ManufacturingItemPayload = {
         ...manufacturingDraft,
-        title:
-          manufacturingDraft.process === "fabrication"
-            ? manufacturingDraft.title
-            : selectedPartDefinition?.name ?? manufacturingDraft.title,
+        subsystemId: primaryPartInstance?.subsystemId ?? manufacturingDraft.subsystemId,
+        title: selectedPartDefinition.name,
+        partInstanceId: primaryPartInstance?.id ?? null,
+        partInstanceIds: selectedPartInstances.map((partInstance) => partInstance.id),
+        inHouse: manufacturingDraft.process === "cnc" ? manufacturingDraft.inHouse : false,
         batchLabel: manufacturingDraft.batchLabel?.trim() || undefined,
       };
 
@@ -1909,6 +1961,8 @@ export default function App() {
           isLoadingData={isLoadingData}
           loadWorkspace={loadWorkspace}
           manufacturingView={manufacturingView}
+          isMyViewActive={isMyViewActive}
+          myViewMemberName={signedInMember?.name ?? null}
           sessionUser={sessionUser}
           isNonRobotProject={isNonRobotProject}
           setInventoryView={setInventoryView}
@@ -1921,6 +1975,7 @@ export default function App() {
           onCreateRobot={handleCreateRobot}
           onEditSelectedRobot={handleEditSelectedRobot}
           onSelectProject={setSelectedProjectId}
+          onToggleMyView={toggleMyView}
           isDarkMode={isDarkMode}
           toggleDarkMode={toggleDarkMode}
           toggleSidebar={toggleSidebar}
@@ -2125,6 +2180,7 @@ export default function App() {
           students={students}
           disciplinesById={disciplinesById}
           eventsById={eventsById}
+          externalMembers={externalMembers}
           mechanismsById={mechanismsById}
           partDefinitionsById={partDefinitionsById}
           partInstancesById={partInstancesById}

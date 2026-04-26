@@ -15,7 +15,7 @@ import type {
   TaskViewTab,
   ViewTab,
 } from "@/features/workspace";
-import { IconEdit, IconRefresh } from "@/components/shared";
+import { IconEdit, IconEye, IconRefresh } from "@/components/shared";
 
 const ADD_ROBOT_PROJECT_VALUE = "__add_robot_project__";
 
@@ -165,10 +165,12 @@ interface AppTopbarProps {
   inventoryView: InventoryViewTab;
   isLoadingData: boolean;
   isDarkMode: boolean;
+  isMyViewActive: boolean;
   isNonRobotProject: boolean;
   isSidebarCollapsed: boolean;
   loadWorkspace: () => Promise<void>;
   manufacturingView: ManufacturingViewTab;
+  myViewMemberName: string | null;
   sessionUser: SessionUser | null;
   setInventoryView: Dispatch<SetStateAction<InventoryViewTab>>;
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
@@ -180,6 +182,7 @@ interface AppTopbarProps {
   onCreateRobot: () => void;
   onEditSelectedRobot: () => void;
   onSelectProject: (projectId: string | null) => void;
+  onToggleMyView: () => void;
   toggleDarkMode: () => void;
   toggleSidebar: () => void;
 }
@@ -190,10 +193,12 @@ export function AppTopbar({
   inventoryView,
   isLoadingData,
   isDarkMode,
+  isMyViewActive,
   isNonRobotProject,
   isSidebarCollapsed,
   loadWorkspace,
   manufacturingView,
+  myViewMemberName,
   sessionUser,
   setInventoryView,
   setManufacturingView,
@@ -205,6 +210,7 @@ export function AppTopbar({
   onCreateRobot,
   onEditSelectedRobot,
   onSelectProject,
+  onToggleMyView,
   toggleDarkMode,
   toggleSidebar,
 }: AppTopbarProps) {
@@ -302,6 +308,29 @@ export function AppTopbar({
       </div>
 
       <div className="topbar-right app-topbar-right">
+        <button
+          aria-label={isMyViewActive ? "Clear My View filter" : "Show My View filter"}
+          aria-pressed={isMyViewActive}
+          className={
+            isMyViewActive
+              ? "app-topbar-my-view-button is-active"
+              : "app-topbar-my-view-button"
+          }
+          disabled={!myViewMemberName}
+          onClick={onToggleMyView}
+          title={
+            myViewMemberName
+              ? isMyViewActive
+                ? `Showing ${myViewMemberName}`
+                : `Filter workspace to ${myViewMemberName}`
+              : "No roster member matches the signed-in user"
+          }
+          type="button"
+        >
+          <IconEye />
+          <span>My View</span>
+        </button>
+
         {sessionUser ? (
           <div className="profile-menu">
             <button

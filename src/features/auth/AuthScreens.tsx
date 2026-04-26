@@ -95,11 +95,11 @@ function AuthIntroPanel({
 }) {
   const authIntroLine =
     hasEmailSignIn && hasGoogleSignIn
-      ? "Sign in with Google SSO or MECO email."
+      ? "Sign in with Google SSO, MECO email, or roster-approved external email."
       : hasGoogleSignIn
         ? "Sign in with Google SSO."
         : hasEmailSignIn
-          ? "Sign in with your MECO email."
+          ? "Sign in with your MECO email or roster-approved external email."
           : "No sign-in methods are currently configured.";
 
   return (
@@ -159,7 +159,7 @@ export function SignInScreen({
     ? "Login is hidden on detected mobile devices. Install the latest iOS or Android build from PM mobile app releases."
     :
     hasEmailSignIn && hasGoogleSignIn
-      ? "Both sign-in options are shown below. Use Google SSO or request a verified MECO email code."
+      ? "Both sign-in options are shown below. Use Google SSO or request a verified email code."
       : hasGoogleSignIn
         ? "Google SSO is available below. Email code sign-in is not configured on this server."
         : hasEmailSignIn
@@ -437,7 +437,7 @@ function EmailAuthPanel({
     <section className="auth-panel" aria-label="Email code">
       <div className="auth-panel-copy">
         <p className="auth-panel-eyebrow">Email code</p>
-        <h2>Use your MECO email to request a one-time code.</h2>
+        <h2>Use your MECO or roster-approved external email.</h2>
       </div>
 
       <form className="auth-form" onSubmit={handleRequestCode}>
@@ -451,7 +451,7 @@ function EmailAuthPanel({
               setCode("");
               setDelivery(null);
             }}
-            placeholder={`you@${hostedDomain}`}
+            placeholder={`you@${hostedDomain} or external@example.org`}
             type="email"
             value={email}
           />

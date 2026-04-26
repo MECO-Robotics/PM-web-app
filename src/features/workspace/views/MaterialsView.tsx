@@ -11,6 +11,7 @@ import {
   SearchToolbarInput,
   TableCell,
   filterSelectionIncludes,
+  useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
 import { getStatusPillClassName } from "@/features/workspace/shared";
@@ -50,6 +51,11 @@ export function MaterialsView({
     });
   }, [bootstrap.materials, category, search, stock]);
   const materialPagination = useWorkspacePagination(filteredMaterials);
+  const materialsFilterMotionClass = useFilterChangeMotionClass([
+    category,
+    search,
+    stock,
+  ]);
 
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
@@ -100,7 +106,7 @@ export function MaterialsView({
         </div>
       </div>
 
-      <div className="table-shell">
+      <div className={`table-shell ${materialsFilterMotionClass}`}>
         <div
           className="ops-table ops-table-header materials-table"
           style={{ "--workspace-grid-template": MATERIALS_GRID_TEMPLATE } as CSSProperties}

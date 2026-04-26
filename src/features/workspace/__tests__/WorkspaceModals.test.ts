@@ -4,13 +4,14 @@ import * as React from "react";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  ManufacturingEditorModal,
   MechanismEditorModal,
   PartDefinitionEditorModal,
   SubsystemEditorModal,
   TaskEditorModal,
 } from "@/features/workspace/WorkspaceModals";
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
-import { buildEmptyTaskPayload } from "@/lib/appUtils";
+import { buildEmptyManufacturingPayload, buildEmptyTaskPayload } from "@/lib/appUtils";
 import type { BootstrapPayload, TaskRecord } from "@/types";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -191,6 +192,90 @@ function renderIterationEditors() {
   ].join("");
 }
 
+function renderManufacturingModal(process: "cnc" | "3d-print" | "fabrication") {
+  const bootstrap = createBootstrap();
+
+  return renderToStaticMarkup(
+    React.createElement(ManufacturingEditorModal, {
+      bootstrap,
+      closeManufacturingModal: jest.fn(),
+      handleManufacturingSubmit: jest.fn(),
+      isSavingManufacturing: false,
+      manufacturingDraft: {
+        ...buildEmptyManufacturingPayload(bootstrap, process),
+        process,
+      },
+      manufacturingModalMode: "create",
+      setManufacturingDraft: jest.fn(),
+    }),
+  );
+}
+
+function renderManufacturingModalWithPartInstances(process: "cnc" | "3d-print" | "fabrication") {
+  const bootstrap: BootstrapPayload = {
+    ...createBootstrap(),
+    mechanisms: [
+      {
+        id: "mechanism-1",
+        subsystemId: "subsystem-1",
+        name: "Gearbox",
+        description: "",
+        iteration: 1,
+      },
+    ],
+    materials: [
+      {
+        id: "material-1",
+        name: "Aluminum 6061",
+        category: "metal",
+        unit: "bar",
+        onHandQuantity: 4,
+        reorderPoint: 1,
+        location: "Rack",
+        vendor: "",
+        notes: "",
+      },
+    ],
+    partDefinitions: [
+      {
+        id: "part-definition-1",
+        name: "Bearing Block",
+        partNumber: "BB-001",
+        revision: "A",
+        iteration: 1,
+        type: "custom",
+        source: "Onshape",
+        materialId: "material-1",
+        description: "",
+      },
+    ],
+    partInstances: [
+      {
+        id: "part-instance-1",
+        subsystemId: "subsystem-1",
+        mechanismId: "mechanism-1",
+        partDefinitionId: "part-definition-1",
+        name: "Left Bearing Block",
+        quantity: 2,
+        trackIndividually: false,
+        status: "planned",
+      },
+    ],
+  };
+
+  return renderToStaticMarkup(
+    React.createElement(ManufacturingEditorModal, {
+      bootstrap,
+      closeManufacturingModal: jest.fn(),
+      handleManufacturingSubmit: jest.fn(),
+      isSavingManufacturing: false,
+      manufacturingDraft: buildEmptyManufacturingPayload(bootstrap, process),
+      manufacturingModalMode: "create",
+      setManufacturingDraft: jest.fn(),
+    }),
+  );
+}
+
 describe("TaskEditorModal", () => {
   it("hides actual hours while creating a task", () => {
     expect(renderTaskModal("create")).not.toContain("Actual hours");
@@ -228,5 +313,25 @@ describe("TaskEditorModal", () => {
     expect(markup).toContain("Subsystem iteration");
     expect(markup).toContain("Mechanism iteration");
     expect(markup).toContain("Iteration 1");
+  });
+
+  it("renders the in-house checkbox only for CNC manufacturing jobs", () => {
+    expect(renderManufacturingModal("cnc")).toContain("In-house");
+    expect(renderManufacturingModal("3d-print")).not.toContain("In-house");
+    expect(renderManufacturingModal("fabrication")).not.toContain("In-house");
+  });
+
+  it("starts manufacturing creation with part definition and scoped part instances", () => {
+    (["cnc", "3d-print", "fabrication"] as const).forEach((process) => {
+      const markup = renderManufacturingModalWithPartInstances(process);
+
+      expect(markup.indexOf("Part definition")).toBeGreaterThan(-1);
+      expect(markup.indexOf("Part definition")).toBeLessThan(markup.indexOf("Requester"));
+      expect(markup).toContain("Part instances");
+      expect(markup).toContain("Drive / Gearbox");
+      expect(markup).not.toContain(">Title</span>");
+      expect(markup).not.toContain(">Subsystem</span>");
+      expect(markup).not.toContain(">Process</span>");
+    });
   });
 });

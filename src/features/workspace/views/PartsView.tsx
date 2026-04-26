@@ -11,6 +11,7 @@ import {
   SearchToolbarInput,
   TableCell,
   filterSelectionIncludes,
+  useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
 import { getStatusPillClassName } from "@/features/workspace/shared";
@@ -26,6 +27,50 @@ interface PartsViewProps {
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
 }
 
+export function filterPartDefinitions({
+  bootstrap,
+  partSearch,
+  partStatus,
+  partSubsystem,
+}: {
+  bootstrap: BootstrapPayload;
+  partSearch: string;
+  partStatus: FilterSelection;
+  partSubsystem: FilterSelection;
+}) {
+  const search = partSearch.trim().toLowerCase();
+  const hasInstanceFilters = partSubsystem.length > 0 || partStatus.length > 0;
+
+  return bootstrap.partDefinitions.filter((partDefinition) => {
+    const materialName = partDefinition.materialId
+      ? bootstrap.materials.find((material) => material.id === partDefinition.materialId)?.name ?? ""
+      : "";
+    const matchesSearch =
+      !search ||
+      partDefinition.name.toLowerCase().includes(search) ||
+      partDefinition.partNumber.toLowerCase().includes(search) ||
+      `iteration ${partDefinition.iteration}`.includes(search) ||
+      partDefinition.type.toLowerCase().includes(search) ||
+      partDefinition.source.toLowerCase().includes(search) ||
+      materialName.toLowerCase().includes(search);
+
+    if (!matchesSearch) {
+      return false;
+    }
+
+    if (!hasInstanceFilters) {
+      return true;
+    }
+
+    return bootstrap.partInstances.some(
+      (partInstance) =>
+        partInstance.partDefinitionId === partDefinition.id &&
+        filterSelectionIncludes(partSubsystem, partInstance.subsystemId) &&
+        filterSelectionIncludes(partStatus, partInstance.status),
+    );
+  });
+}
+
 export function PartsView({
   bootstrap,
   openCreatePartDefinitionModal,
@@ -38,24 +83,21 @@ export function PartsView({
   const [partSubsystem, setPartSubsystem] = useState<FilterSelection>([]);
   const [partStatus, setPartStatus] = useState<FilterSelection>([]);
 
-  const filteredPartDefinitions = useMemo(() => {
-    const search = partSearch.toLowerCase();
-    return bootstrap.partDefinitions.filter((partDefinition) => {
-      const materialName = partDefinition.materialId
-        ? bootstrap.materials.find((material) => material.id === partDefinition.materialId)?.name ?? ""
-        : "";
-
-      return (
-        !search ||
-        partDefinition.name.toLowerCase().includes(search) ||
-        partDefinition.partNumber.toLowerCase().includes(search) ||
-        `iteration ${partDefinition.iteration}`.includes(search) ||
-        partDefinition.type.toLowerCase().includes(search) ||
-        partDefinition.source.toLowerCase().includes(search) ||
-        materialName.toLowerCase().includes(search)
-      );
-    });
-  }, [bootstrap.materials, bootstrap.partDefinitions, partSearch]);
+  const filteredPartDefinitions = useMemo(
+    () =>
+      filterPartDefinitions({
+        bootstrap,
+        partSearch,
+        partStatus,
+        partSubsystem,
+      }),
+    [
+      bootstrap,
+      partSearch,
+      partStatus,
+      partSubsystem,
+    ],
+  );
 
   const filteredPartInstances = useMemo(() => {
     const search = partSearch.toLowerCase();
@@ -77,6 +119,16 @@ export function PartsView({
   }, [bootstrap.partInstances, mechanismsById, partDefinitionsById, partSearch, partStatus, partSubsystem]);
   const partDefinitionPagination = useWorkspacePagination(filteredPartDefinitions);
   const partInstancePagination = useWorkspacePagination(filteredPartInstances);
+  const partDefinitionFilterMotionClass = useFilterChangeMotionClass([
+    partSearch,
+    partStatus,
+    partSubsystem,
+  ]);
+  const partInstanceFilterMotionClass = useFilterChangeMotionClass([
+    partSearch,
+    partStatus,
+    partSubsystem,
+  ]);
 
   return (
     <section className={`panel dense-panel part-manager-shell ${WORKSPACE_PANEL_CLASS}`}>
@@ -128,7 +180,7 @@ export function PartsView({
       </div>
 
       <div className="panel-subsection">
-        <div className="table-shell">
+        <div className={`table-shell ${partDefinitionFilterMotionClass}`}>
           <div
             className="ops-table ops-table-header"
             style={{ "--workspace-grid-template": "minmax(180px, 2fr) 1fr 0.6fr 0.7fr 0.8fr 1fr" } as CSSProperties}
@@ -197,7 +249,7 @@ export function PartsView({
         <div className="roster-section-header">
           <h3>Part instances</h3>
         </div>
-        <div className="table-shell">
+        <div className={`table-shell ${partInstanceFilterMotionClass}`}>
           <div
             className="ops-table ops-table-header"
             style={{ "--workspace-grid-template": "minmax(180px, 2fr) 1fr 1fr 1fr 0.5fr 0.8fr" } as CSSProperties}

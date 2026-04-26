@@ -22,6 +22,7 @@ interface RosterViewProps {
     isDeletingMember: boolean;
     students: MemberRecord[];
     rosterMentors: MemberRecord[];
+    externalMembers: MemberRecord[];
 }
 
 export const RosterView: React.FC<RosterViewProps> = ({
@@ -43,6 +44,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
     isDeletingMember,
     students,
     rosterMentors,
+    externalMembers,
 }) => {
     const isLeadStudent = (member: MemberRecord) => member.role === "lead" || (member.role === "student" && member.elevated);
     const isAdminMentor = (member: MemberRecord) => member.role === "admin" || (member.role === "mentor" && member.elevated);
@@ -54,6 +56,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
         const priority = Number(isAdminMentor(b)) - Number(isAdminMentor(a));
         return priority !== 0 ? priority : a.name.localeCompare(b.name);
     });
+    const sortedExternalMembers = [...externalMembers].sort((a, b) => a.name.localeCompare(b.name));
     const getRoleBadge = (member: MemberRecord): { label: "L" | "C"; title: string } | null => {
         if (isLeadStudent(member)) {
             return { label: "L", title: "Lead student" };
@@ -64,6 +67,8 @@ export const RosterView: React.FC<RosterViewProps> = ({
         return null;
     };
     const isElevatedRole = (role: MemberPayload["role"]) => role === "lead" || role === "admin";
+    const getEmailPlaceholder = (role: MemberPayload["role"]) =>
+        role === "external" ? "name@example.org" : "name@mecorobotics.org";
 
     const openAddPersonPanel = (role: MemberPayload["role"]) => {
         setMemberForm({ name: "", email: "", role, elevated: isElevatedRole(role) });
@@ -120,7 +125,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
             <div className="panel-header compact-header">
                 <div className="queue-section-header">
                     <h2>Roster</h2>
-                    <p className="section-copy">Manage team members, permissions, and roles.</p>
+                    <p className="section-copy">Manage team members, external access, and roles.</p>
                 </div>
             </div>
             <div className="roster-columns">
@@ -149,6 +154,19 @@ export const RosterView: React.FC<RosterViewProps> = ({
                         {sortedMentors.map(renderMemberRow)}
                     </div>
                 </div>
+
+                <div className="panel-subsection">
+                    <div className="roster-section-header">
+                        <div className="roster-section-title">
+                            <h3>External access</h3>
+                            <span className="sidebar-tab-count">{sortedExternalMembers.length}</span>
+                        </div>
+                        <button className="roster-section-add" onClick={() => openAddPersonPanel("external")} type="button"><IconPlus /></button>
+                    </div>
+                    <div className="roster-list">
+                        {sortedExternalMembers.map(renderMemberRow)}
+                    </div>
+                </div>
             </div>
 
             {isAddPersonOpen ? (
@@ -175,7 +193,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                             </label>
                             <label className="field">
                                 <span>Email</span>
-                                <input onChange={(e) => setMemberForm((curr) => ({ ...curr, email: e.target.value }))} placeholder="name@mecorobotics.org" type="email" value={memberForm.email} />
+                                <input onChange={(e) => setMemberForm((curr) => ({ ...curr, email: e.target.value }))} placeholder={getEmailPlaceholder(memberForm.role)} type="email" value={memberForm.email} />
                             </label>
                             <label className="field">
                                 <span>Role</span>
@@ -187,6 +205,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                                     <option value="lead">Lead</option>
                                     <option value="mentor">Mentor</option>
                                     <option value="admin">Admin</option>
+                                    <option value="external">External access</option>
                                 </select>
                             </label>
                             <div className="modal-actions modal-wide">
@@ -222,7 +241,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                             </label>
                             <label className="field">
                                 <span>Email</span>
-                                <input onChange={(e) => setMemberEditDraft(curr => curr ? { ...curr, email: e.target.value } : null)} placeholder="name@mecorobotics.org" type="email" value={memberEditDraft.email} />
+                                <input onChange={(e) => setMemberEditDraft(curr => curr ? { ...curr, email: e.target.value } : null)} placeholder={getEmailPlaceholder(memberEditDraft.role)} type="email" value={memberEditDraft.email} />
                             </label>
                             <label className="field">
                                 <span>Role</span>
@@ -234,6 +253,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                                     <option value="lead">Lead</option>
                                     <option value="mentor">Mentor</option>
                                     <option value="admin">Admin</option>
+                                    <option value="external">External access</option>
                                 </select>
                             </label>
                             <div className="modal-actions modal-wide">

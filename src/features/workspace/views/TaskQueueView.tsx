@@ -20,6 +20,7 @@ import {
   filterSelectionIntersects,
   filterSelectionMatchesTaskPeople,
   formatFilterSelectionLabel,
+  useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
 import { getStatusPillClassName } from "@/features/workspace/shared";
@@ -247,6 +248,18 @@ export function TaskQueueView({
     subsystemsById,
   ]);
   const taskPagination = useWorkspacePagination(processedTasks);
+  const taskFilterMotionClass = useFilterChangeMotionClass([
+    activePersonFilter,
+    isAllProjectsView,
+    ownerFilter,
+    priorityFilter,
+    projectFilter,
+    searchFilter,
+    sortField,
+    sortOrder,
+    statusFilter,
+    subsystemFilter,
+  ]);
 
   const toggleSort = (field: TaskSortField) => {
     if (sortField === field) {
@@ -362,7 +375,7 @@ export function TaskQueueView({
         </div>
       </div>
 
-      <div className="table-shell">
+      <div className={`table-shell ${taskFilterMotionClass}`}>
         <div
           className="queue-table queue-table-header"
           style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}

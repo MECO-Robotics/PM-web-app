@@ -826,12 +826,20 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
       ...item,
       partDefinitionId: item.partDefinitionId ?? null,
     })),
-    manufacturingItems: (source.manufacturingItems ?? []).map((item) => ({
-      ...item,
-      materialId: item.materialId ?? null,
-      partDefinitionId: item.partDefinitionId ?? null,
-      partInstanceId: item.partInstanceId ?? null,
-    })),
+    manufacturingItems: (source.manufacturingItems ?? []).map((item) => {
+      const partInstanceIds = item.partInstanceIds?.length
+        ? uniqueIds(item.partInstanceIds)
+        : uniqueIds([item.partInstanceId]);
+
+      return {
+        ...item,
+        materialId: item.materialId ?? null,
+        partDefinitionId: item.partDefinitionId ?? null,
+        partInstanceId: partInstanceIds[0] ?? null,
+        partInstanceIds,
+        inHouse: item.process === "cnc" ? item.inHouse ?? true : false,
+      };
+    }),
   };
 }
 

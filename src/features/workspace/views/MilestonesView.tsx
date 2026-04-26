@@ -17,6 +17,7 @@ import {
   TableCell,
   filterSelectionIncludes,
   filterSelectionIntersects,
+  useFilterChangeMotionClass,
 } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import {
@@ -337,6 +338,14 @@ export function MilestonesView({
     subsystemsById,
     typeFilter,
   ]);
+  const milestoneFilterMotionClass = useFilterChangeMotionClass([
+    isAllProjectsView,
+    projectFilter,
+    searchFilter,
+    sortField,
+    sortOrder,
+    typeFilter,
+  ]);
 
   const closeEventModal = () => {
     setEventModalMode(null);
@@ -551,7 +560,7 @@ export function MilestonesView({
         </div>
       </div>
 
-      <div className="table-shell">
+      <div className={`table-shell ${milestoneFilterMotionClass}`}>
         <div
           className="queue-table queue-table-header"
           style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}

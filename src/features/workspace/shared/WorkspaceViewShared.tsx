@@ -15,7 +15,9 @@ import type {
 const PAGE_SIZE_OPTIONS = [15, 30, 60] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 const DEFAULT_PAGE_SIZE: PageSizeOption = PAGE_SIZE_OPTIONS[0];
+const FILTER_CHANGE_ANIMATION_DURATION_MS = 220;
 export type FilterSelection = string[];
+type FilterMotionPart = boolean | number | string | null | undefined | readonly string[];
 
 function normalizePageSize(value: number): PageSizeOption {
   return PAGE_SIZE_OPTIONS.includes(value as PageSizeOption)
@@ -95,6 +97,32 @@ export function filterSelectionIntersects(selection: FilterSelection, values: st
   return selection.length === 0 || values.some((value) => selection.includes(value));
 }
 
+export function pruneFilterSelection(selection: FilterSelection, options: DropdownOption[]) {
+  if (selection.length === 0) {
+    return selection;
+  }
+
+  const optionIds = new Set(options.map((option) => option.id));
+  return selection.filter((selectedValue) => optionIds.has(selectedValue));
+}
+
+function areFilterSelectionsEqual(left: FilterSelection, right: FilterSelection) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function usePrunedFilterSelection(
+  value: FilterSelection,
+  options: DropdownOption[],
+  onChange: (value: FilterSelection) => void,
+) {
+  useEffect(() => {
+    const prunedValue = pruneFilterSelection(value, options);
+    if (!areFilterSelectionsEqual(value, prunedValue)) {
+      onChange(prunedValue);
+    }
+  }, [onChange, options, value]);
+}
+
 export function getTaskPersonFilterIds(task: TaskRecord) {
   const assigneeIds = Array.isArray(task.assigneeIds) ? task.assigneeIds : [];
   const candidateIds = [
@@ -108,6 +136,60 @@ export function getTaskPersonFilterIds(task: TaskRecord) {
 
 export function filterSelectionMatchesTaskPeople(selection: FilterSelection, task: TaskRecord) {
   return filterSelectionIntersects(selection, getTaskPersonFilterIds(task));
+}
+
+function serializeFilterMotionPart(part: FilterMotionPart) {
+  if (Array.isArray(part)) {
+    return `[${part.join(",")}]`;
+  }
+
+  return `${part ?? ""}`;
+}
+
+export function useFilterChangeMotionClass(parts: readonly FilterMotionPart[]) {
+  const signature = parts.map(serializeFilterMotionPart).join("||");
+  const previousSignatureRef = useRef(signature);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    if (previousSignatureRef.current === signature) {
+      return;
+    }
+
+    previousSignatureRef.current = signature;
+    setIsAnimating(false);
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    let timeoutId: number | undefined;
+    const startAnimation = () => {
+      setIsAnimating(true);
+      timeoutId = window.setTimeout(
+        () => setIsAnimating(false),
+        FILTER_CHANGE_ANIMATION_DURATION_MS,
+      );
+    };
+    const hasAnimationFrame = typeof window.requestAnimationFrame === "function";
+    const startId = hasAnimationFrame
+      ? window.requestAnimationFrame(startAnimation)
+      : window.setTimeout(startAnimation, 0);
+
+    return () => {
+      if (hasAnimationFrame) {
+        window.cancelAnimationFrame(startId);
+      } else {
+        window.clearTimeout(startId);
+      }
+
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [signature]);
+
+  return `filter-results-motion${isAnimating ? " is-filtering" : ""}`;
 }
 
 function toggleFilterSelection(selection: FilterSelection, value: string) {
@@ -215,6 +297,7 @@ export function FilterDropdown({
   const menuId = useId();
   const isActive = value.length > 0;
   const selectedLabel = formatFilterSelectionLabel(allLabel, options, value);
+  usePrunedFilterSelection(value, options, onChange);
 
   useEffect(() => {
     if (!isOpen || typeof document === "undefined") {
@@ -294,6 +377,7 @@ export function ColumnFilterDropdown({
   const menuId = useId();
   const isActive = value.length > 0;
   const selectedLabel = formatFilterSelectionLabel(allLabel, options, value);
+  usePrunedFilterSelection(value, options, onChange);
 
   useEffect(() => {
     if (!isOpen || typeof document === "undefined") {

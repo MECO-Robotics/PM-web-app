@@ -47,6 +47,7 @@ export function CncView({
       membersById={membersById}
       onCreate={onCreate}
       onEdit={onEdit}
+      showInHouseColumn
       subsystemsById={subsystemsById}
       title="CNC queue"
     />

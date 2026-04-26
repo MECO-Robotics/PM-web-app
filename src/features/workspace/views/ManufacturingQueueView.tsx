@@ -13,6 +13,7 @@ import {
   SearchToolbarInput,
   TableCell,
   filterSelectionIncludes,
+  useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
 import { getStatusPillClassName } from "@/features/workspace/shared";
@@ -30,6 +31,7 @@ interface ManufacturingQueueViewProps {
   membersById: MembersById;
   onCreate: () => void;
   onEdit: (item: ManufacturingItemRecord) => void;
+  showInHouseColumn?: boolean;
   subsystemsById: SubsystemsById;
   title: string;
 }
@@ -44,6 +46,7 @@ export function ManufacturingQueueView({
   membersById,
   onCreate,
   onEdit,
+  showInHouseColumn = false,
   subsystemsById,
   title,
 }: ManufacturingQueueViewProps) {
@@ -85,8 +88,18 @@ export function ManufacturingQueueView({
     });
   }, [activePersonFilter, items, material, requester, search, status, subsystem]);
   const manufacturingPagination = useWorkspacePagination(filteredItems);
+  const manufacturingFilterMotionClass = useFilterChangeMotionClass([
+    activePersonFilter,
+    material,
+    requester,
+    search,
+    status,
+    subsystem,
+  ]);
 
-  const gridTemplate = "minmax(200px, 2.5fr) 1fr 0.6fr 1fr 1fr 1fr 1fr";
+  const gridTemplate = showInHouseColumn
+    ? "minmax(200px, 2.5fr) 1fr 0.6fr 1fr 1fr 1fr 1fr 1fr"
+    : "minmax(200px, 2.5fr) 1fr 0.6fr 1fr 1fr 1fr 1fr";
 
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
@@ -157,7 +170,7 @@ export function ManufacturingQueueView({
         </div>
       </div>
 
-      <div className="table-shell">
+      <div className={`table-shell ${manufacturingFilterMotionClass}`}>
         <div
           className="ops-table ops-table-header manufacturing-table"
           style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
@@ -191,6 +204,7 @@ export function ManufacturingQueueView({
           </span>
           <span>Qty</span>
           <span>Batch</span>
+          {showInHouseColumn ? <span>Source</span> : null}
           <span>Due</span>
           <span className="table-column-header-cell">
             <span className="table-column-title">Status</span>
@@ -219,6 +233,9 @@ export function ManufacturingQueueView({
             <TableCell label="Material">{item.material}</TableCell>
             <TableCell label="Qty">{item.quantity}</TableCell>
             <TableCell label="Batch">{item.batchLabel ?? "Unbatched"}</TableCell>
+            {showInHouseColumn ? (
+              <TableCell label="Source">{item.inHouse ? "In-house" : "Outsourced"}</TableCell>
+            ) : null}
             <TableCell label="Due">{formatDate(item.dueDate)}</TableCell>
             <TableCell label="Status" valueClassName="table-cell-pill">
               <span className={getStatusPillClassName(item.status)}>{item.status.replace("-", " ")}</span>

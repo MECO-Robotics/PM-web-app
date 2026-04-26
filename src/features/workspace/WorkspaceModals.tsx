@@ -17,8 +17,11 @@ import type {
 } from "@/types";
 import {
   buildIterationOptions,
+  getManufacturingPartInstanceOptions,
   getProjectTaskTargetLabel,
+  inferManufacturingDraftFromPartSelection,
   setTaskPrimaryTargetSelection,
+  toggleManufacturingDraftPartInstanceSelection,
   toggleTaskTargetSelection,
   type TaskTargetKind,
 } from "@/lib/appUtils";
@@ -1070,15 +1073,33 @@ export function ManufacturingEditorModal({
   const materialOptions = bootstrap.materials.length > 0
     ? bootstrap.materials
     : COMMON_MATERIALS.map((name) => ({ id: name, name }));
-  const filteredPartInstances = bootstrap.partInstances.filter(
-    (partInstance) => partInstance.subsystemId === manufacturingDraft.subsystemId,
-  );
+  const filteredPartInstances = getManufacturingPartInstanceOptions(bootstrap, manufacturingDraft);
   const selectedPartDefinition = manufacturingDraft.partDefinitionId
     ? bootstrap.partDefinitions.find(
         (partDefinition) => partDefinition.id === manufacturingDraft.partDefinitionId,
       )
     : null;
-  const isPartSelectionRequired = manufacturingDraft.process !== "fabrication";
+  const selectedPartInstanceIds = manufacturingDraft.partInstanceIds.length
+    ? manufacturingDraft.partInstanceIds
+    : manufacturingDraft.partInstanceId
+      ? [manufacturingDraft.partInstanceId]
+      : [];
+  const subsystemsById = Object.fromEntries(
+    bootstrap.subsystems.map((subsystem) => [subsystem.id, subsystem]),
+  ) as Record<string, BootstrapPayload["subsystems"][number]>;
+  const mechanismsById = Object.fromEntries(
+    bootstrap.mechanisms.map((mechanism) => [mechanism.id, mechanism]),
+  ) as Record<string, BootstrapPayload["mechanisms"][number]>;
+  const getPartInstanceSubtitle = (partInstance: BootstrapPayload["partInstances"][number]) =>
+    [
+      subsystemsById[partInstance.subsystemId]?.name ?? "Unknown subsystem",
+      partInstance.mechanismId ? mechanismsById[partInstance.mechanismId]?.name ?? "Unknown mechanism" : null,
+    ].filter(Boolean).join(" / ");
+  const togglePartInstance = (partInstanceId: string) => {
+    setManufacturingDraft((current) =>
+      toggleManufacturingDraftPartInstanceSelection(bootstrap, current, partInstanceId),
+    );
+  };
 
   return (
     <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
@@ -1090,7 +1111,9 @@ export function ManufacturingEditorModal({
               {manufacturingModalMode === "create"
                 ? manufacturingDraft.process === "cnc"
                   ? "Add CNC job"
-                  : "Add 3D print job"
+                  : manufacturingDraft.process === "3d-print"
+                    ? "Add 3D print job"
+                    : "Add fabrication job"
                 : "Edit manufacturing job"}
             </h2>
           </div>
@@ -1100,51 +1123,24 @@ export function ManufacturingEditorModal({
         </div>
         <form className="modal-form" onSubmit={handleManufacturingSubmit} style={{ color: "var(--text-copy)" }}>
           <label className="field modal-wide">
-            <span style={{ color: "var(--text-title)" }}>Title</span>
-            <input
-              onChange={(event) =>
-                setManufacturingDraft((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-              readOnly={isPartSelectionRequired}
-              required={!isPartSelectionRequired}
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={manufacturingDraft.title}
-            />
-            <small style={{ color: "var(--text-copy)" }}>
-              {isPartSelectionRequired
-                ? "CNC and 3D print jobs inherit their title from the selected catalog part."
-                : "Fabrication jobs can still use a freeform title."}
-            </small>
-          </label>
-          <label className="field modal-wide">
-            <span style={{ color: "var(--text-title)" }}>Part</span>
+            <span style={{ color: "var(--text-title)" }}>Part definition</span>
             <select
               onChange={(event) => {
                 const partDefinitionId = event.target.value;
-                const partDefinition = bootstrap.partDefinitions.find(
-                  (candidate) => candidate.id === partDefinitionId,
-                );
 
-                setManufacturingDraft((current) => ({
-                  ...current,
-                  partDefinitionId: partDefinitionId || null,
-                  title: isPartSelectionRequired
-                    ? partDefinition?.name ?? current.title
-                    : current.title,
-                }));
+                setManufacturingDraft((current) =>
+                  inferManufacturingDraftFromPartSelection(
+                    bootstrap,
+                    current,
+                    partDefinitionId,
+                  ),
+                );
               }}
-              required={isPartSelectionRequired}
+              required
               style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
               value={manufacturingDraft.partDefinitionId ?? ""}
             >
-              <option value="">
-                {isPartSelectionRequired
-                  ? "Select a real part from the Parts tab..."
-                  : "Optional for fabrication jobs"}
-              </option>
+              <option value="">Select a real part from the Parts tab...</option>
               {bootstrap.partDefinitions.map((partDefinition) => (
                 <option key={partDefinition.id} value={partDefinition.id}>
                   {partDefinition.partNumber} - {partDefinition.name} (Rev {partDefinition.revision})
@@ -1152,41 +1148,45 @@ export function ManufacturingEditorModal({
               ))}
             </select>
             <small style={{ color: "var(--text-copy)" }}>
-              {isPartSelectionRequired
-                ? selectedPartDefinition
-                  ? `Stored as ${selectedPartDefinition.name}.`
-                  : "CNC and 3D print jobs must be tied to a real part."
-                : selectedPartDefinition
-                  ? "This optional catalog link will not overwrite the fabrication title."
-                  : "Fabrication jobs can stay freeform if they are not tied to a catalog part."}
+              {selectedPartDefinition
+                ? `${selectedPartDefinition.name} will be used as the job title.`
+                : "Choose the catalog part before selecting the instances being made."}
             </small>
           </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Subsystem</span>
-            <select
-              onChange={(event) =>
-                setManufacturingDraft((current) => {
-                  const subsystemId = event.target.value;
-                  return {
-                    ...current,
-                    subsystemId,
-                    partInstanceId:
-                      bootstrap.partInstances.find(
-                        (partInstance) => partInstance.subsystemId === subsystemId,
-                      )?.id ?? null,
-                  };
+          <div className="field modal-wide task-target-picker">
+            <span style={{ color: "var(--text-title)" }}>Part instances</span>
+            <div className="task-target-group">
+              <span className="task-target-group-title">Instances being made</span>
+              {filteredPartInstances.length > 0 ? (
+                filteredPartInstances.map((partInstance) => {
+                  const isSelected = selectedPartInstanceIds.includes(partInstance.id);
+
+                  return (
+                    <label
+                      className={`task-target-option${isSelected ? " is-selected" : ""}`}
+                      key={partInstance.id}
+                    >
+                      <input
+                        checked={isSelected}
+                        onChange={() => togglePartInstance(partInstance.id)}
+                        type="checkbox"
+                      />
+                      <span className="task-target-option-copy">
+                        <span>{partInstance.name}</span>
+                        <small>{getPartInstanceSubtitle(partInstance)}</small>
+                      </span>
+                    </label>
+                  );
                 })
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={manufacturingDraft.subsystemId}
-            >
-              {bootstrap.subsystems.map((subsystem) => (
-                <option key={subsystem.id} value={subsystem.id}>
-                  {subsystem.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              ) : (
+                <span className="task-target-empty">
+                  {selectedPartDefinition
+                    ? "No part instances exist for this part definition yet."
+                    : "Choose a part definition first."}
+                </span>
+              )}
+            </div>
+          </div>
           <label className="field">
             <span style={{ color: "var(--text-title)" }}>Requester</span>
             <select
@@ -1205,23 +1205,6 @@ export function ManufacturingEditorModal({
                   {member.name}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Process</span>
-            <select
-              onChange={(event) =>
-                setManufacturingDraft((current) => ({
-                  ...current,
-                  process: event.target.value as ManufacturingItemPayload["process"],
-                }))
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={manufacturingDraft.process}
-            >
-              <option value="cnc">CNC</option>
-              <option value="3d-print">3D print</option>
-              <option value="fabrication">Fabrication</option>
             </select>
           </label>
           <label className="field">
@@ -1257,26 +1240,6 @@ export function ManufacturingEditorModal({
               <option value="">Select material...</option>
               {materialOptions.map((material) => (
                 <option key={material.id} value={material.id}>{material.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Part instance</span>
-            <select
-              onChange={(event) =>
-                setManufacturingDraft((current) => ({
-                  ...current,
-                  partInstanceId: event.target.value || null,
-                }))
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={manufacturingDraft.partInstanceId ?? ""}
-            >
-              <option value="">No linked part</option>
-              {filteredPartInstances.map((partInstance) => (
-                <option key={partInstance.id} value={partInstance.id}>
-                  {partInstance.name}
-                </option>
               ))}
             </select>
           </label>
@@ -1328,6 +1291,23 @@ export function ManufacturingEditorModal({
               value={manufacturingDraft.batchLabel ?? ""}
             />
           </label>
+          {manufacturingDraft.process === "cnc" ? (
+            <div className="checkbox-row modal-wide">
+              <label className="checkbox-field">
+                <input
+                  checked={manufacturingDraft.inHouse}
+                  onChange={(event) =>
+                    setManufacturingDraft((current) => ({
+                      ...current,
+                      inHouse: event.target.checked,
+                    }))
+                  }
+                  type="checkbox"
+                />
+                <span style={{ color: "var(--text-title)" }}>In-house</span>
+              </label>
+            </div>
+          ) : null}
           <div className="checkbox-row modal-wide">
             <label className="checkbox-field">
               <input

@@ -2,10 +2,14 @@
 
 import {
   buildEmptyArtifactPayload,
+  buildEmptyManufacturingPayload,
   buildEmptyTaskPayload,
   buildEmptyWorkLogPayload,
+  findMemberForSessionUser,
   getDefaultSubsystemId,
+  getManufacturingPartInstanceOptions,
   getProjectTaskTargetLabel,
+  inferManufacturingDraftFromPartSelection,
   joinList,
   setTaskPrimaryTargetSelection,
   splitList,
@@ -269,11 +273,219 @@ describe("appUtils", () => {
     expect(payload.status).toBe("not-started");
   });
 
+  it("buildEmptyManufacturingPayload derives material, subsystem, instance, and quantity from the default part", () => {
+    const partDefinition: PartDefinitionRecord = {
+      id: "part-def-bearing-block",
+      name: "Bearing Block",
+      partNumber: "BB-001",
+      revision: "A",
+      iteration: 1,
+      type: "custom",
+      source: "Onshape",
+      materialId: "material-aluminum",
+      description: "",
+    };
+    const bootstrap = createBootstrap({
+      materials: [
+        {
+          id: "material-polycarbonate",
+          name: "Polycarbonate",
+          category: "plastic",
+          unit: "sheet",
+          onHandQuantity: 1,
+          reorderPoint: 1,
+          location: "Rack",
+          vendor: "",
+          notes: "",
+        },
+        {
+          id: "material-aluminum",
+          name: "Aluminum 6061",
+          category: "metal",
+          unit: "bar",
+          onHandQuantity: 4,
+          reorderPoint: 1,
+          location: "Rack",
+          vendor: "",
+          notes: "",
+        },
+      ],
+      partDefinitions: [partDefinition],
+      partInstances: [
+        {
+          id: "part-instance-unrelated",
+          subsystemId: "subsystem-core",
+          mechanismId: null,
+          partDefinitionId: "part-def-other",
+          name: "Unrelated Part",
+          quantity: 2,
+          trackIndividually: false,
+          status: "planned",
+        },
+        {
+          id: "part-instance-bearing-block",
+          subsystemId: "subsystem-secondary",
+          mechanismId: null,
+          partDefinitionId: partDefinition.id,
+          name: "Shooter Bearing Block",
+          quantity: 4,
+          trackIndividually: false,
+          status: "planned",
+        },
+      ],
+    });
+
+    (["cnc", "3d-print", "fabrication"] as const).forEach((process) => {
+      const payload = buildEmptyManufacturingPayload(bootstrap, process);
+
+      expect(payload.process).toBe(process);
+      expect(payload.title).toBe(partDefinition.name);
+      expect(payload.materialId).toBe("material-aluminum");
+      expect(payload.material).toBe("Aluminum 6061");
+      expect(payload.subsystemId).toBe("subsystem-secondary");
+      expect(payload.partDefinitionId).toBe(partDefinition.id);
+      expect(payload.partInstanceId).toBe("part-instance-bearing-block");
+      expect(payload.partInstanceIds).toEqual(["part-instance-bearing-block"]);
+      expect(payload.quantity).toBe(4);
+      expect(payload.inHouse).toBe(process === "cnc");
+    });
+  });
+
+  it("inferManufacturingDraftFromPartSelection updates an existing draft from the selected part", () => {
+    const partDefinition: PartDefinitionRecord = {
+      id: "part-def-bearing-block",
+      name: "Bearing Block",
+      partNumber: "BB-001",
+      revision: "A",
+      iteration: 1,
+      type: "custom",
+      source: "Onshape",
+      materialId: "material-aluminum",
+      description: "",
+    };
+    const bootstrap = createBootstrap({
+      materials: [
+        {
+          id: "material-aluminum",
+          name: "Aluminum 6061",
+          category: "metal",
+          unit: "bar",
+          onHandQuantity: 4,
+          reorderPoint: 1,
+          location: "Rack",
+          vendor: "",
+          notes: "",
+        },
+      ],
+      partDefinitions: [partDefinition],
+      partInstances: [
+        {
+          id: "part-instance-bearing-block",
+          subsystemId: "subsystem-secondary",
+          mechanismId: null,
+          partDefinitionId: partDefinition.id,
+          name: "Shooter Bearing Block",
+          quantity: 4,
+          trackIndividually: false,
+          status: "planned",
+        },
+      ],
+    });
+
+    const payload = inferManufacturingDraftFromPartSelection(
+      bootstrap,
+      {
+        title: "Old print",
+        subsystemId: "subsystem-core",
+        requestedById: null,
+        process: "3d-print",
+        dueDate: "2026-02-01",
+        material: "PLA",
+        materialId: null,
+        partDefinitionId: null,
+        partInstanceId: null,
+        partInstanceIds: [],
+        quantity: 1,
+        status: "requested",
+        mentorReviewed: false,
+        inHouse: false,
+        batchLabel: "",
+      },
+      partDefinition.id,
+    );
+
+    expect(payload.title).toBe(partDefinition.name);
+    expect(payload.materialId).toBe("material-aluminum");
+    expect(payload.material).toBe("Aluminum 6061");
+    expect(payload.subsystemId).toBe("subsystem-secondary");
+    expect(payload.partInstanceId).toBe("part-instance-bearing-block");
+    expect(payload.quantity).toBe(4);
+  });
+
+  it("lists manufacturing part instances for the selected part definition across subsystems", () => {
+    const partDefinition = createBootstrap().partDefinitions[0];
+    const bootstrap = createBootstrap({
+      partInstances: [
+        {
+          id: "part-instance-core",
+          subsystemId: "subsystem-core",
+          mechanismId: "mechanism-1",
+          partDefinitionId: partDefinition.id,
+          name: "Drive Bearing Block",
+          quantity: 2,
+          trackIndividually: false,
+          status: "planned",
+        },
+        {
+          id: "part-instance-secondary",
+          subsystemId: "subsystem-secondary",
+          mechanismId: null,
+          partDefinitionId: partDefinition.id,
+          name: "Shooter Bearing Block",
+          quantity: 4,
+          trackIndividually: false,
+          status: "planned",
+        },
+      ],
+    });
+
+    const options = getManufacturingPartInstanceOptions(bootstrap, {
+      ...buildEmptyManufacturingPayload(bootstrap, "cnc"),
+      subsystemId: "subsystem-core",
+      partDefinitionId: partDefinition.id,
+    });
+
+    expect(options.map((option) => option.id)).toEqual([
+      "part-instance-core",
+      "part-instance-secondary",
+    ]);
+  });
+
   it("getProjectTaskTargetLabel rebrands subsystem targets by project type", () => {
     const bootstrap = createBootstrap();
 
     expect(getProjectTaskTargetLabel(bootstrap.projects[0])).toBe("Subsystems");
     expect(getProjectTaskTargetLabel(bootstrap.projects[1])).toBe("Workstreams");
+  });
+
+  it("findMemberForSessionUser matches the signed-in user by normalized email", () => {
+    const bootstrap = createBootstrap();
+
+    const member = findMemberForSessionUser(bootstrap.members, {
+      email: " Student@MECO.TEST ",
+    });
+
+    expect(member?.id).toBe("student-1");
+  });
+
+  it("findMemberForSessionUser returns null when the signed-in user is not on the roster", () => {
+    const bootstrap = createBootstrap();
+
+    const member = findMemberForSessionUser(bootstrap.members, {
+      email: "missing@meco.test",
+    });
+
+    expect(member).toBeNull();
   });
 
   it("toggleTaskTargetSelection treats workstream selection as a subsystem alias", () => {

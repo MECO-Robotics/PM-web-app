@@ -4,6 +4,7 @@ import type { ArtifactRecord, BootstrapPayload } from "@/types";
 import {
   SearchToolbarInput,
   TableCell,
+  useFilterChangeMotionClass,
 } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 
@@ -79,6 +80,7 @@ export function WorkflowView({
         .includes(normalizedSearch),
     );
   }, [search, workflowRows]);
+  const workflowFilterMotionClass = useFilterChangeMotionClass([search]);
 
   return (
     <section className={`panel dense-panel subsystem-manager-shell ${WORKSPACE_PANEL_CLASS}`}>
@@ -110,7 +112,7 @@ export function WorkflowView({
       </div>
 
       <div className="panel-subsection subsystem-manager-list" style={{ flex: "1 1 620px" }}>
-        <div className="table-shell subsystem-manager-list-shell">
+        <div className={`table-shell subsystem-manager-list-shell ${workflowFilterMotionClass}`}>
           <div
             className="ops-table ops-table-header subsystem-manager-table-header"
             style={{

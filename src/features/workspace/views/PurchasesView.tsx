@@ -14,6 +14,7 @@ import {
   TableCell,
   filterSelectionIncludes,
   formatFilterSelectionLabel,
+  useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
 import { getStatusPillClassName } from "@/features/workspace/shared";
@@ -86,6 +87,15 @@ export function PurchasesView({
     vendor,
   ]);
   const purchasePagination = useWorkspacePagination(filteredPurchases);
+  const purchaseFilterMotionClass = useFilterChangeMotionClass([
+    activePersonFilter,
+    approval,
+    requester,
+    search,
+    status,
+    subsystem,
+    vendor,
+  ]);
   const activePersonFilterLabel = formatFilterSelectionLabel(
     "All roster",
     bootstrap.members,
@@ -175,7 +185,7 @@ export function PurchasesView({
         </div>
       </div>
 
-      <div className="table-shell">
+      <div className={`table-shell ${purchaseFilterMotionClass}`}>
         <div
           className="ops-table ops-table-header purchase-table"
           style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}

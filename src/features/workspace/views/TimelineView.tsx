@@ -21,6 +21,7 @@ import {
   FilterDropdown,
   filterSelectionMatchesTaskPeople,
   formatFilterSelectionLabel,
+  useFilterChangeMotionClass,
 } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import {
@@ -105,6 +106,8 @@ interface TimelineDayMilestoneUnderlay {
   color: string;
   rotationDeg: 45 | 90;
   geometry: MilestoneGeometry;
+  horizontalOffset: number;
+  stackOrder: number;
 }
 
 interface MilestoneGeometry {
@@ -131,6 +134,14 @@ interface TimelineMilestoneHoverLayerProps {
 }
 
 type TimelineViewInterval = "all" | "week" | "month";
+type TimelineGridMotion = "left" | "right" | "neutral";
+type TimelineColumnKey = "project" | "subsystem" | "task";
+type TimelineRowMotionKind = "project" | "subsystem";
+
+interface TimelineRowMotion {
+  kind: TimelineRowMotionKind;
+  id: string;
+}
 
 const PROJECT_COLUMN_WIDTH = 112;
 const SUBSYSTEM_COLUMN_WIDTH = 128;
@@ -143,6 +154,7 @@ const TIMELINE_LEFT_HEADER_Z_INDEX = 10030;
 const TIMELINE_LEFT_PROJECT_HEADER_Z_INDEX = 10031;
 const ALL_INTERVAL_PAST_MONTHS = 9;
 const ALL_INTERVAL_FUTURE_MONTHS = 3;
+const MILESTONE_UNDERLAY_HORIZONTAL_GAP = 18;
 const DEFAULT_EVENT_TYPE: EventType = "internal-review";
 const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "long" });
 const MONTH_YEAR_LABEL_FORMATTER = new Intl.DateTimeFormat(undefined, {
@@ -412,6 +424,17 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 }) => {
   const [viewInterval, setViewInterval] = useState<TimelineViewInterval>("month");
   const [viewAnchorDate, setViewAnchorDate] = useState(localTodayDate);
+  const [timelineGridMotion, setTimelineGridMotion] = useState<{
+    direction: TimelineGridMotion | null;
+    token: number;
+  }>({
+    direction: null,
+    token: 0,
+  });
+  const [unfoldingTimelineColumn, setUnfoldingTimelineColumn] =
+    useState<TimelineColumnKey | null>(null);
+  const [unfoldingTimelineRow, setUnfoldingTimelineRow] =
+    useState<TimelineRowMotion | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
   const [collapsedSubsystems, setCollapsedSubsystems] = useState<Record<string, boolean>>({});
   const [eventModalMode, setEventModalMode] = useState<"create" | "edit" | null>(null);
@@ -489,6 +512,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         : bootstrap.tasks,
     [activePersonFilter, bootstrap.tasks],
   );
+  const timelineFilterMotionClass = useFilterChangeMotionClass([activePersonFilter]);
   const scopedSubsystems = bootstrap.subsystems;
 
   useEffect(() => {
@@ -829,29 +853,137 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     return Array.from(grouped.values());
   }, [timeline.subsystemRows]);
 
-  const toggleProject = (id: string) => {
-    setCollapsedProjects((previous) => ({ ...previous, [id]: !previous[id] }));
-  };
+  const playTimelineColumnUnfoldAnimation = useCallback((column: TimelineColumnKey) => {
+    setUnfoldingTimelineColumn(column);
+  }, []);
 
-  const toggleSubsystem = (id: string) => {
-    setCollapsedSubsystems((previous) => ({ ...previous, [id]: !previous[id] }));
-  };
+  const playTimelineRowUnfoldAnimation = useCallback(
+    (kind: TimelineRowMotionKind, id: string) => {
+      setUnfoldingTimelineRow({ kind, id });
+    },
+    [],
+  );
+
+  const toggleProject = useCallback(
+    (id: string) => {
+      setCollapsedProjects((previous) => {
+        const nextCollapsed = !(previous[id] ?? false);
+        if (!nextCollapsed) {
+          playTimelineRowUnfoldAnimation("project", id);
+        }
+
+        return { ...previous, [id]: nextCollapsed };
+      });
+    },
+    [playTimelineRowUnfoldAnimation],
+  );
+
+  const toggleSubsystem = useCallback(
+    (id: string) => {
+      setCollapsedSubsystems((previous) => {
+        const nextCollapsed = !(previous[id] ?? false);
+        if (!nextCollapsed) {
+          playTimelineRowUnfoldAnimation("subsystem", id);
+        }
+
+        return { ...previous, [id]: nextCollapsed };
+      });
+    },
+    [playTimelineRowUnfoldAnimation],
+  );
+
+  const toggleProjectColumn = useCallback(() => {
+    setIsProjectColumnVisible((previous) => {
+      const nextVisible = !previous;
+      if (nextVisible) {
+        playTimelineColumnUnfoldAnimation("project");
+      }
+
+      return nextVisible;
+    });
+  }, [playTimelineColumnUnfoldAnimation]);
+
+  const toggleSubsystemColumn = useCallback(() => {
+    setIsSubsystemColumnVisible((previous) => {
+      const nextVisible = !previous;
+      if (nextVisible) {
+        playTimelineColumnUnfoldAnimation("subsystem");
+      }
+
+      return nextVisible;
+    });
+  }, [playTimelineColumnUnfoldAnimation]);
+
+  const toggleTaskColumn = useCallback(() => {
+    setIsTaskColumnVisible((previous) => {
+      const nextVisible = !previous;
+      if (nextVisible) {
+        playTimelineColumnUnfoldAnimation("task");
+      }
+
+      return nextVisible;
+    });
+  }, [playTimelineColumnUnfoldAnimation]);
+
+  const getTimelineColumnMotionProps = (
+    column: TimelineColumnKey,
+    isVisible: boolean,
+  ) => ({
+    "data-timeline-column": column,
+    "data-column-motion":
+      isVisible && unfoldingTimelineColumn === column ? "unfolding" : undefined,
+  });
+
+  const getTimelineRowMotionProps = (
+    kind: TimelineRowMotionKind,
+    id: string,
+    isExpanded: boolean,
+  ) => ({
+    "data-timeline-row": `${kind}:${id}`,
+    "data-row-motion":
+      isExpanded &&
+      unfoldingTimelineRow?.kind === kind &&
+      unfoldingTimelineRow.id === id
+        ? "unfolding"
+        : undefined,
+  });
+
+  const playTimelineGridAnimation = useCallback((direction: TimelineGridMotion) => {
+    setTimelineGridMotion((current) => ({
+      direction,
+      token: current.token + 1,
+    }));
+  }, []);
+
+  const handleTimelineIntervalChange = useCallback(
+    (candidate: React.ChangeEvent<HTMLSelectElement>) => {
+      const nextInterval = candidate.target.value as TimelineViewInterval;
+      if (nextInterval === viewInterval) {
+        return;
+      }
+
+      playTimelineGridAnimation("neutral");
+      setViewInterval(nextInterval);
+    },
+    [playTimelineGridAnimation, viewInterval],
+  );
 
   const shiftTimelinePeriod = useCallback(
     (direction: -1 | 1) => {
+      if (viewInterval === "all") {
+        return;
+      }
+
+      playTimelineGridAnimation(direction > 0 ? "left" : "right");
       setViewAnchorDate((current) => {
         if (viewInterval === "week") {
           return addDaysToDay(current, direction * 7);
         }
 
-        if (viewInterval === "month") {
-          return addMonthsToDay(current, direction);
-        }
-
-        return current;
+        return addMonthsToDay(current, direction);
       });
     },
-    [viewInterval],
+    [playTimelineGridAnimation, viewInterval],
   );
 
   const closeEventModal = () => {
@@ -1195,35 +1327,106 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
     const timelineStart = timeline.days[0];
     const timelineEnd = timeline.days[timeline.days.length - 1];
-
-    return bootstrap.events
+    const underlayEntries = bootstrap.events
       .map((event) => {
-          const eventStartDay = datePortion(event.startDateTime);
-          const eventEndDay = datePortion(event.endDateTime ?? event.startDateTime);
-          const clampedStartDay = eventStartDay < timelineStart ? timelineStart : eventStartDay;
-          const clampedEndDay = eventEndDay > timelineEnd ? timelineEnd : eventEndDay;
+        const eventStartDay = datePortion(event.startDateTime);
+        const eventEndDay = datePortion(event.endDateTime ?? event.startDateTime);
+        const clampedStartDay = eventStartDay < timelineStart ? timelineStart : eventStartDay;
+        const clampedEndDay = eventEndDay > timelineEnd ? timelineEnd : eventEndDay;
 
-          if (clampedStartDay > timelineEnd || clampedEndDay < timelineStart) {
-            return null;
-          }
+        if (clampedStartDay > timelineEnd || clampedEndDay < timelineStart) {
+          return null;
+        }
 
-          const geometry = resolveMilestonePopupGeometry(clampedStartDay, clampedEndDay);
-          if (!geometry) {
-            return null;
-          }
+        const geometry = resolveMilestonePopupGeometry(clampedStartDay, clampedEndDay);
+        if (!geometry) {
+          return null;
+        }
 
-          const style = EVENT_TYPE_STYLES[event.type];
-          const isMultiDayEvent = eventStartDay !== eventEndDay;
+        const style = EVENT_TYPE_STYLES[event.type];
+        const isMultiDayEvent = eventStartDay !== eventEndDay;
 
-          return {
-            id: event.id,
-            lines: [event.title],
-            color: style.chipText,
-            rotationDeg: isMultiDayEvent ? 45 : 90,
-            geometry,
-          } satisfies TimelineDayMilestoneUnderlay;
-        })
-      .filter((entry): entry is TimelineDayMilestoneUnderlay => entry !== null);
+        return {
+          id: event.id,
+          lines: [event.title],
+          color: style.chipText,
+          rotationDeg: isMultiDayEvent ? 45 : 90,
+          geometry,
+          startDay: clampedStartDay,
+          endDay: clampedEndDay,
+        };
+      })
+      .filter(
+        (
+          entry,
+        ): entry is {
+          id: string;
+          lines: string[];
+          color: string;
+          rotationDeg: 45 | 90;
+          geometry: MilestoneGeometry;
+          startDay: string;
+          endDay: string;
+        } => entry !== null,
+      )
+      .sort((left, right) => {
+        if (left.startDay !== right.startDay) {
+          return left.startDay.localeCompare(right.startDay);
+        }
+        if (left.endDay !== right.endDay) {
+          return left.endDay.localeCompare(right.endDay);
+        }
+        return left.id.localeCompare(right.id);
+      });
+
+    if (!underlayEntries.length) {
+      return [];
+    }
+
+    const laneEndDays: string[] = [];
+    let clusterIndex = -1;
+    let clusterEndDay = "";
+    const clusterLaneCounts = new Map<number, number>();
+
+    const layoutEntries = underlayEntries.map((entry) => {
+      if (clusterIndex < 0 || entry.startDay > clusterEndDay) {
+        clusterIndex += 1;
+        clusterEndDay = entry.endDay;
+      } else if (entry.endDay > clusterEndDay) {
+        clusterEndDay = entry.endDay;
+      }
+
+      const laneMatch = laneEndDays.findIndex((laneEndDay) => laneEndDay < entry.startDay);
+      const laneIndex = laneMatch === -1 ? laneEndDays.length : laneMatch;
+      laneEndDays[laneIndex] = entry.endDay;
+
+      const previousClusterLaneCount = clusterLaneCounts.get(clusterIndex) ?? 0;
+      if (laneIndex + 1 > previousClusterLaneCount) {
+        clusterLaneCounts.set(clusterIndex, laneIndex + 1);
+      }
+
+      return {
+        ...entry,
+        clusterIndex,
+        laneIndex,
+      };
+    });
+
+    return layoutEntries.map((entry) => {
+      const clusterLaneCount = clusterLaneCounts.get(entry.clusterIndex) ?? 1;
+      const horizontalOffset =
+        (entry.laneIndex - (clusterLaneCount - 1) / 2) * MILESTONE_UNDERLAY_HORIZONTAL_GAP;
+
+      return {
+        id: entry.id,
+        lines: entry.lines,
+        color: entry.color,
+        rotationDeg: entry.rotationDeg,
+        geometry: entry.geometry,
+        horizontalOffset,
+        stackOrder: entry.laneIndex,
+      } satisfies TimelineDayMilestoneUnderlay;
+    });
   }, [bootstrap.events, resolveMilestonePopupGeometry, timeline.days]);
 
   const activePersonFilterLabel =
@@ -1352,9 +1555,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               </span>
               <select
                 aria-label="Timeline interval"
-                onChange={(candidate) =>
-                  setViewInterval(candidate.target.value as TimelineViewInterval)
-                }
+                onChange={handleTimelineIntervalChange}
                 value={viewInterval}
               >
                 <option value="all">All (recent window)</option>
@@ -1399,7 +1600,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
       {timeline.days.length ? (
         <div
-          className="timeline-shell"
+          className={`timeline-shell ${timelineFilterMotionClass}`}
           ref={timelineShellRef}
           style={{
             overflowX: "auto",
@@ -1411,6 +1612,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
           }}
         >
           <div
+            className="timeline-grid-motion"
+            data-period-motion={timelineGridMotion.direction ?? undefined}
+            key={`timeline-grid-${timelineGridMotion.token}`}
             ref={timelineGridRef}
             style={{
               display: "grid",
@@ -1424,9 +1628,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             <button
               aria-label={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
               aria-pressed={showSubsystemCol}
-              className={`sticky-label timeline-column-header timeline-column-header-button${showSubsystemCol ? "" : " is-hidden"}`}
-              onClick={() => setIsSubsystemColumnVisible((previous) => !previous)}
+              className={`sticky-label timeline-column-header timeline-column-header-button timeline-column-motion${showSubsystemCol ? "" : " is-hidden"}`}
+              onClick={toggleSubsystemColumn}
               title={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
+              {...getTimelineColumnMotionProps("subsystem", showSubsystemCol)}
               style={{
                 gridRow: showSubsystemCol ? "1 / span 2" : "1",
                 gridColumn: `${subsystemColumnIndex}`,
@@ -1462,9 +1667,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             <button
               aria-label={`${showTaskCol ? "Hide" : "Show"} task column`}
               aria-pressed={showTaskCol}
-              className={`sticky-label timeline-column-header timeline-column-header-button${showTaskCol ? "" : " is-hidden"}`}
-              onClick={() => setIsTaskColumnVisible((previous) => !previous)}
+              className={`sticky-label timeline-column-header timeline-column-header-button timeline-column-motion${showTaskCol ? "" : " is-hidden"}`}
+              onClick={toggleTaskColumn}
               title={`${showTaskCol ? "Hide" : "Show"} task column`}
+              {...getTimelineColumnMotionProps("task", showTaskCol)}
               style={{
                 gridRow: showTaskCol ? "1 / span 2" : "1",
                 gridColumn: `${taskLabelColumnIndex}`,
@@ -1501,9 +1707,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               <button
                 aria-label={`${showProjectCol ? "Hide" : "Show"} project column`}
                 aria-pressed={showProjectCol}
-                className={`sticky-label timeline-column-header timeline-column-header-button${showProjectCol ? "" : " is-hidden"}`}
-                onClick={() => setIsProjectColumnVisible((previous) => !previous)}
+                className={`sticky-label timeline-column-header timeline-column-header-button timeline-column-motion${showProjectCol ? "" : " is-hidden"}`}
+                onClick={toggleProjectColumn}
                 title={`${showProjectCol ? "Hide" : "Show"} project column`}
+                {...getTimelineColumnMotionProps("project", showProjectCol)}
                 style={{
                   gridRow: showProjectCol ? "1 / span 2" : "1",
                   gridColumn: "1",
@@ -1701,10 +1908,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     borderBottom: "1px solid var(--border-base)",
                     position: "relative",
                   }}
+                  {...getTimelineRowMotionProps("project", project.id, !projectCollapsed)}
                 >
                   {showProjectCol ? (
                   <div
-                    className="timeline-merged-cell-column"
+                    className="timeline-merged-cell-column timeline-column-motion timeline-row-motion-item"
+                    {...getTimelineColumnMotionProps("project", showProjectCol)}
+                    {...getTimelineRowMotionProps("project", project.id, !projectCollapsed)}
                     style={{
                       gridRow: `1 / span ${Math.max(1, projectRowCount)}`,
                       gridColumn: "1",
@@ -1792,7 +2002,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       {project.tasks.map((task) => (
                         <button
                           key={task.id}
-                          className={`timeline-bar timeline-${task.status} editable-hover-target`}
+                          className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
                           onClick={() => openEditTaskModal(task)}
                           onMouseEnter={clearHoveredMilestonePopup}
                           style={{
@@ -1810,6 +2020,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             padding: 0,
                             opacity: 0.7,
                           }}
+                          {...getTimelineRowMotionProps("project", project.id, !projectCollapsed)}
                           title={`${task.title} (${task.status})`}
                           type="button"
                         >
@@ -1835,7 +2046,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                           <React.Fragment key={subsystem.id}>
                             {showSubsystemCol ? (
                               <div
-                                className="timeline-merged-cell-column"
+                                className="timeline-merged-cell-column timeline-column-motion timeline-row-motion-item"
+                                {...getTimelineColumnMotionProps("subsystem", showSubsystemCol)}
+                                {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                                 style={{
                                   gridRow: collapsed
                                     ? `${subsystemRowStart}`
@@ -1898,6 +2111,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
                             {collapsed && showTaskCol ? (
                               <div
+                                className="timeline-column-motion"
+                                {...getTimelineColumnMotionProps("task", showTaskCol)}
                                 style={{
                                   gridRow: `${subsystemRowStart}`,
                                   gridColumn: `${taskLabelColumnIndex}`,
@@ -1924,6 +2139,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
                             {!collapsed && showTaskCol ? (
                               <div
+                                className="timeline-column-motion timeline-row-motion-item"
+                                {...getTimelineColumnMotionProps("task", showTaskCol)}
+                                {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                                 style={{
                                   gridRow: `${subsystemRowStart} / span ${taskCount}`,
                                   gridColumn: `${taskLabelColumnIndex}`,
@@ -1949,7 +2167,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                               subsystem.tasks.map((task) => (
                                 <button
                                   key={task.id}
-                                  className={`timeline-bar timeline-${task.status} editable-hover-target`}
+                                  className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
                                   onClick={() => openEditTaskModal(task)}
                                   onMouseEnter={clearHoveredMilestonePopup}
                                   style={{
@@ -1967,6 +2185,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                     padding: 0,
                                     opacity: 0.7,
                                   }}
+                                  {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                                   title={`${task.title} (${task.status})`}
                                   type="button"
                                 >
@@ -1987,7 +2206,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                   <React.Fragment key={task.id}>
                                     {showTaskCol ? (
                                       <button
-                                        className="task-label"
+                                        className="task-label timeline-column-motion timeline-row-motion-item"
+                                        {...getTimelineColumnMotionProps("task", showTaskCol)}
+                                        {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                                         onClick={() => openEditTaskModal(task)}
                                         style={{
                                           gridRow: subsystemRowStart + taskIndex,
@@ -2040,10 +2261,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                         subsystemRowStart + taskIndex,
                                         subsystemRowStart + taskIndex > 1,
                                       )}
-                                      <button
-                                        className={`timeline-bar timeline-${task.status} editable-hover-target`}
-                                        onClick={() => openEditTaskModal(task)}
-                                      onMouseEnter={clearHoveredMilestonePopup}
+                                        <button
+                                          className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
+                                          onClick={() => openEditTaskModal(task)}
+                                          onMouseEnter={clearHoveredMilestonePopup}
                                       style={{
                                         gridRow: subsystemRowStart + taskIndex,
                                         gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
@@ -2064,6 +2285,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                         alignSelf: "center",
                                         minWidth: 0,
                                       }}
+                                      {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                                       title={`Edit ${task.title}`}
                                       type="button"
                                     >
@@ -2102,10 +2324,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                   borderBottom: "1px solid var(--border-base)",
                   position: "relative",
                 }}
+                {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
               >
                 {showSubsystemCol ? (
                   <div
-                    className="timeline-merged-cell-column"
+                    className="timeline-merged-cell-column timeline-column-motion timeline-row-motion-item"
+                    {...getTimelineColumnMotionProps("subsystem", showSubsystemCol)}
+                    {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                     style={{
                       gridRow: collapsed ? "1" : `1 / span ${taskCount}`,
                       gridColumn: `${subsystemColumnIndex}`,
@@ -2166,7 +2391,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
                 {showProjectCol ? (
                   <div
-                    className="timeline-merged-cell-column"
+                    className="timeline-merged-cell-column timeline-column-motion"
+                    {...getTimelineColumnMotionProps("project", showProjectCol)}
                     style={{
                       gridRow: `1 / span ${taskCount}`,
                       gridColumn: "1",
@@ -2199,6 +2425,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
                 {collapsed && showTaskCol ? (
                   <div
+                    className="timeline-column-motion"
+                    {...getTimelineColumnMotionProps("task", showTaskCol)}
                     style={{
                       gridRow: "1",
                       gridColumn: `${taskLabelColumnIndex}`,
@@ -2225,6 +2453,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
                 {!collapsed && showTaskCol ? (
                   <div
+                    className="timeline-column-motion timeline-row-motion-item"
+                    {...getTimelineColumnMotionProps("task", showTaskCol)}
+                    {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                     style={{
                       gridRow: `1 / span ${taskCount}`,
                       gridColumn: `${taskLabelColumnIndex}`,
@@ -2246,7 +2477,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                   subsystem.tasks.map((task) => (
                     <button
                       key={task.id}
-                      className={`timeline-bar timeline-${task.status} editable-hover-target`}
+                      className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
                       onClick={() => openEditTaskModal(task)}
                       onMouseEnter={clearHoveredMilestonePopup}
                       style={{
@@ -2264,6 +2495,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         padding: 0,
                         opacity: 0.7,
                       }}
+                      {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                       title={`${task.title} (${task.status})`}
                       type="button"
                     >
@@ -2280,7 +2512,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                       <React.Fragment key={task.id}>
                         {showTaskCol ? (
                           <button
-                            className="task-label"
+                            className="task-label timeline-column-motion timeline-row-motion-item"
+                            {...getTimelineColumnMotionProps("task", showTaskCol)}
+                            {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                             onClick={() => openEditTaskModal(task)}
                             style={{
                               gridRow: taskIndex + 1,
@@ -2334,7 +2568,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                           taskIndex > 0,
                         )}
                         <button
-                          className={`timeline-bar timeline-${task.status} editable-hover-target`}
+                          className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
                           onClick={() => openEditTaskModal(task)}
                           onMouseEnter={clearHoveredMilestonePopup}
                           style={{
@@ -2357,6 +2591,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             alignSelf: "center",
                             minWidth: 0,
                           }}
+                          {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                           title={`Edit ${task.title}`}
                           type="button"
                         >
@@ -2388,10 +2623,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                   title={underlay.lines.join(", ")}
                   style={{
                     transform: `translate(-50%, -50%) rotate(${underlay.rotationDeg}deg)`,
-                    left: `${underlay.geometry.centerX}px`,
+                    left: `${underlay.geometry.centerX + underlay.horizontalOffset}px`,
                     top: `${underlay.geometry.centerY}px`,
                     color: underlay.color,
-                    zIndex: 4,
+                    zIndex: 4 + underlay.stackOrder,
                   }}
                 >
                   {underlay.lines.map((line, index) => (

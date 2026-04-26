@@ -23,7 +23,7 @@ export interface SubsystemCard {
   progress: number;
 }
 
-export type MemberRole = "student" | "lead" | "mentor" | "admin";
+export type MemberRole = "student" | "lead" | "mentor" | "admin" | "external";
 export type EventType =
   | "drive-practice"
   | "competition"
@@ -292,9 +292,11 @@ export interface ManufacturingItemRecord {
   materialId: string | null;
   partDefinitionId: string | null;
   partInstanceId: string | null;
+  partInstanceIds: string[];
   quantity: number;
   status: ManufacturingStatus;
   mentorReviewed: boolean;
+  inHouse: boolean;
   batchLabel?: string;
 }
 
@@ -337,9 +339,11 @@ export interface ManufacturingItemPayload {
   materialId: string | null;
   partDefinitionId: string | null;
   partInstanceId: string | null;
+  partInstanceIds: string[];
   quantity: number;
   status: ManufacturingStatus;
   mentorReviewed: boolean;
+  inHouse: boolean;
   batchLabel?: string;
 }
 

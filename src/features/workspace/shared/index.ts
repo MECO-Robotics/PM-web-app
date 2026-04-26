@@ -48,6 +48,8 @@ export {
   filterSelectionMatchesTaskPeople,
   formatFilterSelectionLabel,
   getTaskPersonFilterIds,
+  pruneFilterSelection,
+  useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "./WorkspaceViewShared";
 
