@@ -4,6 +4,7 @@ import * as React from "react";
 import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  MaterialEditorModal,
   ManufacturingEditorModal,
   MechanismEditorModal,
   PartDefinitionEditorModal,
@@ -130,6 +131,7 @@ function renderIterationEditors() {
         bootstrap,
         closePartDefinitionModal: noop,
         handleDeletePartDefinition: noop,
+        handleTogglePartDefinitionArchived: noop,
         handlePartDefinitionSubmit: noop,
         isDeletingPartDefinition: false,
         isSavingPartDefinition: false,
@@ -152,6 +154,7 @@ function renderIterationEditors() {
         activeSubsystemId: null,
         bootstrap,
         closeSubsystemModal: noop,
+        handleToggleSubsystemArchived: noop,
         handleSubsystemSubmit: noop,
         isSavingSubsystem: false,
         subsystemDraft: {
@@ -176,6 +179,7 @@ function renderIterationEditors() {
         bootstrap,
         closeMechanismModal: noop,
         handleDeleteMechanism: noop,
+        handleToggleMechanismArchived: noop,
         handleMechanismSubmit: noop,
         isDeletingMechanism: false,
         isSavingMechanism: false,
@@ -192,7 +196,10 @@ function renderIterationEditors() {
   ].join("");
 }
 
-function renderManufacturingModal(process: "cnc" | "3d-print" | "fabrication") {
+function renderManufacturingModal(
+  process: "cnc" | "3d-print" | "fabrication",
+  manufacturingModalMode: "create" | "edit" = "create",
+) {
   const bootstrap = createBootstrap();
 
   return renderToStaticMarkup(
@@ -205,8 +212,33 @@ function renderManufacturingModal(process: "cnc" | "3d-print" | "fabrication") {
         ...buildEmptyManufacturingPayload(bootstrap, process),
         process,
       },
-      manufacturingModalMode: "create",
+      manufacturingModalMode,
       setManufacturingDraft: jest.fn(),
+    }),
+  );
+}
+
+function renderMaterialModal(materialModalMode: "create" | "edit") {
+  return renderToStaticMarkup(
+    React.createElement(MaterialEditorModal, {
+      activeMaterialId: materialModalMode === "edit" ? "material-1" : null,
+      closeMaterialModal: jest.fn(),
+      handleDeleteMaterial: jest.fn(),
+      handleMaterialSubmit: jest.fn(),
+      isDeletingMaterial: false,
+      isSavingMaterial: false,
+      materialDraft: {
+        name: "Aluminum 6061",
+        category: "metal",
+        unit: "sheet",
+        onHandQuantity: 12,
+        reorderPoint: 6,
+        location: "Rack A",
+        vendor: "McMaster",
+        notes: "",
+      },
+      materialModalMode,
+      setMaterialDraft: jest.fn(),
     }),
   );
 }
@@ -321,6 +353,11 @@ describe("TaskEditorModal", () => {
     expect(renderManufacturingModal("fabrication")).not.toContain("In-house");
   });
 
+  it("hides mentor reviewed in create mode but keeps it in edit mode", () => {
+    expect(renderManufacturingModal("cnc", "create")).not.toContain("Mentor reviewed");
+    expect(renderManufacturingModal("cnc", "edit")).toContain("Mentor reviewed");
+  });
+
   it("starts manufacturing creation with part definition and scoped part instances", () => {
     (["cnc", "3d-print", "fabrication"] as const).forEach((process) => {
       const markup = renderManufacturingModalWithPartInstances(process);
@@ -333,5 +370,10 @@ describe("TaskEditorModal", () => {
       expect(markup).not.toContain(">Subsystem</span>");
       expect(markup).not.toContain(">Process</span>");
     });
+  });
+
+  it("hides the unit field in material create and edit modals", () => {
+    expect(renderMaterialModal("create")).not.toContain(">Unit</span>");
+    expect(renderMaterialModal("edit")).not.toContain(">Unit</span>");
   });
 });

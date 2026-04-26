@@ -276,7 +276,7 @@ export function useAppAuth({ resetWorkspace }: UseAppAuthArgs) {
           size: "large",
           text: "continue_with",
           shape: "pill",
-          width: 320,
+          width: 240,
           logo_alignment: "left",
         });
       } catch (error) {

@@ -164,10 +164,10 @@ export function MaterialsView({
               </span>
               <TableCell label="Category">{material.category}</TableCell>
               <TableCell label="On hand">
-                {material.onHandQuantity} {material.unit}
+                {material.onHandQuantity}
               </TableCell>
               <TableCell label="Reorder">
-                {material.reorderPoint} {material.unit}
+                {material.reorderPoint}
               </TableCell>
               <TableCell label="Location">{material.location || "Unassigned"}</TableCell>
               <TableCell label="Vendor">{material.vendor || "Unknown"}</TableCell>

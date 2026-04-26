@@ -39,6 +39,8 @@ export function SubsystemsView({
   openEditSubsystemModal,
 }: SubsystemsViewProps) {
   const [search, setSearch] = useState("");
+  const [showArchivedSubsystems, setShowArchivedSubsystems] = useState(false);
+  const [showArchivedMechanisms, setShowArchivedMechanisms] = useState(false);
   const [selectedSubsystemId, setSelectedSubsystemId] = useState(
     getDefaultSubsystemId(bootstrap),
   );
@@ -71,6 +73,9 @@ export function SubsystemsView({
     >;
 
     for (const mechanism of bootstrap.mechanisms) {
+      if (!showArchivedMechanisms && mechanism.isArchived) {
+        continue;
+      }
       initialCounts[mechanism.subsystemId] = initialCounts[mechanism.subsystemId] ?? {
         mechanisms: 0,
         parts: 0,
@@ -106,7 +111,13 @@ export function SubsystemsView({
     }
 
     return initialCounts;
-  }, [bootstrap.mechanisms, bootstrap.partInstances, bootstrap.subsystems, bootstrap.tasks]);
+  }, [
+    bootstrap.mechanisms,
+    bootstrap.partInstances,
+    bootstrap.subsystems,
+    bootstrap.tasks,
+    showArchivedMechanisms,
+  ]);
 
   const partDefinitionsById = useMemo(
     () =>
@@ -121,10 +132,15 @@ export function SubsystemsView({
     const normalizedSearch = search.trim().toLowerCase();
 
     return [...bootstrap.subsystems].filter((subsystem) => {
+      if (!showArchivedSubsystems && subsystem.isArchived) {
+        return false;
+      }
+
       const parentSubsystem = subsystem.parentSubsystemId
         ? bootstrap.subsystems.find((candidate) => candidate.id === subsystem.parentSubsystemId)
         : null;
       const relatedMechanisms = bootstrap.mechanisms
+        .filter((mechanism) => (showArchivedMechanisms ? true : !mechanism.isArchived))
         .filter((mechanism) => mechanism.subsystemId === subsystem.id)
         .map((mechanism) => mechanism.name)
         .join(" ");
@@ -175,11 +191,17 @@ export function SubsystemsView({
     membersById,
     partDefinitionsById,
     search,
+    showArchivedMechanisms,
+    showArchivedSubsystems,
   ]);
 
   const selectedSubsystem =
     filteredSubsystems.find((subsystem) => subsystem.id === selectedSubsystemId) ?? null;
-  const subsystemFilterMotionClass = useFilterChangeMotionClass([search]);
+  const subsystemFilterMotionClass = useFilterChangeMotionClass([
+    search,
+    showArchivedSubsystems,
+    showArchivedMechanisms,
+  ]);
 
   return (
     <section className={`panel dense-panel subsystem-manager-shell ${WORKSPACE_PANEL_CLASS}`}>
@@ -197,6 +219,38 @@ export function SubsystemsView({
             placeholder="Search subsystems or mechanisms..."
             value={search}
           />
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              color: "var(--text-copy)",
+              fontSize: "0.85rem",
+            }}
+          >
+            <input
+              checked={showArchivedSubsystems}
+              onChange={(event) => setShowArchivedSubsystems(event.target.checked)}
+              type="checkbox"
+            />
+            Show archived subsystems
+          </label>
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              color: "var(--text-copy)",
+              fontSize: "0.85rem",
+            }}
+          >
+            <input
+              checked={showArchivedMechanisms}
+              onChange={(event) => setShowArchivedMechanisms(event.target.checked)}
+              type="checkbox"
+            />
+            Show archived mechanisms
+          </label>
 
           <button
             aria-label="Add subsystem"
@@ -252,6 +306,7 @@ export function SubsystemsView({
             const subsystemDescription = subsystem.description.trim();
             const subsystemMechanisms = [...bootstrap.mechanisms]
               .filter((mechanism) => mechanism.subsystemId === subsystem.id)
+              .filter((mechanism) => (showArchivedMechanisms ? true : !mechanism.isArchived))
               .sort((left, right) => left.name.localeCompare(right.name));
 
             return (
@@ -290,6 +345,9 @@ export function SubsystemsView({
                   <TableCell label="Subsystem">
                     <span className="subsystem-cell-meta">
                       <strong className="subsystem-cell-title">{subsystem.name}</strong>
+                      {subsystem.isArchived ? (
+                        <span className="subsystem-cell-description">Archived</span>
+                      ) : null}
                       {subsystemDescription ? (
                         <span className="subsystem-cell-description">{subsystemDescription}</span>
                       ) : null}
@@ -316,6 +374,7 @@ export function SubsystemsView({
                   <div className="subsystem-manager-row-actions">
                     <button
                       className="subsystem-manager-action-button subsystem-manager-action-button-primary"
+                      disabled={subsystem.isArchived}
                       onClick={(event) => {
                         event.stopPropagation();
                         openCreateMechanismModal(subsystem.id);
@@ -361,6 +420,9 @@ export function SubsystemsView({
                             >
                               <div style={{ display: "grid", gap: "0.2rem" }}>
                                 <strong style={{ color: "var(--text-title)" }}>{mechanism.name}</strong>
+                                {mechanism.isArchived ? (
+                                  <small style={{ color: "var(--text-copy)" }}>Archived</small>
+                                ) : null}
                                 <small style={{ color: "var(--text-copy)" }}>
                                   Iteration {mechanism.iteration} / {mechanism.description}
                                 </small>

@@ -43,6 +43,7 @@ import {
   subsystemToPayload,
   taskToPayload,
   toErrorMessage,
+  workstreamToPayload,
 } from "@/lib/appUtils";
 import {
   createArtifactRecord,
@@ -80,6 +81,7 @@ import {
   updateTaskRecord,
   updateArtifactRecord,
   updateEventRecord,
+  updateWorkstreamRecord,
 } from "@/lib/auth";
 import type {
   ArtifactKind,
@@ -320,8 +322,6 @@ export default function App() {
     handleVerifyEmailCode,
     isEmailAuthAvailable,
     isGoogleAuthAvailable,
-    isLocalGoogleDevHost,
-    isLocalGoogleOverrideActive,
     isSigningIn,
     sessionUser,
   } = useAppAuth({
@@ -332,6 +332,9 @@ export default function App() {
 
   const [taskModalMode, setTaskModalMode] = useState<TaskModalMode>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [activeTimelineTaskDetailId, setActiveTimelineTaskDetailId] = useState<string | null>(
+    null,
+  );
   const [taskDraft, setTaskDraft] = useState<TaskPayload>(
     buildEmptyTaskPayload(EMPTY_BOOTSTRAP),
   );
@@ -398,6 +401,7 @@ export default function App() {
 
   const [workstreamModalMode, setWorkstreamModalMode] =
     useState<WorkstreamModalMode>(null);
+  const [activeWorkstreamId, setActiveWorkstreamId] = useState<string | null>(null);
   const [workstreamDraft, setWorkstreamDraft] = useState<WorkstreamPayload>(
     buildEmptyWorkstreamPayload(EMPTY_BOOTSTRAP),
   );
@@ -543,6 +547,13 @@ export default function App() {
     isAllProjectsView,
     selectedProjectType,
   });
+  const activeTimelineTaskDetail = useMemo(
+    () =>
+      activeTimelineTaskDetailId
+        ? scopedBootstrap.tasks.find((task) => task.id === activeTimelineTaskDetailId) ?? null
+        : null,
+    [activeTimelineTaskDetailId, scopedBootstrap.tasks],
+  );
 
   const visibleTabs = useMemo(
     () => new Set<ViewTab>(navigationItems.map((item) => item.value)),
@@ -554,6 +565,16 @@ export default function App() {
       setActiveTab("tasks");
     }
   }, [activeTab, visibleTabs]);
+
+  useEffect(() => {
+    if (!activeTimelineTaskDetailId) {
+      return;
+    }
+
+    if (!scopedBootstrap.tasks.some((task) => task.id === activeTimelineTaskDetailId)) {
+      setActiveTimelineTaskDetailId(null);
+    }
+  }, [activeTimelineTaskDetailId, scopedBootstrap.tasks]);
 
   const handleUnauthorized = useCallback(() => {
     expireSession("Your session expired. Please sign in again.");
@@ -605,6 +626,10 @@ export default function App() {
         payload,
         selectedSeasonId,
         selectedProjectId,
+      );
+      const signedInScopedMember = findMemberForSessionUser(
+        scopedPayload.members,
+        sessionUser,
       );
       const nextArtifacts = payload.artifacts;
       const nextMemberId =
@@ -665,7 +690,11 @@ export default function App() {
 
       if (manufacturingModalMode === "create") {
         setManufacturingDraft((current) =>
-          buildEmptyManufacturingPayload(payload, current.process),
+          buildEmptyManufacturingPayload(
+            payload,
+            current.process,
+            current.process === "cnc" ? signedInScopedMember?.id ?? null : null,
+          ),
         );
       }
 
@@ -743,6 +772,18 @@ export default function App() {
         );
       }
 
+      if (workstreamModalMode === "edit" && activeWorkstreamId) {
+        const nextWorkstream = scopedPayload.workstreams.find(
+          (workstream) => workstream.id === activeWorkstreamId,
+        );
+        if (nextWorkstream) {
+          setWorkstreamDraft(workstreamToPayload(nextWorkstream));
+        } else {
+          setWorkstreamModalMode(null);
+          setActiveWorkstreamId(null);
+        }
+      }
+
       if (partInstanceModalMode === "create") {
         setPartInstanceDraft((current) =>
           buildEmptyPartInstancePayload(payload, {
@@ -817,6 +858,7 @@ export default function App() {
     activeTaskId,
     activeSubsystemId,
     activeMechanismId,
+    activeWorkstreamId,
     artifactDraft.kind,
     artifactModalMode,
     handleUnauthorized,
@@ -826,6 +868,7 @@ export default function App() {
     partDefinitionModalMode,
     partInstanceModalMode,
     purchaseModalMode,
+    sessionUser,
     selectedMemberId,
     selectedProjectId,
     selectedSeasonId,
@@ -838,6 +881,7 @@ export default function App() {
   const openCreateTaskModal = useCallback(() => {
     suppressNextAutoWorkspaceLoadRef.current = true;
     setShowTimelineCreateToggleInTaskModal(false);
+    setActiveTimelineTaskDetailId(null);
     setActiveTaskId(null);
     setTaskDraft(buildEmptyTaskPayload(scopedBootstrap));
     setTaskDraftBlockers("");
@@ -847,6 +891,7 @@ export default function App() {
   const openCreateTaskModalFromTimeline = useCallback(() => {
     suppressNextAutoWorkspaceLoadRef.current = true;
     setShowTimelineCreateToggleInTaskModal(true);
+    setActiveTimelineTaskDetailId(null);
     setActiveTaskId(null);
     setTaskDraft(buildEmptyTaskPayload(scopedBootstrap));
     setTaskDraftBlockers("");
@@ -856,10 +901,22 @@ export default function App() {
   const openEditTaskModal = useCallback((task: TaskRecord) => {
     suppressNextAutoWorkspaceLoadRef.current = true;
     setShowTimelineCreateToggleInTaskModal(false);
+    setActiveTimelineTaskDetailId(null);
     setActiveTaskId(task.id);
     setTaskDraft(taskToPayload(task));
     setTaskDraftBlockers(joinList(task.blockers));
     setTaskModalMode("edit");
+  }, []);
+
+  const openTimelineTaskDetailsModal = useCallback((task: TaskRecord) => {
+    suppressNextAutoWorkspaceLoadRef.current = true;
+    setShowTimelineCreateToggleInTaskModal(false);
+    setActiveTimelineTaskDetailId(task.id);
+  }, []);
+
+  const closeTimelineTaskDetailsModal = useCallback(() => {
+    suppressNextAutoWorkspaceLoadRef.current = true;
+    setActiveTimelineTaskDetailId(null);
   }, []);
 
   const closeTaskModal = () => {
@@ -912,7 +969,13 @@ export default function App() {
     process: ManufacturingItemPayload["process"],
   ) => {
     setActiveManufacturingId(null);
-    setManufacturingDraft(buildEmptyManufacturingPayload(bootstrap, process));
+    setManufacturingDraft(
+      buildEmptyManufacturingPayload(
+        bootstrap,
+        process,
+        process === "cnc" ? signedInMember?.id ?? null : null,
+      ),
+    );
     setManufacturingModalMode("create");
   };
 
@@ -1025,6 +1088,7 @@ export default function App() {
   };
 
   const openCreateWorkstreamModal = () => {
+    setActiveWorkstreamId(null);
     setWorkstreamDraft(
       buildEmptyWorkstreamPayload(scopedBootstrap, {
         projectId: selectedProjectId ?? undefined,
@@ -1033,8 +1097,15 @@ export default function App() {
     setWorkstreamModalMode("create");
   };
 
+  const openEditWorkstreamModal = (workstream: BootstrapPayload["workstreams"][number]) => {
+    setActiveWorkstreamId(workstream.id);
+    setWorkstreamDraft(workstreamToPayload(workstream));
+    setWorkstreamModalMode("edit");
+  };
+
   const closeWorkstreamModal = () => {
     setWorkstreamModalMode(null);
+    setActiveWorkstreamId(null);
   };
 
   const openCreateMechanismModal = (subsystemId?: string) => {
@@ -1318,10 +1389,18 @@ export default function App() {
     setDataMessage(null);
 
     try {
+      const payload: MaterialPayload =
+        materialModalMode === "create"
+          ? {
+              ...materialDraft,
+              reorderPoint: Math.floor(materialDraft.onHandQuantity / 2),
+            }
+          : materialDraft;
+
       if (materialModalMode === "create") {
-        await createMaterialRecord(materialDraft, handleUnauthorized);
+        await createMaterialRecord(payload, handleUnauthorized);
       } else if (materialModalMode === "edit" && activeMaterialId) {
-        await updateMaterialRecord(activeMaterialId, materialDraft, handleUnauthorized);
+        await updateMaterialRecord(activeMaterialId, payload, handleUnauthorized);
       }
 
       await loadWorkspace();
@@ -1349,6 +1428,33 @@ export default function App() {
       setIsDeletingMaterial(false);
     }
   };
+
+  const handleCncQuickStatusChange = useCallback(
+    async (
+      item: ManufacturingItemRecord,
+      status: ManufacturingItemRecord["status"],
+    ) => {
+      if (item.status === status && item.mentorReviewed) {
+        return;
+      }
+
+      setDataMessage(null);
+      try {
+        await updateManufacturingItemRecord(
+          item.id,
+          {
+            mentorReviewed: true,
+            status,
+          },
+          handleUnauthorized,
+        );
+        await loadWorkspace();
+      } catch (error) {
+        setDataMessage(toErrorMessage(error));
+      }
+    },
+    [handleUnauthorized, loadWorkspace],
+  );
 
   const handleArtifactSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1399,6 +1505,31 @@ export default function App() {
     }
   };
 
+  const handleToggleArtifactArchived = async (artifactId: string) => {
+    const currentArtifact = bootstrap.artifacts.find(
+      (artifact) => artifact.id === artifactId,
+    );
+    if (!currentArtifact) {
+      return;
+    }
+
+    setIsSavingArtifact(true);
+    setDataMessage(null);
+
+    try {
+      await updateArtifactRecord(
+        artifactId,
+        { isArchived: !(currentArtifact.isArchived ?? false) },
+        handleUnauthorized,
+      );
+      await loadWorkspace();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingArtifact(false);
+    }
+  };
+
   const handleWorkstreamSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSavingWorkstream(true);
@@ -1415,9 +1546,38 @@ export default function App() {
         return;
       }
 
-      await createWorkstreamRecord(payload, handleUnauthorized);
+      if (workstreamModalMode === "create") {
+        await createWorkstreamRecord(payload, handleUnauthorized);
+      } else if (workstreamModalMode === "edit" && activeWorkstreamId) {
+        await updateWorkstreamRecord(activeWorkstreamId, payload, handleUnauthorized);
+      }
       await loadWorkspace();
       closeWorkstreamModal();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingWorkstream(false);
+    }
+  };
+
+  const handleToggleWorkstreamArchived = async (workstreamId: string) => {
+    const currentWorkstream = bootstrap.workstreams.find(
+      (workstream) => workstream.id === workstreamId,
+    );
+    if (!currentWorkstream) {
+      return;
+    }
+
+    setIsSavingWorkstream(true);
+    setDataMessage(null);
+
+    try {
+      await updateWorkstreamRecord(
+        workstreamId,
+        { isArchived: !currentWorkstream.isArchived },
+        handleUnauthorized,
+      );
+      await loadWorkspace();
     } catch (error) {
       setDataMessage(toErrorMessage(error));
     } finally {
@@ -1466,6 +1626,31 @@ export default function App() {
       setDataMessage(toErrorMessage(error));
     } finally {
       setIsDeletingPartDefinition(false);
+    }
+  };
+
+  const handleTogglePartDefinitionArchived = async (partDefinitionId: string) => {
+    const currentPartDefinition = bootstrap.partDefinitions.find(
+      (partDefinition) => partDefinition.id === partDefinitionId,
+    );
+    if (!currentPartDefinition) {
+      return;
+    }
+
+    setIsSavingPartDefinition(true);
+    setDataMessage(null);
+
+    try {
+      await updatePartDefinitionRecord(
+        partDefinitionId,
+        { isArchived: !currentPartDefinition.isArchived },
+        handleUnauthorized,
+      );
+      await loadWorkspace();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingPartDefinition(false);
     }
   };
 
@@ -1547,6 +1732,31 @@ export default function App() {
     }
   };
 
+  const handleToggleSubsystemArchived = async (subsystemId: string) => {
+    const currentSubsystem = bootstrap.subsystems.find(
+      (subsystem) => subsystem.id === subsystemId,
+    );
+    if (!currentSubsystem) {
+      return;
+    }
+
+    setIsSavingSubsystem(true);
+    setDataMessage(null);
+
+    try {
+      await updateSubsystemRecord(
+        subsystemId,
+        { isArchived: !currentSubsystem.isArchived },
+        handleUnauthorized,
+      );
+      await loadWorkspace();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingSubsystem(false);
+    }
+  };
+
   const handleMechanismSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSavingMechanism(true);
@@ -1582,6 +1792,31 @@ export default function App() {
       setDataMessage(toErrorMessage(error));
     } finally {
       setIsDeletingMechanism(false);
+    }
+  };
+
+  const handleToggleMechanismArchived = async (mechanismId: string) => {
+    const currentMechanism = bootstrap.mechanisms.find(
+      (mechanism) => mechanism.id === mechanismId,
+    );
+    if (!currentMechanism) {
+      return;
+    }
+
+    setIsSavingMechanism(true);
+    setDataMessage(null);
+
+    try {
+      await updateMechanismRecord(
+        mechanismId,
+        { isArchived: !currentMechanism.isArchived },
+        handleUnauthorized,
+      );
+      await loadWorkspace();
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+    } finally {
+      setIsSavingMechanism(false);
     }
   };
 
@@ -1881,6 +2116,7 @@ export default function App() {
   }, [closeRobotProjectPopup, robotProjectModalMode]);
 
   const disablePanelAnimations = Boolean(
+    activeTimelineTaskDetailId ||
     taskModalMode ||
       workLogModalMode ||
       purchaseModalMode ||
@@ -1897,6 +2133,7 @@ export default function App() {
   );
 
   const isWorkspaceModalOpen = Boolean(
+    activeTimelineTaskDetailId ||
     taskModalMode ||
       workLogModalMode ||
       purchaseModalMode ||
@@ -1914,6 +2151,8 @@ export default function App() {
     return (
       <AuthStatusScreen
         body="Checking the server-side auth configuration before the workspace opens."
+        isDarkMode={isDarkMode}
+        shellStyle={isDarkMode ? pageShellStyle : undefined}
         title="Loading sign-in rules for MECO Robotics."
       />
     );
@@ -1923,7 +2162,9 @@ export default function App() {
     return (
       <AuthStatusScreen
         body="The app could not confirm the server-side sign-in rules, so access is paused until the API is reachable again."
+        isDarkMode={isDarkMode}
         message={authMessage}
+        shellStyle={isDarkMode ? pageShellStyle : undefined}
         title="Couldn&apos;t load the authentication configuration."
       />
     );
@@ -1937,12 +2178,12 @@ export default function App() {
         hasEmailSignIn={isEmailAuthAvailable}
         hasGoogleSignIn={isGoogleAuthAvailable}
         googleButtonRef={googleButtonRef}
-        isLocalGoogleDevHost={isLocalGoogleDevHost}
-        isLocalGoogleOverrideActive={isLocalGoogleOverrideActive}
+        isDarkMode={isDarkMode}
         isSigningIn={isSigningIn}
         onRequestEmailCode={handleRequestEmailCode}
         onVerifyEmailCode={handleVerifyEmailCode}
         onDevBypassSignIn={handleDevBypassSignIn}
+        shellStyle={isDarkMode ? pageShellStyle : undefined}
         signInConfig={enforcedAuthConfig}
       />
     );
@@ -2156,6 +2397,8 @@ export default function App() {
           openCreateTaskModalFromTimeline={openCreateTaskModalFromTimeline}
           openCreateWorkLogModal={openCreateWorkLogModal}
           openCreateWorkstreamModal={openCreateWorkstreamModal}
+          openEditWorkstreamModal={openEditWorkstreamModal}
+          onCncQuickStatusChange={handleCncQuickStatusChange}
           openEditManufacturingModal={openEditManufacturingModal}
           openEditArtifactModal={openEditArtifactModal}
           openEditMaterialModal={openEditMaterialModal}
@@ -2164,9 +2407,14 @@ export default function App() {
           openEditSubsystemModal={openEditSubsystemModal}
           openEditPartDefinitionModal={openEditPartDefinitionModal}
           openEditPurchaseModal={openEditPurchaseModal}
-          openEditTaskModal={openEditTaskModal}
+          openTimelineTaskDetailsModal={openTimelineTaskDetailsModal}
           printItems={printItems}
           rosterMentors={rosterMentors}
+          showCncMentorQuickActions={
+            signedInMember?.role === "mentor" ||
+            signedInMember?.role === "admin" ||
+            Boolean(signedInMember?.elevated)
+          }
           manufacturingView={manufacturingView}
           inventoryView={inventoryView}
           taskView={taskView}
@@ -2198,8 +2446,10 @@ export default function App() {
             activePartDefinitionId={activePartDefinitionId}
             activeMaterialId={activeMaterialId}
             activeMechanismId={activeMechanismId}
+            activeWorkstreamId={activeWorkstreamId}
             activeSubsystemId={activeSubsystemId}
             activeTask={activeTask}
+            activeTimelineTaskDetail={activeTimelineTaskDetail}
             bootstrap={scopedBootstrap}
             closeManufacturingModal={closeManufacturingModal}
             closeArtifactModal={closeArtifactModal}
@@ -2208,6 +2458,7 @@ export default function App() {
             closePartInstanceModal={closePartInstanceModal}
             closePartDefinitionModal={closePartDefinitionModal}
             closePurchaseModal={closePurchaseModal}
+            closeTimelineTaskDetailsModal={closeTimelineTaskDetailsModal}
             closeWorkLogModal={closeWorkLogModal}
             closeSubsystemModal={closeSubsystemModal}
             closeTaskModal={closeTaskModal}
@@ -2216,8 +2467,13 @@ export default function App() {
             eventsById={eventsById}
             handleDeleteMaterial={handleDeleteMaterial}
             handleDeleteArtifact={handleDeleteArtifact}
+            handleToggleArtifactArchived={handleToggleArtifactArchived}
             handleDeletePartDefinition={handleDeletePartDefinition}
             handleDeleteMechanism={handleDeleteMechanism}
+            handleTogglePartDefinitionArchived={handleTogglePartDefinitionArchived}
+            handleToggleSubsystemArchived={handleToggleSubsystemArchived}
+            handleToggleMechanismArchived={handleToggleMechanismArchived}
+            handleToggleWorkstreamArchived={handleToggleWorkstreamArchived}
             handleDeleteTask={handleDeleteTask}
             handlePartInstanceSubmit={handlePartInstanceSubmit}
             handleMechanismSubmit={handleMechanismSubmit}
@@ -2285,6 +2541,7 @@ export default function App() {
             setTaskDraftBlockers={setTaskDraftBlockers}
             showTimelineCreateToggleInTaskModal={showTimelineCreateToggleInTaskModal}
             onSwitchTaskCreateToMilestone={switchTaskCreateToMilestone}
+            onOpenTaskEditFromTimelineDetails={openEditTaskModal}
             students={students}
             subsystemDraft={subsystemDraft}
             subsystemDraftRisks={subsystemDraftRisks}

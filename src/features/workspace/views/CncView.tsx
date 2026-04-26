@@ -14,6 +14,11 @@ interface CncViewProps {
   membersById: MembersById;
   onCreate: () => void;
   onEdit: (item: ManufacturingItemRecord) => void;
+  onQuickStatusChange?: (
+    item: ManufacturingItemRecord,
+    status: ManufacturingItemRecord["status"],
+  ) => Promise<void>;
+  showMentorQuickActions?: boolean;
   subsystemsById: SubsystemsById;
 }
 
@@ -24,6 +29,8 @@ export function CncView({
   membersById,
   onCreate,
   onEdit,
+  onQuickStatusChange,
+  showMentorQuickActions = false,
   subsystemsById,
 }: CncViewProps) {
   const personFilterLabel = formatFilterSelectionLabel(
@@ -47,9 +54,11 @@ export function CncView({
       membersById={membersById}
       onCreate={onCreate}
       onEdit={onEdit}
+      onQuickStatusChange={onQuickStatusChange}
+      showMentorQuickActions={showMentorQuickActions}
       showInHouseColumn
       subsystemsById={subsystemsById}
-      title="CNC queue"
+      title="cnc"
     />
   );
 }

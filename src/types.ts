@@ -87,6 +87,7 @@ export interface SubsystemRecord {
   name: string;
   description: string;
   iteration: number;
+  isArchived?: boolean;
   isCore: boolean;
   parentSubsystemId: string | null;
   responsibleEngineerId: string | null;
@@ -106,6 +107,7 @@ export interface MechanismRecord {
   name: string;
   description: string;
   iteration: number;
+  isArchived?: boolean;
 }
 
 export interface MaterialRecord {
@@ -129,6 +131,7 @@ export interface ArtifactRecord {
   summary: string;
   status: ArtifactStatus;
   link: string;
+  isArchived?: boolean;
   updatedAt: string;
 }
 
@@ -138,6 +141,7 @@ export interface PartDefinitionRecord {
   partNumber: string;
   revision: string;
   iteration: number;
+  isArchived?: boolean;
   type: string;
   source: string;
   materialId: string | null;
@@ -200,6 +204,7 @@ export interface WorkstreamRecord {
   projectId: string;
   name: string;
   description: string;
+  isArchived?: boolean;
 }
 
 export interface QaReportRecord {
@@ -417,6 +422,7 @@ export interface ArtifactPayload {
   summary: string;
   status: ArtifactStatus;
   link: string;
+  isArchived?: boolean;
   updatedAt: string;
 }
 
@@ -424,6 +430,7 @@ export interface WorkstreamPayload {
   projectId: string;
   name: string;
   description: string;
+  isArchived?: boolean;
 }
 
 export interface PartDefinitionPayload {
@@ -431,6 +438,7 @@ export interface PartDefinitionPayload {
   partNumber: string;
   revision: string;
   iteration: number;
+  isArchived?: boolean;
   type: string;
   source: string;
   materialId: string | null;
@@ -442,6 +450,7 @@ export interface SubsystemPayload {
   name: string;
   description: string;
   iteration: number;
+  isArchived?: boolean;
   parentSubsystemId: string | null;
   responsibleEngineerId: string | null;
   mentorIds: string[];
@@ -453,6 +462,7 @@ export interface MechanismPayload {
   name: string;
   description: string;
   iteration: number;
+  isArchived?: boolean;
 }
 
 export interface PartInstancePayload {

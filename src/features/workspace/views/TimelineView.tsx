@@ -36,7 +36,7 @@ interface TimelineViewProps {
   activePersonFilter: FilterSelection;
   setActivePersonFilter: (value: FilterSelection) => void;
   membersById: Record<string, BootstrapPayload["members"][number]>;
-  openEditTaskModal: (task: TaskRecord) => void;
+  openTaskDetailModal: (task: TaskRecord) => void;
   openCreateTaskModal: () => void;
   onDeleteTimelineEvent: (eventId: string) => Promise<void>;
   onSaveTimelineEvent: (
@@ -115,6 +115,8 @@ interface MilestoneGeometry {
   width: number;
   centerX: number;
   centerY: number;
+  bodyTop: number;
+  bodyHeight: number;
 }
 
 interface TimelineSharedDayBackground {
@@ -216,6 +218,10 @@ const EVENT_TYPE_OPTIONS = (
   label: style.label,
 }));
 
+function getEventTypeStyle(type: string | null | undefined) {
+  return EVENT_TYPE_STYLES[type as EventType] ?? EVENT_TYPE_STYLES[DEFAULT_EVENT_TYPE];
+}
+
 function datePortion(dateTime: string) {
   return dateTime.slice(0, 10);
 }
@@ -270,6 +276,18 @@ function addMonthsToDay(day: string, monthCount: number) {
   );
   targetMonthStart.setDate(Math.min(date, targetMonthEnd.getDate()));
   return targetMonthStart.toISOString().slice(0, 10);
+}
+
+function monthStartFromDay(day: string) {
+  return `${day.slice(0, 7)}-01`;
+}
+
+export function monthEndFromDay(day: string) {
+  const [yearText, monthText] = day.split("-");
+  const year = Number.parseInt(yearText, 10);
+  const month = Number.parseInt(monthText, 10);
+  const dayCount = new Date(year, month, 0).getDate();
+  return `${yearText}-${monthText}-${String(dayCount).padStart(2, "0")}`;
 }
 
 function monthLabelFromDay(day: string) {
@@ -380,9 +398,9 @@ const TimelineMilestoneHoverLayer: React.FC<TimelineMilestoneHoverLayerProps> = 
           className="timeline-day-event-overlay-column"
           style={{
             background: withColumnOverlayTint(popup.background),
-            height: `${geometry.centerY * 2}px`,
+            height: `${geometry.bodyHeight}px`,
             left: `${geometry.left}px`,
-            top: "0px",
+            top: `${geometry.bodyTop}px`,
             width: `${geometry.width}px`,
           }}
         />
@@ -390,17 +408,32 @@ const TimelineMilestoneHoverLayer: React.FC<TimelineMilestoneHoverLayerProps> = 
           className="timeline-day-event-overlay-tooltip"
           role="presentation"
           style={{
-            transform: `translate(-50%, -50%) rotate(${popup.rotationDeg}deg)`,
-            left: `${geometry.centerX}px`,
-            top: `${geometry.centerY}px`,
+            left: `${geometry.left}px`,
+            top: `${geometry.bodyTop}px`,
+            height: `${geometry.bodyHeight}px`,
+            width: `${geometry.width}px`,
+            transform: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             color: "#ffffff",
           }}
         >
-          {popup.lines.map((line, index) => (
-            <span className="timeline-day-event-overlay-tooltip-item" key={`${line}-${index}`}>
-              {line}
-            </span>
-          ))}
+          <div
+            style={{
+              display: "grid",
+              gap: "0.28rem",
+              justifyItems: "center",
+              transform: `rotate(${popup.rotationDeg}deg)`,
+              transformOrigin: "center",
+            }}
+          >
+            {popup.lines.map((line, index) => (
+              <span className="timeline-day-event-overlay-tooltip-item" key={`${line}-${index}`}>
+                {line}
+              </span>
+            ))}
+          </div>
         </div>
       </>,
       portalTarget,
@@ -416,7 +449,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   activePersonFilter,
   setActivePersonFilter,
   membersById,
-  openEditTaskModal,
+  openTaskDetailModal,
   openCreateTaskModal,
   onDeleteTimelineEvent,
   onSaveTimelineEvent,
@@ -566,11 +599,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         };
       }
 
-      const startObj = new Date(`${earliestDate}T12:00:00`);
-      startObj.setDate(1);
-      const endObj = new Date(`${latestDate}T12:00:00`);
-      endObj.setMonth(endObj.getMonth() + 1);
-      endObj.setDate(0);
+      const startObj = new Date(`${monthStartFromDay(earliestDate)}T12:00:00`);
+      const endObj = new Date(`${monthEndFromDay(latestDate)}T12:00:00`);
       const now = new Date();
       now.setHours(12, 0, 0, 0);
       const boundedStart = new Date(
@@ -679,8 +709,22 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       }
     });
 
-    const subsystemRows = scopedSubsystems.map((subsystem, index) => {
+    const subsystemRows: Array<{
+      id: string;
+      name: string;
+      projectId: string;
+      projectName: string;
+      index: number;
+      taskCount: number;
+      completeCount: number;
+      tasks: Array<TaskRecord & { offset: number; span: number }>;
+    }> = [];
+    scopedSubsystems.forEach((subsystem) => {
       const subsystemTasks = tasksBySubsystem.get(subsystem.id) ?? [];
+      if (subsystemTasks.length === 0) {
+        return;
+      }
+
       let completeCount = 0;
       subsystemTasks.forEach((task) => {
         if (task.status === "complete") {
@@ -688,16 +732,16 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         }
       });
 
-      return {
+      subsystemRows.push({
         id: subsystem.id,
         name: subsystem.name,
         projectId: subsystem.projectId,
         projectName: projectsById[subsystem.projectId]?.name ?? "Unknown",
-        index,
+        index: subsystemRows.length,
         taskCount: subsystemTasks.length,
         completeCount,
         tasks: subsystemTasks,
-      };
+      });
     });
 
     return { days, dayEvents, subsystemRows };
@@ -786,7 +830,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             day,
             left,
             width,
-            style: dayEventsByDate[day]?.length ? EVENT_TYPE_STYLES[dayEventsByDate[day][0].type] : null,
+            style: dayEventsByDate[day]?.length
+              ? getEventTypeStyle(dayEventsByDate[day][0].type)
+              : null,
           } satisfies TimelineSharedDayBackground;
         })
         .filter((entry): entry is TimelineSharedDayBackground => entry !== null),
@@ -798,7 +844,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       timeline.days.map((day) => {
         const eventsOnDay = dayEventsByDate[day] ?? [];
         const primaryEvent = eventsOnDay[0];
-        const dayStyle = primaryEvent ? EVENT_TYPE_STYLES[primaryEvent.type] : null;
+        const dayStyle = primaryEvent ? getEventTypeStyle(primaryEvent.type) : null;
         const primaryEventStartDay = primaryEvent ? datePortion(primaryEvent.startDateTime) : day;
         const primaryEventEndDay = primaryEvent?.endDateTime
           ? datePortion(primaryEvent.endDateTime)
@@ -1060,9 +1106,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
     timelineLayerGeometryFrameRef.current = window.requestAnimationFrame(() => {
       timelineLayerGeometryFrameRef.current = null;
-      const shell = timelineShellRef.current;
       const grid = timelineGridRef.current;
-      if (!grid) {
+      const shell = timelineShellRef.current;
+      if (!grid || !shell) {
         setTimelineDayMilestoneUnderlayLayouts((previous) =>
           Object.keys(previous).length ? {} : previous,
         );
@@ -1105,8 +1151,20 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
         return previous;
       });
-      const nextGridHeight = shell?.scrollHeight ?? grid.clientHeight;
-      const nextHeaderHeight = grid.clientHeight;
+      const firstDay = timeline.days[0];
+      const firstDayCell = firstDay ? timelineDayCellRefs.current[firstDay] : null;
+      const shellRect = shell.getBoundingClientRect();
+      const nextHeaderHeight = firstDayCell
+        ? firstDayCell.getBoundingClientRect().bottom - shellRect.top + shell.scrollTop
+        : 0;
+      const timelineDayCells = Array.from(
+        shell.querySelectorAll<HTMLElement>("[data-timeline-grid-cell='true']"),
+      );
+      const contentBottom = timelineDayCells.reduce((maxBottom, cell) => {
+        const cellBottom = cell.getBoundingClientRect().bottom - shellRect.top + shell.scrollTop;
+        return cellBottom > maxBottom ? cellBottom : maxBottom;
+      }, 0);
+      const nextGridHeight = Math.max(nextHeaderHeight, contentBottom, grid.clientHeight);
       setTimelineGridHeight((previous) => (previous === nextGridHeight ? previous : nextGridHeight));
       setTimelineHeaderHeight((previous) =>
         previous === nextHeaderHeight ? previous : nextHeaderHeight,
@@ -1154,21 +1212,23 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
     const left = Math.min(start.left, end.left);
     const right = Math.max(start.left + start.width, end.left + end.width);
-    const gridHeight =
-      timelineShellRef.current.scrollHeight ||
-      timelineShellRef.current.clientHeight ||
-      timelineGridHeight;
-    if (gridHeight <= 0) {
+    const centerX = (left + right) / 2;
+    const gridHeight = timelineGridHeight || timelineGridRef.current?.clientHeight || 0;
+    const bodyTop = Math.max(0, timelineHeaderHeight);
+    const bodyHeight = gridHeight - bodyTop;
+    if (bodyHeight <= 0) {
       return null;
     }
 
     return {
       left,
       width: right - left,
-      centerX: (left + right) / 2,
-      centerY: gridHeight / 2,
+      centerX,
+      centerY: bodyTop + bodyHeight / 2,
+      bodyTop,
+      bodyHeight,
     };
-  }, [timelineDayMilestoneUnderlayLayouts, timelineGridHeight]);
+  }, [timelineDayMilestoneUnderlayLayouts, timelineGridHeight, timelineHeaderHeight]);
 
   const updateHoveredMilestonePopup = useCallback((
     target: HTMLElement,
@@ -1235,7 +1295,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     anchor.dataset.popupStartDay = anchorStartDay;
     anchor.dataset.popupEndDay = anchorEndDay;
 
-    const dayStyle = EVENT_TYPE_STYLES[primaryEvent.type];
+    const dayStyle = getEventTypeStyle(primaryEvent.type);
     updateHoveredMilestonePopup(
       anchor,
       lines,
@@ -1301,6 +1361,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   }, [
     queueTimelineLayerUpdate,
     timelineGridTemplate,
+    timeline.subsystemRows,
+    projectRows,
+    collapsedProjects,
+    collapsedSubsystems,
     showProjectCol,
     showSubsystemCol,
     showTaskCol,
@@ -1343,7 +1407,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
           return null;
         }
 
-        const style = EVENT_TYPE_STYLES[event.type];
+        const style = getEventTypeStyle(event.type);
         const isMultiDayEvent = eventStartDay !== eventEndDay;
 
         return {
@@ -2003,7 +2067,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         <button
                           key={task.id}
                           className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                          onClick={() => openEditTaskModal(task)}
+                          onClick={() => openTaskDetailModal(task)}
                           onMouseEnter={clearHoveredMilestonePopup}
                           style={{
                             gridRow: "1",
@@ -2168,7 +2232,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                 <button
                                   key={task.id}
                                   className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                                  onClick={() => openEditTaskModal(task)}
+                                  onClick={() => openTaskDetailModal(task)}
                                   onMouseEnter={clearHoveredMilestonePopup}
                                   style={{
                                     gridRow: subsystemRowStart,
@@ -2209,7 +2273,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                         className="task-label timeline-column-motion timeline-row-motion-item"
                                         {...getTimelineColumnMotionProps("task", showTaskCol)}
                                         {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                                        onClick={() => openEditTaskModal(task)}
+                                        onClick={() => openTaskDetailModal(task)}
                                         style={{
                                           gridRow: subsystemRowStart + taskIndex,
                                           gridColumn: `${taskLabelColumnIndex}`,
@@ -2263,7 +2327,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                       )}
                                         <button
                                           className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                                          onClick={() => openEditTaskModal(task)}
+                                          onClick={() => openTaskDetailModal(task)}
                                           onMouseEnter={clearHoveredMilestonePopup}
                                       style={{
                                         gridRow: subsystemRowStart + taskIndex,
@@ -2286,7 +2350,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                         minWidth: 0,
                                       }}
                                       {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                                      title={`Edit ${task.title}`}
+                                      title={`View details for ${task.title}`}
                                       type="button"
                                     >
                                       {task.title}
@@ -2478,7 +2542,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     <button
                       key={task.id}
                       className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                      onClick={() => openEditTaskModal(task)}
+                      onClick={() => openTaskDetailModal(task)}
                       onMouseEnter={clearHoveredMilestonePopup}
                       style={{
                         gridRow: "1",
@@ -2515,7 +2579,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             className="task-label timeline-column-motion timeline-row-motion-item"
                             {...getTimelineColumnMotionProps("task", showTaskCol)}
                             {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                            onClick={() => openEditTaskModal(task)}
+                            onClick={() => openTaskDetailModal(task)}
                             style={{
                               gridRow: taskIndex + 1,
                               gridColumn: `${taskLabelColumnIndex}`,
@@ -2569,7 +2633,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         )}
                         <button
                           className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                          onClick={() => openEditTaskModal(task)}
+                          onClick={() => openTaskDetailModal(task)}
                           onMouseEnter={clearHoveredMilestonePopup}
                           style={{
                             gridRow: taskIndex + 1,
@@ -2592,7 +2656,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             minWidth: 0,
                           }}
                           {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                          title={`Edit ${task.title}`}
+                          title={`View details for ${task.title}`}
                           type="button"
                         >
                           {task.title}
@@ -2622,21 +2686,36 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                   className="timeline-day-event-underlay"
                   title={underlay.lines.join(", ")}
                   style={{
-                    transform: `translate(-50%, -50%) rotate(${underlay.rotationDeg}deg)`,
-                    left: `${underlay.geometry.centerX + underlay.horizontalOffset}px`,
-                    top: `${underlay.geometry.centerY}px`,
+                    left: `${underlay.geometry.left + underlay.horizontalOffset}px`,
+                    top: `${underlay.geometry.bodyTop}px`,
+                    height: `${underlay.geometry.bodyHeight}px`,
+                    width: `${underlay.geometry.width}px`,
+                    transform: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     color: underlay.color,
                     zIndex: 4 + underlay.stackOrder,
                   }}
                 >
-                  {underlay.lines.map((line, index) => (
-                    <span
-                      className="timeline-day-event-overlay-tooltip-item"
-                      key={`${underlay.id}-${line}-${index}`}
-                    >
-                      {line}
-                    </span>
-                  ))}
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "0.28rem",
+                      justifyItems: "center",
+                      transform: `rotate(${underlay.rotationDeg}deg)`,
+                      transformOrigin: "center",
+                    }}
+                  >
+                    {underlay.lines.map((line, index) => (
+                      <span
+                        className="timeline-day-event-overlay-tooltip-item"
+                        key={`${underlay.id}-${line}-${index}`}
+                      >
+                        {line}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ))}
             </>,

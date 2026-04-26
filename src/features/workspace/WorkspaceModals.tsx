@@ -583,6 +583,263 @@ export function TaskEditorModal({
   );
 }
 
+interface TaskDetailsModalProps {
+  activeTask: TaskRecord;
+  bootstrap: BootstrapPayload;
+  closeTaskDetailsModal: () => void;
+  onEditTask: (task: TaskRecord) => void;
+}
+
+function formatTaskDetailDate(dateValue: string): string {
+  if (!dateValue) {
+    return "Not set";
+  }
+
+  const parsedDate = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return dateValue;
+  }
+
+  return parsedDate.toLocaleDateString();
+}
+
+export function TaskDetailsModal({
+  activeTask,
+  bootstrap,
+  closeTaskDetailsModal,
+  onEditTask,
+}: TaskDetailsModalProps) {
+  const membersById = Object.fromEntries(
+    bootstrap.members.map((member) => [member.id, member]),
+  ) as Record<string, BootstrapPayload["members"][number]>;
+  const projectsById = Object.fromEntries(
+    bootstrap.projects.map((project) => [project.id, project]),
+  ) as Record<string, BootstrapPayload["projects"][number]>;
+  const subsystemsById = Object.fromEntries(
+    bootstrap.subsystems.map((subsystem) => [subsystem.id, subsystem]),
+  ) as Record<string, BootstrapPayload["subsystems"][number]>;
+  const mechanismsById = Object.fromEntries(
+    bootstrap.mechanisms.map((mechanism) => [mechanism.id, mechanism]),
+  ) as Record<string, BootstrapPayload["mechanisms"][number]>;
+  const partInstancesById = Object.fromEntries(
+    bootstrap.partInstances.map((partInstance) => [partInstance.id, partInstance]),
+  ) as Record<string, BootstrapPayload["partInstances"][number]>;
+  const partDefinitionsById = Object.fromEntries(
+    bootstrap.partDefinitions.map((partDefinition) => [partDefinition.id, partDefinition]),
+  ) as Record<string, BootstrapPayload["partDefinitions"][number]>;
+  const disciplinesById = Object.fromEntries(
+    bootstrap.disciplines.map((discipline) => [discipline.id, discipline]),
+  ) as Record<string, BootstrapPayload["disciplines"][number]>;
+  const eventsById = Object.fromEntries(
+    bootstrap.events.map((event) => [event.id, event]),
+  ) as Record<string, BootstrapPayload["events"][number]>;
+  const selectedAssigneeIds =
+    activeTask.assigneeIds.length > 0
+      ? activeTask.assigneeIds
+      : activeTask.ownerId
+        ? [activeTask.ownerId]
+        : [];
+  const selectedSubsystemIds =
+    activeTask.subsystemIds.length > 0
+      ? activeTask.subsystemIds
+      : activeTask.subsystemId
+        ? [activeTask.subsystemId]
+        : [];
+  const selectedMechanismIds =
+    activeTask.mechanismIds.length > 0
+      ? activeTask.mechanismIds
+      : activeTask.mechanismId
+        ? [activeTask.mechanismId]
+        : [];
+  const selectedPartInstanceIds =
+    activeTask.partInstanceIds.length > 0
+      ? activeTask.partInstanceIds
+      : activeTask.partInstanceId
+        ? [activeTask.partInstanceId]
+        : [];
+  const subsystemNames = selectedSubsystemIds
+    .map((subsystemId) => subsystemsById[subsystemId]?.name)
+    .filter((name): name is string => Boolean(name));
+  const mechanismNames = selectedMechanismIds
+    .map((mechanismId) => mechanismsById[mechanismId]?.name)
+    .filter((name): name is string => Boolean(name));
+  const partLabels = selectedPartInstanceIds
+    .map((partInstanceId) => {
+      const partInstance = partInstancesById[partInstanceId];
+      if (!partInstance) {
+        return null;
+      }
+
+      const partDefinition = partDefinitionsById[partInstance.partDefinitionId];
+      return partDefinition
+        ? `${partInstance.name} (${partDefinition.name})`
+        : partInstance.name;
+    })
+    .filter((label): label is string => Boolean(label));
+  const assigneeNames = selectedAssigneeIds
+    .map((memberId) => membersById[memberId]?.name)
+    .filter((name): name is string => Boolean(name));
+  const linkedEvent =
+    activeTask.targetEventId && eventsById[activeTask.targetEventId]
+      ? eventsById[activeTask.targetEventId]
+      : null;
+
+  return (
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
+      <section
+        aria-modal="true"
+        className="modal-card"
+        role="dialog"
+        style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}
+      >
+        <div className="panel-header compact-header">
+          <div>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>
+              Task details
+            </p>
+            <h2 style={{ color: "var(--text-title)" }}>{activeTask.title}</h2>
+          </div>
+          <button
+            className="icon-button"
+            onClick={closeTaskDetailsModal}
+            style={{ color: "var(--text-copy)", background: "transparent" }}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="modal-form" style={{ color: "var(--text-copy)" }}>
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Summary</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {activeTask.summary || "No summary provided."}
+            </p>
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Project</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {projectsById[activeTask.projectId]?.name ?? "Unknown"}
+            </p>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Discipline</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {activeTask.disciplineId
+                ? disciplinesById[activeTask.disciplineId]?.name ?? "Unknown"
+                : "Not set"}
+            </p>
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Status</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)", textTransform: "capitalize" }}>
+              {activeTask.status.replace("-", " ")}
+            </p>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Priority</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)", textTransform: "capitalize" }}>
+              {activeTask.priority}
+            </p>
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Due date</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {formatTaskDetailDate(activeTask.dueDate)}
+            </p>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Estimate</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {activeTask.estimatedHours}h
+            </p>
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Actual hours</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {activeTask.actualHours}h
+            </p>
+          </label>
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Assigned</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {assigneeNames.length > 0 ? assigneeNames.join(", ") : "Unassigned"}
+            </p>
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Subsystems</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {subsystemNames.length > 0 ? subsystemNames.join(", ") : "No subsystem linked"}
+            </p>
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Mechanisms</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {mechanismNames.length > 0 ? mechanismNames.join(", ") : "No mechanism linked"}
+            </p>
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Parts</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {partLabels.length > 0 ? partLabels.join(", ") : "No part linked"}
+            </p>
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Target milestone</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {linkedEvent ? linkedEvent.title : "No target milestone"}
+            </p>
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Blockers</span>
+            <p style={{ margin: "0.25rem 0 0", color: "var(--text-copy)" }}>
+              {activeTask.blockers.length > 0 ? activeTask.blockers.join(", ") : "None"}
+            </p>
+          </label>
+
+          <div className="checkbox-row modal-wide">
+            <label className="checkbox-field">
+              <input checked={activeTask.requiresDocumentation} disabled type="checkbox" />
+              <span style={{ color: "var(--text-title)" }}>Requires documentation</span>
+            </label>
+            <label className="checkbox-field">
+              <input checked={activeTask.documentationLinked} disabled type="checkbox" />
+              <span style={{ color: "var(--text-title)" }}>Documentation linked</span>
+            </label>
+          </div>
+
+          <div className="modal-actions modal-wide">
+            <button
+              className="secondary-action"
+              onClick={closeTaskDetailsModal}
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              type="button"
+            >
+              Close
+            </button>
+            <button className="primary-action" onClick={() => onEditTask(activeTask)} type="button">
+              Edit task
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 interface WorkLogEditorModalProps {
   bootstrap: BootstrapPayload;
   closeWorkLogModal: () => void;
@@ -1308,21 +1565,23 @@ export function ManufacturingEditorModal({
               </label>
             </div>
           ) : null}
-          <div className="checkbox-row modal-wide">
-            <label className="checkbox-field">
-              <input
-                checked={manufacturingDraft.mentorReviewed}
-                onChange={(event) =>
-                  setManufacturingDraft((current) => ({
-                    ...current,
-                    mentorReviewed: event.target.checked,
-                  }))
-                }
-                type="checkbox"
-              />
-              <span style={{ color: "var(--text-title)" }}>Mentor reviewed</span>
-            </label>
-          </div>
+          {manufacturingModalMode === "edit" ? (
+            <div className="checkbox-row modal-wide">
+              <label className="checkbox-field">
+                <input
+                  checked={manufacturingDraft.mentorReviewed}
+                  onChange={(event) =>
+                    setManufacturingDraft((current) => ({
+                      ...current,
+                      mentorReviewed: event.target.checked,
+                    }))
+                  }
+                  type="checkbox"
+                />
+                <span style={{ color: "var(--text-title)" }}>Mentor reviewed</span>
+              </label>
+            </div>
+          ) : null}
           <div className="modal-actions modal-wide">
             <button
               className="secondary-action"
@@ -1401,16 +1660,45 @@ export function MaterialEditorModal({
             </select>
           </label>
           <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Unit</span>
-            <input onChange={(event) => setMaterialDraft((current) => ({ ...current, unit: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={materialDraft.unit} />
-          </label>
-          <label className="field">
             <span style={{ color: "var(--text-title)" }}>On hand</span>
-            <input min="0" onChange={(event) => setMaterialDraft((current) => ({ ...current, onHandQuantity: Number(event.target.value) }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="number" value={materialDraft.onHandQuantity} />
+            <input
+              min="0"
+              onChange={(event) => {
+                const onHandQuantity = Number(event.target.value);
+                setMaterialDraft((current) => ({
+                  ...current,
+                  onHandQuantity,
+                  reorderPoint:
+                    materialModalMode === "create"
+                      ? Math.floor(onHandQuantity / 2)
+                      : current.reorderPoint,
+                }));
+              }}
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              type="number"
+              value={materialDraft.onHandQuantity}
+            />
           </label>
           <label className="field">
             <span style={{ color: "var(--text-title)" }}>Reorder point</span>
-            <input min="0" onChange={(event) => setMaterialDraft((current) => ({ ...current, reorderPoint: Number(event.target.value) }))} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} type="number" value={materialDraft.reorderPoint} />
+            <input
+              disabled={materialModalMode === "create"}
+              min="0"
+              onChange={(event) =>
+                setMaterialDraft((current) => ({
+                  ...current,
+                  reorderPoint: Number(event.target.value),
+                }))
+              }
+              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+              type="number"
+              value={materialDraft.reorderPoint}
+            />
+            {materialModalMode === "create" ? (
+              <small style={{ color: "var(--text-copy)" }}>
+                Auto-set to 50% of on-hand quantity while adding.
+              </small>
+            ) : null}
           </label>
           <label className="field">
             <span style={{ color: "var(--text-title)" }}>Location</span>
@@ -1452,6 +1740,7 @@ interface ArtifactEditorModalProps {
   closeArtifactModal: () => void;
   handleArtifactSubmit: (event: FormEvent<HTMLFormElement>) => void;
   handleDeleteArtifact: (artifactId: string) => Promise<void>;
+  handleToggleArtifactArchived: (artifactId: string) => Promise<void>;
   isDeletingArtifact: boolean;
   isSavingArtifact: boolean;
   setArtifactDraft: Dispatch<SetStateAction<ArtifactPayload>>;
@@ -1465,6 +1754,7 @@ export function ArtifactEditorModal({
   closeArtifactModal,
   handleArtifactSubmit,
   handleDeleteArtifact,
+  handleToggleArtifactArchived,
   isDeletingArtifact,
   isSavingArtifact,
   setArtifactDraft,
@@ -1661,6 +1951,18 @@ export function ArtifactEditorModal({
                 {isDeletingArtifact ? "Deleting..." : "Delete artifact"}
               </button>
             ) : null}
+            {artifactModalMode === "edit" && activeArtifactId ? (
+              <button
+                className={artifactDraft.isArchived ? "secondary-action" : "danger-action"}
+                disabled={isSavingArtifact || isDeletingArtifact}
+                onClick={() => {
+                  void handleToggleArtifactArchived(activeArtifactId);
+                }}
+                type="button"
+              >
+                {artifactDraft.isArchived ? "Restore artifact" : "Archive artifact"}
+              </button>
+            ) : null}
             <button
               className="secondary-action"
               onClick={closeArtifactModal}
@@ -1692,21 +1994,27 @@ export function ArtifactEditorModal({
 }
 
 interface WorkstreamEditorModalProps {
+  activeWorkstreamId: string | null;
   bootstrap: BootstrapPayload;
   closeWorkstreamModal: () => void;
+  handleToggleWorkstreamArchived: (workstreamId: string) => void;
   handleWorkstreamSubmit: (event: FormEvent<HTMLFormElement>) => void;
   isSavingWorkstream: boolean;
   setWorkstreamDraft: Dispatch<SetStateAction<WorkstreamPayload>>;
   workstreamDraft: WorkstreamPayload;
+  workstreamModalMode: "create" | "edit";
 }
 
 export function WorkstreamEditorModal({
+  activeWorkstreamId,
   bootstrap,
   closeWorkstreamModal,
+  handleToggleWorkstreamArchived,
   handleWorkstreamSubmit,
   isSavingWorkstream,
   setWorkstreamDraft,
   workstreamDraft,
+  workstreamModalMode,
 }: WorkstreamEditorModalProps) {
   return (
     <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
@@ -1724,7 +2032,9 @@ export function WorkstreamEditorModal({
             <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>
               Workflow editor
             </p>
-            <h2 style={{ color: "var(--text-title)" }}>Add workflow</h2>
+            <h2 style={{ color: "var(--text-title)" }}>
+              {workstreamModalMode === "create" ? "Add workflow" : "Edit workflow"}
+            </h2>
           </div>
           <button
             className="icon-button"
@@ -1809,6 +2119,16 @@ export function WorkstreamEditorModal({
           </label>
 
           <div className="modal-actions modal-wide">
+            {workstreamModalMode === "edit" && activeWorkstreamId ? (
+              <button
+                className={workstreamDraft.isArchived ? "secondary-action" : "danger-action"}
+                disabled={isSavingWorkstream}
+                onClick={() => handleToggleWorkstreamArchived(activeWorkstreamId)}
+                type="button"
+              >
+                {workstreamDraft.isArchived ? "Restore workflow" : "Archive workflow"}
+              </button>
+            ) : null}
             <button
               className="secondary-action"
               onClick={closeWorkstreamModal}
@@ -1822,7 +2142,11 @@ export function WorkstreamEditorModal({
               Cancel
             </button>
             <button className="primary-action" disabled={isSavingWorkstream} type="submit">
-              {isSavingWorkstream ? "Saving..." : "Add workflow"}
+              {isSavingWorkstream
+                ? "Saving..."
+                : workstreamModalMode === "create"
+                  ? "Add workflow"
+                  : "Save changes"}
             </button>
           </div>
         </form>
@@ -1836,6 +2160,7 @@ interface PartDefinitionEditorModalProps {
   activePartDefinitionId: string | null;
   closePartDefinitionModal: () => void;
   handleDeletePartDefinition: (id: string) => void;
+  handleTogglePartDefinitionArchived: (id: string) => void;
   handlePartDefinitionSubmit: (event: FormEvent<HTMLFormElement>) => void;
   isDeletingPartDefinition: boolean;
   isSavingPartDefinition: boolean;
@@ -1848,6 +2173,7 @@ interface SubsystemEditorModalProps {
   activeSubsystemId: string | null;
   bootstrap: BootstrapPayload;
   closeSubsystemModal: () => void;
+  handleToggleSubsystemArchived: (subsystemId: string) => void;
   handleSubsystemSubmit: (event: FormEvent<HTMLFormElement>) => void;
   isSavingSubsystem: boolean;
   subsystemDraft: SubsystemPayload;
@@ -1862,6 +2188,7 @@ interface MechanismEditorModalProps {
   bootstrap: BootstrapPayload;
   closeMechanismModal: () => void;
   handleDeleteMechanism: (mechanismId: string) => void;
+  handleToggleMechanismArchived: (mechanismId: string) => void;
   handleMechanismSubmit: (event: FormEvent<HTMLFormElement>) => void;
   isDeletingMechanism: boolean;
   isSavingMechanism: boolean;
@@ -1875,6 +2202,7 @@ export function PartDefinitionEditorModal({
   activePartDefinitionId,
   closePartDefinitionModal,
   handleDeletePartDefinition,
+  handleTogglePartDefinitionArchived,
   handlePartDefinitionSubmit,
   isDeletingPartDefinition,
   isSavingPartDefinition,
@@ -1949,6 +2277,18 @@ export function PartDefinitionEditorModal({
             <textarea onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, description: event.target.value }))} rows={3} style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.description} />
           </label>
           <div className="modal-actions modal-wide">
+            {partDefinitionModalMode === "edit" && activePartDefinitionId ? (
+              <button
+                className={partDefinitionDraft.isArchived ? "secondary-action" : "danger-action"}
+                disabled={isDeletingPartDefinition || isSavingPartDefinition}
+                onClick={() => handleTogglePartDefinitionArchived(activePartDefinitionId)}
+                type="button"
+              >
+                {partDefinitionDraft.isArchived
+                  ? "Restore part definition"
+                  : "Archive part definition"}
+              </button>
+            ) : null}
             {partDefinitionModalMode === "edit" && activePartDefinitionId ? (
               <button
                 className="danger-action"
@@ -2095,6 +2435,7 @@ export function SubsystemEditorModal({
   activeSubsystemId,
   bootstrap,
   closeSubsystemModal,
+  handleToggleSubsystemArchived,
   handleSubsystemSubmit,
   isSavingSubsystem,
   subsystemDraft,
@@ -2325,6 +2666,16 @@ export function SubsystemEditorModal({
           </label>
 
           <div className="modal-actions modal-wide">
+            {subsystemModalMode === "edit" && activeSubsystemId ? (
+              <button
+                className={subsystemDraft.isArchived ? "secondary-action" : "danger-action"}
+                disabled={isSavingSubsystem}
+                onClick={() => handleToggleSubsystemArchived(activeSubsystemId)}
+                type="button"
+              >
+                {subsystemDraft.isArchived ? "Restore subsystem" : "Archive subsystem"}
+              </button>
+            ) : null}
             <button
               className="secondary-action"
               onClick={closeSubsystemModal}
@@ -2356,6 +2707,7 @@ export function MechanismEditorModal({
   bootstrap,
   closeMechanismModal,
   handleDeleteMechanism,
+  handleToggleMechanismArchived,
   handleMechanismSubmit,
   isDeletingMechanism,
   isSavingMechanism,
@@ -2490,6 +2842,16 @@ export function MechanismEditorModal({
           </label>
 
           <div className="modal-actions modal-wide">
+            {mechanismModalMode === "edit" && activeMechanismId ? (
+              <button
+                className={mechanismDraft.isArchived ? "secondary-action" : "danger-action"}
+                disabled={isDeletingMechanism || isSavingMechanism}
+                onClick={() => handleToggleMechanismArchived(activeMechanismId)}
+                type="button"
+              >
+                {mechanismDraft.isArchived ? "Restore mechanism" : "Archive mechanism"}
+              </button>
+            ) : null}
             {mechanismModalMode === "edit" && activeMechanismId ? (
               <button
                 className="danger-action"

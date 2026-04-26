@@ -78,6 +78,8 @@ describe("ManufacturingQueueView", () => {
         membersById: { "member-1": bootstrap.members[0] },
         onCreate: jest.fn(),
         onEdit: jest.fn(),
+        onQuickStatusChange: jest.fn(),
+        showMentorQuickActions: true,
         subsystemsById: { "subsystem-1": bootstrap.subsystems[0] },
       }),
     );
@@ -96,7 +98,11 @@ describe("ManufacturingQueueView", () => {
 
     expect(cncMarkup).toContain("Source");
     expect(cncMarkup).toContain("Outsourced");
+    expect(cncMarkup).toContain("Approve");
+    expect(cncMarkup).toContain("Complete");
     expect(printMarkup).not.toContain("Source");
     expect(printMarkup).not.toContain("Outsourced");
+    expect(printMarkup).not.toContain("Approve");
+    expect(printMarkup).not.toContain("Complete");
   });
 });

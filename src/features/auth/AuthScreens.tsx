@@ -1,6 +1,7 @@
-import { type FormEvent, type RefObject, useRef, useState } from "react";
+import { type CSSProperties, type FormEvent, type RefObject, useRef, useState } from "react";
 
 import {
+  MECO_LOGIN_BACKDROP_SRC,
   MECO_MAIN_LOGO_LIGHT_SRC,
   MECO_MAIN_LOGO_WHITE_SRC,
   MECO_MAIN_LOGO_HEIGHT,
@@ -41,18 +42,25 @@ function detectMobileDevice() {
 interface AuthStatusScreenProps {
   body: string;
   eyebrow?: string;
+  isDarkMode?: boolean;
   message?: string | null;
+  shellStyle?: CSSProperties;
   title: string;
 }
 
 export function AuthStatusScreen({
   body,
   eyebrow = "MECO workspace",
+  isDarkMode = false,
   message,
+  shellStyle,
   title,
 }: AuthStatusScreenProps) {
   return (
-    <main className="page-shell auth-shell">
+    <main
+      className={`page-shell auth-shell ${isDarkMode ? "dark-mode" : ""}`}
+      style={shellStyle}
+    >
       <section className="auth-card auth-card-status">
         <img
           alt="MECO main logo"
@@ -60,7 +68,7 @@ export function AuthStatusScreen({
           height={MECO_MAIN_LOGO_HEIGHT}
           loading="eager"
           width={MECO_MAIN_LOGO_WIDTH}
-          src={MECO_MAIN_LOGO_LIGHT_SRC}
+          src={isDarkMode ? MECO_MAIN_LOGO_WHITE_SRC : MECO_MAIN_LOGO_LIGHT_SRC}
         />
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
@@ -77,31 +85,16 @@ interface SignInScreenProps {
   googleButtonRef: RefObject<HTMLDivElement | null>;
   hasEmailSignIn: boolean;
   hasGoogleSignIn: boolean;
-  isLocalGoogleDevHost: boolean;
-  isLocalGoogleOverrideActive: boolean;
+  isDarkMode?: boolean;
   isSigningIn: boolean;
   onDevBypassSignIn: () => Promise<void>;
   onRequestEmailCode: (email: string) => Promise<EmailCodeDeliveryResponse>;
   onVerifyEmailCode: (email: string, code: string) => Promise<void>;
+  shellStyle?: CSSProperties;
   signInConfig: AuthConfig;
 }
 
-function AuthIntroPanel({
-  hasEmailSignIn,
-  hasGoogleSignIn,
-}: {
-  hasEmailSignIn: boolean;
-  hasGoogleSignIn: boolean;
-}) {
-  const authIntroLine =
-    hasEmailSignIn && hasGoogleSignIn
-      ? "Sign in with Google SSO, MECO email, or roster-approved external email."
-      : hasGoogleSignIn
-        ? "Sign in with Google SSO."
-        : hasEmailSignIn
-          ? "Sign in with your MECO email or roster-approved external email."
-          : "No sign-in methods are currently configured.";
-
+function AuthIntroPanel() {
   return (
     <aside className="auth-intro" aria-label="MECO sign-in overview">
       <div className="auth-intro-mark-wrap">
@@ -122,7 +115,6 @@ function AuthIntroPanel({
           <span>Plan. Build. Verify.</span>
           <span>One system for tasks, parts, and QA.</span>
         </p>
-        <p className="auth-body">{authIntroLine}</p>
       </div>
     </aside>
   );
@@ -134,12 +126,12 @@ export function SignInScreen({
   googleButtonRef,
   hasEmailSignIn,
   hasGoogleSignIn,
-  isLocalGoogleDevHost,
-  isLocalGoogleOverrideActive,
+  isDarkMode = false,
   isSigningIn,
   onDevBypassSignIn,
   onRequestEmailCode,
   onVerifyEmailCode,
+  shellStyle,
   signInConfig,
 }: SignInScreenProps) {
   const isMobileDevice = detectMobileDevice();
@@ -159,7 +151,7 @@ export function SignInScreen({
     ? "Login is hidden on detected mobile devices. Install the latest iOS or Android build from PM mobile app releases."
     :
     hasEmailSignIn && hasGoogleSignIn
-      ? "Both sign-in options are shown below. Use Google SSO or request a verified email code."
+      ? "Use Google SSO or request a verified email code."
       : hasGoogleSignIn
         ? "Google SSO is available below. Email code sign-in is not configured on this server."
         : hasEmailSignIn
@@ -167,12 +159,20 @@ export function SignInScreen({
           : "No sign-in methods are currently configured on this server.";
 
   return (
-    <main className="page-shell auth-shell">
+    <main
+      className={`page-shell auth-shell ${isDarkMode ? "dark-mode" : ""}`}
+      style={shellStyle}
+    >
       <div className="auth-layout">
-        <AuthIntroPanel
-          hasEmailSignIn={hasEmailSignIn}
-          hasGoogleSignIn={hasGoogleSignIn}
+        <img
+          alt=""
+          aria-hidden="true"
+          className="auth-layout-backdrop"
+          loading="eager"
+          src={MECO_LOGIN_BACKDROP_SRC}
         />
+
+        <AuthIntroPanel />
 
         <section className="auth-card auth-card-wide">
           <div className="auth-card-header">
@@ -187,7 +187,7 @@ export function SignInScreen({
             </p>
           ) : null}
 
-          <div className="auth-panel-stack">
+          <div className="auth-signin-simple">
             {isMobileDevice ? (
               <MobileReleasePanel />
             ) : (
@@ -196,24 +196,24 @@ export function SignInScreen({
                   <EmailAuthPanel
                     clearAuthMessage={clearAuthMessage}
                     hostedDomain={signInConfig.hostedDomain}
-                    isEmailDeliveryConfigured={hasEmailSignIn}
                     isSigningIn={isSigningIn}
                     onRequestEmailCode={onRequestEmailCode}
                     onVerifyEmailCode={onVerifyEmailCode}
                   />
                 ) : null}
 
-                <GoogleAuthPanel
-                  googleButtonRef={googleButtonRef}
-                  hasGoogleSignIn={hasGoogleSignIn}
-                  hostedDomain={signInConfig.hostedDomain}
-                  isLocalGoogleDevHost={isLocalGoogleDevHost}
-                  isLocalGoogleOverrideActive={isLocalGoogleOverrideActive}
-                  isSigningIn={isSigningIn}
-                />
+                {hasEmailSignIn && hasGoogleSignIn ? (
+                  <p className="auth-method-divider" aria-hidden="true">
+                    <span>OR</span>
+                  </p>
+                ) : null}
+
+                {hasGoogleSignIn ? (
+                  <GoogleAuthChip googleButtonRef={googleButtonRef} />
+                ) : null}
 
                 {signInConfig.devBypassAvailable ? (
-                  <DevBypassPanel
+                  <DevBypassButton
                     isSigningIn={isSigningIn}
                     onDevBypassSignIn={onDevBypassSignIn}
                   />
@@ -296,87 +296,49 @@ function AndroidPlatformIcon() {
   );
 }
 
-interface GoogleAuthPanelProps {
+interface GoogleAuthChipProps {
   googleButtonRef: RefObject<HTMLDivElement | null>;
-  hasGoogleSignIn: boolean;
-  hostedDomain: string;
-  isLocalGoogleDevHost: boolean;
-  isLocalGoogleOverrideActive: boolean;
-  isSigningIn: boolean;
 }
 
-function GoogleAuthPanel({
+function GoogleAuthChip({
   googleButtonRef,
-  hasGoogleSignIn,
-  isLocalGoogleDevHost,
-  isLocalGoogleOverrideActive,
-}: GoogleAuthPanelProps) {
+}: GoogleAuthChipProps) {
   return (
-    <section className="auth-panel" aria-label="Google SSO">
-      <div className="auth-panel-copy">
-        <p className="auth-panel-eyebrow">Google SSO</p>
-        <h2>Use a MECO Google Workspace account.</h2>
-      </div>
-
-
-      {hasGoogleSignIn ? (
+    <div className="auth-google-chip" aria-label="Google SSO">
+      <div className="auth-chip-row">
         <div className="google-button-slot" ref={googleButtonRef} />
-      ) : (
-        <p className="auth-note">
-          Google SSO is not yet configured on this server.
-        </p>
-      )}
-
-      {hasGoogleSignIn && isLocalGoogleDevHost && !isLocalGoogleOverrideActive ? (
-        <p className="auth-note">
-          Localhost Google sign-in needs an OAuth client that allows
-          http://localhost:5173, or a separate localhost-safe client set in
-          VITE_LOCAL_GOOGLE_CLIENT_ID.
-        </p>
-      ) : null}
-    </section>
+      </div>
+    </div>
   );
 }
 
-interface DevBypassPanelProps {
+interface DevBypassButtonProps {
   isSigningIn: boolean;
   onDevBypassSignIn: () => Promise<void>;
 }
 
-function DevBypassPanel({
+function DevBypassButton({
   isSigningIn,
   onDevBypassSignIn,
-}: DevBypassPanelProps) {
+}: DevBypassButtonProps) {
   return (
-    <section className="auth-panel" aria-label="Development sign-in bypass">
-      <div className="auth-panel-copy">
-        <p className="auth-panel-eyebrow">Development only</p>
-        <h2>Skip sign-in with a local dev session.</h2>
-        <p className="auth-body">
-          Use this button to jump into the workspace while keeping the real login page
-          available for testing.
-        </p>
-      </div>
-
-      <div className="auth-form-actions">
-        <button
-          className="secondary-action"
-          disabled={isSigningIn}
-          onClick={() => {
-            void onDevBypassSignIn();
-          }}
-          type="button"
-        >
-          {isSigningIn ? "Opening..." : "Continue as local dev"}
-        </button>
-      </div>
-    </section>
+    <div className="auth-dev-bypass" aria-label="Development sign-in bypass">
+      <button
+        className="secondary-action"
+        disabled={isSigningIn}
+        onClick={() => {
+          void onDevBypassSignIn();
+        }}
+        type="button"
+      >
+        {isSigningIn ? "Opening..." : "Continue as local dev"}
+      </button>
+    </div>
   );
 }
 
 interface EmailAuthPanelProps {
   clearAuthMessage: () => void;
-  isEmailDeliveryConfigured: boolean;
   hostedDomain: string;
   isSigningIn: boolean;
   onRequestEmailCode: (email: string) => Promise<EmailCodeDeliveryResponse>;
@@ -385,7 +347,6 @@ interface EmailAuthPanelProps {
 
 function EmailAuthPanel({
   clearAuthMessage,
-  isEmailDeliveryConfigured,
   hostedDomain,
   isSigningIn,
   onRequestEmailCode,
@@ -396,14 +357,6 @@ function EmailAuthPanel({
   const [delivery, setDelivery] = useState<EmailCodeDeliveryResponse | null>(null);
   const [isRequestingCode, setIsRequestingCode] = useState(false);
   const codeInputRef = useRef<HTMLInputElement | null>(null);
-
-  const feedbackMessage = isRequestingCode
-    ? `Sending a code to ${email.trim() || "your inbox"}...`
-    : delivery
-      ? `Code sent to ${delivery.sentTo}. It expires in ${delivery.expiresInMinutes} minutes.`
-      : isEmailDeliveryConfigured
-        ? "We'll send a one-time code to your inbox."
-        : "Email delivery is not configured on this server.";
 
   const handleRequestCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -434,16 +387,12 @@ function EmailAuthPanel({
   };
 
   return (
-    <section className="auth-panel" aria-label="Email code">
-      <div className="auth-panel-copy">
-        <p className="auth-panel-eyebrow">Email code</p>
-        <h2>Use your MECO or roster-approved external email.</h2>
-      </div>
-
-      <form className="auth-form" onSubmit={handleRequestCode}>
-        <label className="field">
+    <section className="auth-email-method" aria-label="Email code">
+      <form className="auth-form auth-email-inline" onSubmit={handleRequestCode}>
+        <label className="field auth-email-send-field">
           <input
             autoComplete="email"
+            className="auth-email-input"
             inputMode="email"
             onChange={(event) => {
               clearAuthMessage();
@@ -451,52 +400,27 @@ function EmailAuthPanel({
               setCode("");
               setDelivery(null);
             }}
-            placeholder={`you@${hostedDomain} or external@example.org`}
+            placeholder={`you@${hostedDomain}`}
             type="email"
             value={email}
           />
-        </label>
-
-        <div className="auth-form-actions">
           <button
-            className="primary-action"
+            className="auth-email-send-button"
             disabled={
               isSigningIn ||
               isRequestingCode ||
-              email.trim().length === 0 ||
-              !isEmailDeliveryConfigured
+              email.trim().length === 0
             }
             type="submit"
           >
             {isRequestingCode ? "Sending..." : delivery ? "Resend code" : "Send code"}
           </button>
-        </div>
-
-        <div
-          aria-atomic="true"
-          aria-live="polite"
-          className={`auth-feedback ${
-            isRequestingCode
-              ? "auth-feedback-loading"
-              : delivery
-                ? "auth-feedback-success"
-                : "auth-feedback-muted"
-          }`}
-          role="status"
-        >
-          {isRequestingCode ? <span aria-hidden="true" className="auth-feedback-spinner" /> : null}
-          <span>{feedbackMessage}</span>
-        </div>
+        </label>
       </form>
 
       {delivery ? (
-        <form className="auth-form auth-email-verify" onSubmit={handleVerifyCode}>
-          <p className="auth-success" role="status">
-            Enter the code from the email we just sent.
-          </p>
-
+        <form className="auth-form auth-email-inline auth-email-verify-inline" onSubmit={handleVerifyCode}>
           <label className="field">
-            <span>One-time code</span>
             <input
               autoComplete="one-time-code"
               inputMode="numeric"
@@ -504,7 +428,7 @@ function EmailAuthPanel({
                 clearAuthMessage();
                 setCode(event.target.value);
               }}
-              placeholder="123456"
+              placeholder="One-time code"
               ref={codeInputRef}
               type="text"
               value={code}

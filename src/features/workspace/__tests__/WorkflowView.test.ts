@@ -41,6 +41,7 @@ describe("WorkflowView", () => {
         bootstrap: createBootstrap(),
         membersById: {},
         openCreateWorkstreamModal: jest.fn(),
+        openEditWorkstreamModal: jest.fn(),
       }),
     );
 

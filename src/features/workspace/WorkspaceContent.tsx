@@ -61,13 +61,13 @@ type TabSwitchDirection = "up" | "down";
 
 const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> = {
   timeline:
-    "Use the person and date-range filters above to focus the schedule, click a date number to add or edit milestones for that day, collapse or expand subsystem rows with the arrows, and hover a task bar to reveal the pencil cue before clicking the task to edit it.",
+    "Use the person and date-range filters above to focus the schedule, click a date number to add or edit milestones for that day, collapse or expand subsystem rows with the arrows, and hover a task bar to reveal the pencil cue before clicking the task to open details.",
   milestones:
     "Use search and filters to narrow milestones, click a row to edit details, and use Add to create new milestone events tied to relevant subsystems when needed.",
   queue:
     "Use search and filters to narrow the list, click a column header to sort, and hover any row to reveal the pencil cue before clicking the row to open its task details. Use Add to create a new task.",
   worklogs:
-    "Search the log entries, filter by subsystem, add new work logs from the toolbar, and click a row to jump back to the linked task. The selected roster person stays in sync with the global workspace filter.",
+    "Search the log entries, filter by subsystem, add new work logs from the toolbar, and click a row to open the linked task details. The selected roster person stays in sync with the global workspace filter.",
   cnc:
     "Search and filter CNC jobs by subsystem, requester, material, or status, then hover a row to reveal the pencil cue before clicking the row to update that job. Use Add to enter a new CNC request tied to a catalog part.",
   prints:
@@ -165,6 +165,11 @@ interface WorkspaceContentProps {
   openCreateTaskModalFromTimeline: () => void;
   openCreateWorkLogModal: () => void;
   openCreateWorkstreamModal: () => void;
+  openEditWorkstreamModal: (workstream: BootstrapPayload["workstreams"][number]) => void;
+  onCncQuickStatusChange: (
+    item: ManufacturingItemRecord,
+    status: ManufacturingItemRecord["status"],
+  ) => Promise<void>;
   openEditManufacturingModal: (item: ManufacturingItemRecord) => void;
   openEditArtifactModal: (artifact: ArtifactRecord) => void;
   openEditMaterialModal: (item: MaterialRecord) => void;
@@ -173,11 +178,12 @@ interface WorkspaceContentProps {
   openEditSubsystemModal: (subsystem: BootstrapPayload["subsystems"][number]) => void;
   openEditPartDefinitionModal: (item: PartDefinitionRecord) => void;
   openEditPurchaseModal: (item: PurchaseItemRecord) => void;
-  openEditTaskModal: (task: TaskRecord) => void;
+  openTimelineTaskDetailsModal: (task: TaskRecord) => void;
   partDefinitionsById: Record<string, BootstrapPayload["partDefinitions"][number]>;
   partInstancesById: Record<string, BootstrapPayload["partInstances"][number]>;
   printItems: ManufacturingItemRecord[];
   rosterMentors: BootstrapPayload["members"];
+  showCncMentorQuickActions: boolean;
   manufacturingView: ManufacturingViewTab;
   inventoryView: InventoryViewTab;
   taskView: TaskViewTab;
@@ -365,6 +371,8 @@ export function WorkspaceContent({
   openCreateTaskModalFromTimeline,
   openCreateWorkLogModal,
   openCreateWorkstreamModal,
+  openEditWorkstreamModal,
+  onCncQuickStatusChange,
   openEditManufacturingModal,
   openEditArtifactModal,
   openEditMaterialModal,
@@ -373,11 +381,12 @@ export function WorkspaceContent({
   openEditSubsystemModal,
   openEditPartDefinitionModal,
   openEditPurchaseModal,
-  openEditTaskModal,
+  openTimelineTaskDetailsModal,
   partDefinitionsById,
   partInstancesById,
   printItems,
   rosterMentors,
+  showCncMentorQuickActions,
   manufacturingView,
   inventoryView,
   taskView,
@@ -467,7 +476,7 @@ export function WorkspaceContent({
             onDeleteTimelineEvent={handleTimelineEventDelete}
             onSaveTimelineEvent={handleTimelineEventSave}
             openCreateTaskModal={openCreateTaskModalFromTimeline}
-            openEditTaskModal={openEditTaskModal}
+            openTaskDetailModal={openTimelineTaskDetailsModal}
             setActivePersonFilter={setActivePersonFilter}
             triggerCreateMilestoneToken={timelineMilestoneCreateSignal}
           />
@@ -488,7 +497,7 @@ export function WorkspaceContent({
             mechanismsById={mechanismsById}
             membersById={membersById}
             openCreateTaskModal={openCreateTaskModal}
-            openEditTaskModal={openEditTaskModal}
+            openEditTaskModal={openTimelineTaskDetailsModal}
             partDefinitionsById={partDefinitionsById}
             partInstancesById={partInstancesById}
             subsystemsById={subsystemsById}
@@ -527,7 +536,7 @@ export function WorkspaceContent({
             bootstrap={bootstrap}
             membersById={membersById}
             openCreateWorkLogModal={openCreateWorkLogModal}
-            openEditTaskModal={openEditTaskModal}
+            openEditTaskModal={openTimelineTaskDetailsModal}
             subsystemsById={subsystemsById}
           />
         </WorkspaceSubPanel>
@@ -551,6 +560,8 @@ export function WorkspaceContent({
             membersById={membersById}
             onCreate={() => openCreateManufacturingModal("cnc")}
             onEdit={openEditManufacturingModal}
+            onQuickStatusChange={onCncQuickStatusChange}
+            showMentorQuickActions={showCncMentorQuickActions}
             subsystemsById={subsystemsById}
           />
         </WorkspaceSubPanel>
@@ -677,6 +688,7 @@ export function WorkspaceContent({
               bootstrap={bootstrap}
               membersById={membersById}
               openCreateWorkstreamModal={openCreateWorkstreamModal}
+              openEditWorkstreamModal={openEditWorkstreamModal}
             />
           ) : (
             <SubsystemsView

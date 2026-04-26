@@ -5,72 +5,87 @@ import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 
 const HELP_SECTIONS: Array<{ title: string; items: string[] }> = [
   {
-    title: "Navigate the workspace",
+    title: "Start with scope",
     items: [
-      "Use the sidebar tabs to switch between planning, inventory, manufacturing, roster, and help.",
-      "Use the season selector in the sidebar and the project selector in the top bar to scope what you are viewing.",
-      "Use the top bar subtabs when available (for example Timeline, Queue, Milestones) to drill into each area.",
-      "Use All projects in the top bar when you need a cross-project planning view.",
-      "Use a specific project when you need detailed workflow, inventory, and manufacturing context.",
+      "Before editing anything, check the **season selector** in the sidebar and the **active project** in the top bar.",
+      "Pick **All projects** only for planning sweeps; switch back to a single project before data entry.",
+      "If a list looks empty, first confirm you are in the expected **season and project scope**.",
+      "Timeline, Queue, and Milestones are **project-aware**, so scope mistakes show up there first.",
     ],
   },
   {
-    title: "Understand tab behavior",
+    title: "Know what each tab is for",
     items: [
-      "Tasks always include Timeline, Queue, and Milestones for planning and execution.",
-      "Manufacturing appears only when a robot project is selected and separates work into CNC, prints, and fabrication queues.",
-      "Inventory changes by project type: robot projects show Materials, Parts, and Purchases, while non-robot projects show Documents and Purchases.",
-      "Subsystems is relabeled as Workflow for non-robot projects.",
-      "Roster and Help stay available in all project scopes.",
+      "Tasks is where scheduling and execution stay aligned: Timeline for dates, Queue for active work, and Milestones for checkpoints.",
+      "Manufacturing only appears in **robot projects**, split into CNC, prints, and fabrication queues.",
+      "Inventory changes by project type: **robot projects use Materials and Parts, non-robot projects use Documents**.",
+      "Workflow replaces Subsystems for non-robot projects, but the ownership flow stays the same.",
+      "Roster and Help are **always available** no matter which project is selected.",
     ],
   },
   {
-    title: "Create and edit records",
+    title: "Use the edit flow consistently",
     items: [
-      "Use Add buttons in each tab to create new entries.",
-      "Click a row or card to edit it, and look for the pencil hover cue as a visual indicator.",
-      "Use the edit dialog for updates and destructive actions so changes stay in one place.",
-      "If a create action is disabled, check that a project or season is selected first.",
-      "Use edit modals to update status, ownership, part links, and schedule dates.",
+      "Create from the Add button in the current view, then come back by clicking the row or card to edit.",
+      "The **hover pencil is a cue only**; the row or card itself is the actual click target.",
+      "Keep updates and deletes **inside the edit modal** so changes are made in one place.",
+      "If an **Add button is disabled**, you are usually missing season or project scope.",
+      "Apply ownership and status changes before date changes to keep queue and timeline views in sync.",
     ],
   },
   {
-    title: "Filter and review data",
+    title: "Filter without losing context",
     items: [
-      "Use search and filter controls in the toolbar to narrow results quickly.",
-      "Use the refresh button in the top-right corner after external updates.",
-      "Use the timeline and milestone tools to track deadlines and dependencies by subsystem.",
-      "Use person filtering to focus on one or more members or switch back to all contributors.",
-      "Review status chips, sidebar counts, and row badges to spot blocked, overdue, or role-specific work.",
+      "Start with search when you know a task name, part number, vendor, or owner.",
+      "Layer dropdown filters after search; stacking too many at once can hide expected rows.",
+      "Use roster person filtering to trace one contributor across task and inventory surfaces.",
+      "After someone else edits data, **use refresh** before assuming your filter is wrong.",
+      "Status chips and row badges are the fastest way to spot blocked or stale work.",
     ],
   },
   {
-    title: "Roster and access",
+    title: "Roster and permission checks",
     items: [
-      "Roster separates Students, Mentors, and External access so team contributors and outside viewers stay distinct.",
-      "Click a person to make them the active workspace filter where that view supports person-scoped data.",
-      "Use the add and edit popups to update emails, roles, and elevated mentor access without leaving the roster.",
+      "Students, Mentors, and External access are separate on purpose; keep assignments in the right group.",
+      "Clicking a roster member sets a person filter in views that support person-scoped data.",
+      "Maintain **email, role, and elevated lead/core mentor access** from the roster edit popups.",
+      "If ownership choices look wrong in another tab, verify the roster record first.",
     ],
   },
   {
-    title: "Authentication and access",
+    title: "Sign-in and session behavior",
     items: [
-      "The sign-in screen is driven by server configuration and may show Google, email-code, or local dev access options.",
-      "Google sign-in requires localhost or HTTPS and a matching authorized origin in Google Cloud.",
-      "Email-code sign-in requires a valid team address and the one-time code from your inbox.",
-      "If your session expires, sign in again and refresh the workspace to reload scoped data.",
+      "Available sign-in methods come from **server config**: Google, email-code, or local dev bypass.",
+      "Google auth requires **localhost or HTTPS** with matching allowed origins in Google Cloud.",
+      "Email-code login only works with a **valid team address** and the active one-time code.",
+      "When a session expires, **sign in again and refresh once** before retrying failed edits.",
     ],
   },
   {
-    title: "Quick troubleshooting",
+    title: "Fast troubleshooting pass",
     items: [
-      "If data looks missing, verify the selected season and project scope first.",
-      "If actions fail to save, refresh the workspace and retry once before editing more records.",
-      "If you cannot sign in, check backend availability and auth configuration.",
-      "If filters seem stuck, clear search/filter inputs and switch tabs once to reset view state.",
+      "**No data:** verify season, project, and person filter in that order.",
+      "**Save failed:** refresh workspace data and retry once before making more edits.",
+      "**Cannot sign in:** check backend status and auth config before changing browser settings.",
+      "**Filters feel stuck:** clear search and dropdowns, then switch tabs once to reset local view state.",
     ],
   },
 ];
+
+function renderHelpItem(item: string) {
+  const parts = item.split("**");
+  if (parts.length === 1) {
+    return item;
+  }
+
+  return parts.map((part, index) =>
+    index % 2 === 1 ? (
+      <strong key={`strong-${index}`}>{part}</strong>
+    ) : (
+      <span key={`text-${index}`}>{part}</span>
+    ),
+  );
+}
 
 const HELP_TUTORIAL_STEPS: Array<{
   title: string;
@@ -79,89 +94,98 @@ const HELP_TUTORIAL_STEPS: Array<{
   cue: string;
 }> = [
   {
-    title: "Choose season and project scope",
+    title: "Set season and project first",
     summary:
-      "Start every workflow by checking the season selector and top-bar project scope so the records you create land in the right place.",
+      "Every reliable workflow starts with correct scope. Confirm season and project before creating or editing records.",
     actions: [
-      "Open the sidebar season selector and confirm the active season.",
-      "Use the top-bar project selector for robot, outreach, operations, or All projects.",
-      "Switch to All projects only when you need a cross-project planning view.",
+      "Confirm the active season in the left sidebar.",
+      "Set project scope in the top bar (Robot, Outreach, Operations, or All projects).",
+      "Switch out of All projects before entering detailed task or inventory data.",
     ],
-    cue: "Most missing-data reports come from being in the wrong season or project scope.",
+    cue: "Wrong scope is the most common reason data looks missing.",
   },
   {
-    title: "Read the workspace shell",
+    title: "Read the shell and subtabs",
     summary:
-      "Use the sidebar for major areas and the top-bar subtabs for the specific workflow inside each area.",
+      "The sidebar picks the area; subtabs in the top bar pick the exact workflow inside that area.",
     actions: [
-      "Open Tasks, then move between Timeline, Queue, and Milestones.",
-      "Open Inventory and compare how robot and non-robot projects change its subtabs.",
-      "Look for footer notes at the bottom of each view for view-specific interaction cues.",
+      "Open Tasks and move through Timeline, Queue, and Milestones.",
+      "Switch projects and watch Inventory move between Materials/Parts and Documents.",
+      "Check footer notes at the bottom of each view for local interaction hints.",
     ],
-    cue: "Subtabs keep related workflows together without making the sidebar carry every detail view.",
+    cue: "If a control seems missing, you are often in the wrong subtab, not the wrong tab.",
   },
   {
-    title: "Create and edit records",
+    title: "Create, then edit in place",
     summary:
-      "Most workspace data follows the same loop: Add from the toolbar, then click rows or cards later to edit them.",
+      "The core loop is consistent: Add from the toolbar, then return by clicking rows or cards to edit.",
     actions: [
-      "Use Add buttons in task, inventory, manufacturing, roster, and workflow views.",
-      "Hover rows or cards to find the pencil cue, then click the row or card itself.",
-      "Use edit dialogs for updates and destructive actions instead of hunting for separate delete buttons.",
+      "Create a new item from the Add button in the active view.",
+      "Hover for the pencil cue, then click the row/card itself.",
+      "Apply edits and deletes from the edit modal to keep record history consistent.",
     ],
-    cue: "If an Add button is disabled, verify that a season and valid project scope are selected.",
+    cue: "Disabled Add buttons usually mean missing scope, not missing permissions.",
   },
   {
-    title: "Filter the work",
+    title: "Filter deliberately",
     summary:
-      "Search, dropdown filters, person filters, and status chips are designed to reduce a view without losing context.",
+      "Use filters in order so you do not accidentally hide expected items.",
     actions: [
-      "Use toolbar search first when you know a title, owner, vendor, or material.",
-      "Stack dropdown filters when you need to narrow status, subsystem, requester, or approval.",
-      "Select a roster person to keep person-scoped views aligned across tabs.",
+      "Search first when you know a title, owner, vendor, or material.",
+      "Then add dropdown filters for status, subsystem, requester, or approval.",
+      "Use roster person filtering when tracing one person across multiple tabs.",
     ],
-    cue: "Clear filters before switching context if a list looks unexpectedly empty.",
+    cue: "Empty list after filtering usually means filters are too specific, not missing data.",
   },
   {
-    title: "Use roster and access",
+    title: "Use roster as a control surface",
     summary:
-      "Roster is both a people list and a filter source for planning, ownership, and access-aware views.",
+      "Roster is not just reference data; it controls assignment quality and person-based filtering.",
     actions: [
-      "Use Students, Mentors, and External access as separate roster groups.",
-      "Click a member name to make them the active person filter where supported.",
-      "Use roster popups to maintain email, role, and elevated lead/core mentor status.",
+      "Keep Students, Mentors, and External access in the correct buckets.",
+      "Click a roster member to apply person filtering where supported.",
+      "Maintain email, role, and elevated lead/core mentor status from roster popups.",
     ],
-    cue: "Lead and core mentor badges are compact row-end role markers, not separate columns.",
+    cue: "If assignment dropdowns look wrong, fix the roster record before editing tasks.",
   },
   {
-    title: "Recover from stale state",
+    title: "Recover from stale state quickly",
     summary:
-      "When something looks off, reset the smallest likely source before changing more records.",
+      "When behavior feels off, reset the smallest likely cause before making more edits.",
     actions: [
-      "Clear search and filters, then switch tabs once if a list seems stuck.",
-      "Use the refresh control after another device or user changes shared data.",
-      "If saving fails, refresh workspace data and retry once before continuing edits.",
+      "Clear search/filters and switch tabs once if a list appears stuck.",
+      "Use refresh after another user or device updates shared records.",
+      "If save fails, refresh and retry once before changing more fields.",
     ],
-    cue: "Scope, filters, and stale data explain most confusing workspace states.",
+    cue: "Scope, filters, and stale cache explain most confusing states in this app.",
   },
 ];
 
 interface HelpViewProps {
   tutorialInitiallyOpen?: boolean;
+  tutorialInitiallyComplete?: boolean;
 }
 
-export function HelpView({ tutorialInitiallyOpen = false }: HelpViewProps) {
+export function HelpView({
+  tutorialInitiallyOpen = false,
+  tutorialInitiallyComplete = false,
+}: HelpViewProps) {
   const [isTutorialOpen, setIsTutorialOpen] = useState(tutorialInitiallyOpen);
   const [activeTutorialStep, setActiveTutorialStep] = useState(0);
+  const [isTutorialComplete, setIsTutorialComplete] = useState(
+    tutorialInitiallyOpen && tutorialInitiallyComplete,
+  );
   const closeTutorialButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const closeTutorial = useCallback(() => {
     setIsTutorialOpen(false);
     setActiveTutorialStep(0);
+    setIsTutorialComplete(false);
   }, []);
 
   const openTutorial = () => {
     setActiveTutorialStep(0);
+    setIsTutorialComplete(false);
     setIsTutorialOpen(true);
   };
 
@@ -185,15 +209,29 @@ export function HelpView({ tutorialInitiallyOpen = false }: HelpViewProps) {
 
   const currentStep = HELP_TUTORIAL_STEPS[activeTutorialStep] ?? HELP_TUTORIAL_STEPS[0];
   const isLastStep = activeTutorialStep === HELP_TUTORIAL_STEPS.length - 1;
-  const progressPercent = ((activeTutorialStep + 1) / HELP_TUTORIAL_STEPS.length) * 100;
+  const progressPercent = isTutorialComplete
+    ? 100
+    : ((activeTutorialStep + 1) / HELP_TUTORIAL_STEPS.length) * 100;
 
   const goToPreviousStep = () => {
+    if (isTutorialComplete) {
+      setIsTutorialComplete(false);
+      setActiveTutorialStep(HELP_TUTORIAL_STEPS.length - 1);
+      return;
+    }
+
     setActiveTutorialStep((current) => Math.max(0, current - 1));
   };
 
   const goToNextStep = () => {
+    if (isTutorialComplete) {
+      setActiveTutorialStep(0);
+      setIsTutorialComplete(false);
+      return;
+    }
+
     if (isLastStep) {
-      closeTutorial();
+      setIsTutorialComplete(true);
       return;
     }
 
@@ -208,7 +246,7 @@ export function HelpView({ tutorialInitiallyOpen = false }: HelpViewProps) {
         <div className="queue-section-header">
           <h2>Help documentation</h2>
           <p className="section-copy">
-            Detailed reference for navigation, editing, auth, and troubleshooting workflows.
+            Practical operating notes for scope, edit flow, filters, access, and recovery.
           </p>
         </div>
         <button
@@ -229,7 +267,7 @@ export function HelpView({ tutorialInitiallyOpen = false }: HelpViewProps) {
             <h3>{section.title}</h3>
             <ul>
               {section.items.map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item}>{renderHelpItem(item)}</li>
               ))}
             </ul>
           </article>
@@ -260,7 +298,7 @@ export function HelpView({ tutorialInitiallyOpen = false }: HelpViewProps) {
                 <p className="eyebrow">Interactive walkthrough</p>
                 <h2 id="help-tutorial-title">Guided workspace tutorial</h2>
                 <p className="section-copy" id="help-tutorial-description">
-                  Move through the common workspace loop without leaving this Help page.
+                  Follow the same scope-create-filter-recover loop teams use day to day.
                 </p>
               </div>
               <button
@@ -286,10 +324,13 @@ export function HelpView({ tutorialInitiallyOpen = false }: HelpViewProps) {
                   return (
                     <li key={step.title}>
                       <button
-                        aria-current={isActive ? "step" : undefined}
+                        aria-current={isActive && !isTutorialComplete ? "step" : undefined}
                         className="help-tutorial-step-button"
-                        data-active={isActive}
-                        onClick={() => setActiveTutorialStep(index)}
+                        data-active={isActive && !isTutorialComplete}
+                        onClick={() => {
+                          setActiveTutorialStep(index);
+                          setIsTutorialComplete(false);
+                        }}
                         type="button"
                       >
                         <span className="help-tutorial-step-number">{stepNumber}</span>
@@ -300,40 +341,63 @@ export function HelpView({ tutorialInitiallyOpen = false }: HelpViewProps) {
                 })}
               </ol>
 
-              <article className="help-tutorial-step-card">
-                <p className="eyebrow">
-                  Step {activeTutorialStep + 1} of {HELP_TUTORIAL_STEPS.length}
-                </p>
-                <h3>{currentStep.title}</h3>
-                <p>{currentStep.summary}</p>
-                <ul>
-                  {currentStep.actions.map((action) => (
-                    <li key={action}>{action}</li>
-                  ))}
-                </ul>
-                <div className="help-tutorial-cue">
-                  <span>Workspace cue</span>
-                  <p>{currentStep.cue}</p>
-                </div>
-              </article>
+              {isTutorialComplete ? (
+                <article className="help-tutorial-step-card" data-tutorial-state="complete">
+                  <p className="eyebrow">Tutorial complete</p>
+                  <h3>You are ready to run the workspace loop</h3>
+                  <p>
+                    You have covered scope selection, tab routing, edit flow, filtering, roster,
+                    and stale-state recovery.
+                  </p>
+                  <ul>
+                    <li>Close this tutorial and apply the same sequence in your current tab.</li>
+                    <li>Restart the tutorial if you want a quick refresher with the same steps.</li>
+                    <li>Use the help sections below for deeper reference while working.</li>
+                  </ul>
+                  <div className="help-tutorial-cue">
+                    <span>Next move</span>
+                    <p>
+                      In real usage: set scope first, create or edit, then filter and refresh only
+                      when needed.
+                    </p>
+                  </div>
+                </article>
+              ) : (
+                <article className="help-tutorial-step-card">
+                  <p className="eyebrow">
+                    Step {activeTutorialStep + 1} of {HELP_TUTORIAL_STEPS.length}
+                  </p>
+                  <h3>{currentStep.title}</h3>
+                  <p>{currentStep.summary}</p>
+                  <ul>
+                    {currentStep.actions.map((action) => (
+                      <li key={action}>{action}</li>
+                    ))}
+                  </ul>
+                  <div className="help-tutorial-cue">
+                    <span>Workspace cue</span>
+                    <p>{currentStep.cue}</p>
+                  </div>
+                </article>
+              )}
             </div>
 
             <div className="modal-actions help-tutorial-actions">
               <button
                 className="secondary-action"
-                disabled={activeTutorialStep === 0}
+                disabled={activeTutorialStep === 0 && !isTutorialComplete}
                 onClick={goToPreviousStep}
                 type="button"
               >
                 <IconChevronLeft />
-                Back
+                {isTutorialComplete ? "Review last step" : "Back"}
               </button>
               <button className="secondary-action" onClick={closeTutorial} type="button">
-                Finish tutorial
+                Close tutorial
               </button>
               <button className="primary-action" onClick={goToNextStep} type="button">
-                {isLastStep ? "Done" : "Next"}
-                {!isLastStep ? <IconChevronRight /> : null}
+                {isTutorialComplete ? "Start again" : isLastStep ? "Complete tutorial" : "Next step"}
+                {!isTutorialComplete && !isLastStep ? <IconChevronRight /> : null}
               </button>
             </div>
           </section>

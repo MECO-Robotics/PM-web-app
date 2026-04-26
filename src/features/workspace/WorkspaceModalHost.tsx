@@ -8,6 +8,7 @@ import {
   PartDefinitionEditorModal,
   PartInstanceEditorModal,
   PurchaseEditorModal,
+  TaskDetailsModal,
   SubsystemEditorModal,
   TaskEditorModal,
   WorkLogEditorModal,
@@ -47,8 +48,10 @@ interface WorkspaceModalHostProps {
   activePartDefinitionId: string | null;
   activeMaterialId: string | null;
   activeMechanismId: string | null;
+  activeWorkstreamId: string | null;
   activeSubsystemId: string | null;
   activeTask: TaskRecord | null;
+  activeTimelineTaskDetail: TaskRecord | null;
   bootstrap: BootstrapPayload;
   closeManufacturingModal: () => void;
   closeArtifactModal: () => void;
@@ -57,6 +60,7 @@ interface WorkspaceModalHostProps {
   closePartInstanceModal: () => void;
   closePartDefinitionModal: () => void;
   closePurchaseModal: () => void;
+  closeTimelineTaskDetailsModal: () => void;
   closeWorkLogModal: () => void;
   closeSubsystemModal: () => void;
   closeTaskModal: () => void;
@@ -65,8 +69,13 @@ interface WorkspaceModalHostProps {
   eventsById: Record<string, BootstrapPayload["events"][number]>;
   handleDeleteMaterial: (materialId: string) => Promise<void>;
   handleDeleteArtifact: (artifactId: string) => Promise<void>;
+  handleToggleArtifactArchived: (artifactId: string) => Promise<void>;
   handleDeletePartDefinition: (partDefinitionId: string) => Promise<void>;
   handleDeleteMechanism: (mechanismId: string) => Promise<void>;
+  handleTogglePartDefinitionArchived: (partDefinitionId: string) => Promise<void>;
+  handleToggleSubsystemArchived: (subsystemId: string) => Promise<void>;
+  handleToggleMechanismArchived: (mechanismId: string) => Promise<void>;
+  handleToggleWorkstreamArchived: (workstreamId: string) => Promise<void>;
   handleDeleteTask: (taskId: string) => Promise<void>;
   handlePartInstanceSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleManufacturingSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -79,6 +88,7 @@ interface WorkspaceModalHostProps {
   handleSubsystemSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleTaskSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleWorkstreamSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onOpenTaskEditFromTimelineDetails: (task: TaskRecord) => void;
   isDeletingMaterial: boolean;
   isDeletingArtifact: boolean;
   isDeletingPartDefinition: boolean;
@@ -148,8 +158,10 @@ export function WorkspaceModalHost({
   activePartDefinitionId,
   activeMaterialId,
   activeMechanismId,
+  activeWorkstreamId,
   activeSubsystemId,
   activeTask,
+  activeTimelineTaskDetail,
   bootstrap,
   closeManufacturingModal,
   closeArtifactModal,
@@ -158,6 +170,7 @@ export function WorkspaceModalHost({
   closePartInstanceModal,
   closePartDefinitionModal,
   closePurchaseModal,
+  closeTimelineTaskDetailsModal,
   closeWorkLogModal,
   closeSubsystemModal,
   closeTaskModal,
@@ -166,8 +179,13 @@ export function WorkspaceModalHost({
   eventsById,
   handleDeleteMaterial,
   handleDeleteArtifact,
+  handleToggleArtifactArchived,
   handleDeletePartDefinition,
   handleDeleteMechanism,
+  handleTogglePartDefinitionArchived,
+  handleToggleSubsystemArchived,
+  handleToggleMechanismArchived,
+  handleToggleWorkstreamArchived,
   handleDeleteTask,
   handlePartInstanceSubmit,
   handleManufacturingSubmit,
@@ -180,6 +198,7 @@ export function WorkspaceModalHost({
   handleSubsystemSubmit,
   handleTaskSubmit,
   handleWorkstreamSubmit,
+  onOpenTaskEditFromTimelineDetails,
   isDeletingMaterial,
   isDeletingArtifact,
   isDeletingPartDefinition,
@@ -245,6 +264,15 @@ export function WorkspaceModalHost({
 }: WorkspaceModalHostProps) {
   return (
     <>
+      {activeTimelineTaskDetail ? (
+        <TaskDetailsModal
+          activeTask={activeTimelineTaskDetail}
+          bootstrap={bootstrap}
+          closeTaskDetailsModal={closeTimelineTaskDetailsModal}
+          onEditTask={onOpenTaskEditFromTimelineDetails}
+        />
+      ) : null}
+
       {artifactModalMode ? (
         <ArtifactEditorModal
           activeArtifactId={activeArtifactId}
@@ -254,6 +282,7 @@ export function WorkspaceModalHost({
           closeArtifactModal={closeArtifactModal}
           handleArtifactSubmit={handleArtifactSubmit}
           handleDeleteArtifact={handleDeleteArtifact}
+          handleToggleArtifactArchived={handleToggleArtifactArchived}
           isDeletingArtifact={isDeletingArtifact}
           isSavingArtifact={isSavingArtifact}
           setArtifactDraft={setArtifactDraft}
@@ -265,6 +294,7 @@ export function WorkspaceModalHost({
           activeSubsystemId={activeSubsystemId}
           bootstrap={bootstrap}
           closeSubsystemModal={closeSubsystemModal}
+          handleToggleSubsystemArchived={handleToggleSubsystemArchived}
           handleSubsystemSubmit={handleSubsystemSubmit}
           isSavingSubsystem={isSavingSubsystem}
           subsystemDraft={subsystemDraft}
@@ -277,12 +307,15 @@ export function WorkspaceModalHost({
 
       {workstreamModalMode ? (
         <WorkstreamEditorModal
+          activeWorkstreamId={activeWorkstreamId}
           bootstrap={bootstrap}
           closeWorkstreamModal={closeWorkstreamModal}
+          handleToggleWorkstreamArchived={handleToggleWorkstreamArchived}
           handleWorkstreamSubmit={handleWorkstreamSubmit}
           isSavingWorkstream={isSavingWorkstream}
           setWorkstreamDraft={setWorkstreamDraft}
           workstreamDraft={workstreamDraft}
+          workstreamModalMode={workstreamModalMode}
         />
       ) : null}
 
@@ -292,6 +325,7 @@ export function WorkspaceModalHost({
           bootstrap={bootstrap}
           closeMechanismModal={closeMechanismModal}
           handleDeleteMechanism={handleDeleteMechanism}
+          handleToggleMechanismArchived={handleToggleMechanismArchived}
           handleMechanismSubmit={handleMechanismSubmit}
           isDeletingMechanism={isDeletingMechanism}
           isSavingMechanism={isSavingMechanism}
@@ -397,6 +431,7 @@ export function WorkspaceModalHost({
           bootstrap={bootstrap}
           closePartDefinitionModal={closePartDefinitionModal}
           handleDeletePartDefinition={handleDeletePartDefinition}
+          handleTogglePartDefinitionArchived={handleTogglePartDefinitionArchived}
           handlePartDefinitionSubmit={handlePartDefinitionSubmit}
           isDeletingPartDefinition={isDeletingPartDefinition}
           isSavingPartDefinition={isSavingPartDefinition}

@@ -590,6 +590,7 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
       defaultProjectId,
     name: workstream.name ?? `Workstream ${index + 1}`,
     description: workstream.description ?? "",
+    isArchived: workstream.isArchived ?? false,
   }));
 
   if (workstreams.length === 0) {
@@ -614,6 +615,7 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
         projectId: defaultProjectId,
         name: subsystem?.name ?? `Workstream ${index + 1}`,
         description: subsystem?.description ?? "",
+        isArchived: false,
       };
     });
   } else {
@@ -739,6 +741,7 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
       summary: artifact.summary ?? "",
       status: isArtifactStatus(artifact.status) ? artifact.status : "draft",
       link: artifact.link ?? "",
+      isArchived: artifact.isArchived ?? false,
       updatedAt:
         typeof artifact.updatedAt === "string" && artifact.updatedAt.trim().length > 0
           ? artifact.updatedAt
@@ -747,6 +750,7 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
   });
   const subsystems: SubsystemRecord[] = (source.subsystems ?? []).map((subsystem) => ({
     ...subsystem,
+    isArchived: subsystem.isArchived ?? false,
     projectId:
       resolveProjectAlias(subsystem.projectId, projectIds, planning.projectIdAliases) ??
       defaultProjectId,
@@ -799,11 +803,15 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
     })),
     subsystems,
     disciplines: source.disciplines ?? [],
-    mechanisms: source.mechanisms ?? [],
+    mechanisms: (source.mechanisms ?? []).map((mechanism) => ({
+      ...mechanism,
+      isArchived: mechanism.isArchived ?? false,
+    })),
     materials: source.materials ?? [],
     artifacts,
     partDefinitions: (source.partDefinitions ?? []).map((partDefinition) => ({
       ...partDefinition,
+      isArchived: partDefinition.isArchived ?? false,
       materialId: partDefinition.materialId ?? null,
       description: partDefinition.description ?? "",
     })),
@@ -1312,6 +1320,26 @@ export async function createWorkstreamRecord(
     "/workstreams",
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updateWorkstreamRecord(
+  workstreamId: string,
+  payload: Partial<WorkstreamPayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: WorkstreamRecord }>(
+    `/workstreams/${workstreamId}`,
+    {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },

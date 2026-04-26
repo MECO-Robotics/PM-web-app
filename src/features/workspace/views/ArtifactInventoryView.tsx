@@ -87,6 +87,7 @@ export function ArtifactInventoryView({
   const [search, setSearch] = useState("");
   const [workstreamFilter, setWorkstreamFilter] = useState<FilterSelection>([]);
   const [statusFilter, setStatusFilter] = useState<FilterSelection>([]);
+  const [showArchivedArtifacts, setShowArchivedArtifacts] = useState(false);
   const artifactKinds = kinds.length > 0 ? kinds : [createKind ?? "document"];
   const primaryKind = createKind ?? artifactKinds[0] ?? "document";
 
@@ -108,6 +109,9 @@ export function ArtifactInventoryView({
       if (!artifactKinds.includes(artifact.kind)) {
         return false;
       }
+      if (!showArchivedArtifacts && artifact.isArchived) {
+        return false;
+      }
 
       const matchesSearch =
         normalizedSearch.length === 0 ||
@@ -122,10 +126,11 @@ export function ArtifactInventoryView({
 
       return matchesSearch && matchesWorkstream && matchesStatus;
     });
-  }, [artifactKinds, artifacts, search, statusFilter, workstreamFilter]);
+  }, [artifactKinds, artifacts, search, showArchivedArtifacts, statusFilter, workstreamFilter]);
   const artifactPagination = useWorkspacePagination(filteredArtifacts);
   const artifactFilterMotionClass = useFilterChangeMotionClass([
     search,
+    showArchivedArtifacts,
     statusFilter,
     workstreamFilter,
   ]);
@@ -170,6 +175,22 @@ export function ArtifactInventoryView({
             options={ARTIFACT_STATUS_OPTIONS}
             value={statusFilter}
           />
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              color: "var(--text-copy)",
+              fontSize: "0.85rem",
+            }}
+          >
+            <input
+              checked={showArchivedArtifacts}
+              onChange={(event) => setShowArchivedArtifacts(event.target.checked)}
+              type="checkbox"
+            />
+            Show archived
+          </label>
 
           <button
             aria-label={addLabel}
@@ -232,6 +253,7 @@ export function ArtifactInventoryView({
             >
               <TableCell label="Artifact">
                 <strong>{artifact.title}</strong>
+                {artifact.isArchived ? <small>Archived</small> : null}
                 <small>{artifact.summary || "No summary yet."}</small>
               </TableCell>
               <TableCell label="Workflow">{workflowName}</TableCell>

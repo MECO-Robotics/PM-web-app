@@ -27,21 +27,30 @@ interface PartsViewProps {
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
 }
 
+const PART_DEFINITION_GRID_TEMPLATE = "minmax(220px, 2.3fr) 1fr 0.6fr 0.7fr 0.8fr 1fr";
+const PART_INSTANCE_GRID_TEMPLATE = "minmax(220px, 2.3fr) 1fr 1fr 1fr 0.5fr 0.8fr";
+
 export function filterPartDefinitions({
   bootstrap,
   partSearch,
   partStatus,
   partSubsystem,
+  showArchivedPartDefinitions = false,
 }: {
   bootstrap: BootstrapPayload;
   partSearch: string;
   partStatus: FilterSelection;
   partSubsystem: FilterSelection;
+  showArchivedPartDefinitions?: boolean;
 }) {
   const search = partSearch.trim().toLowerCase();
   const hasInstanceFilters = partSubsystem.length > 0 || partStatus.length > 0;
 
   return bootstrap.partDefinitions.filter((partDefinition) => {
+    if (!showArchivedPartDefinitions && partDefinition.isArchived) {
+      return false;
+    }
+
     const materialName = partDefinition.materialId
       ? bootstrap.materials.find((material) => material.id === partDefinition.materialId)?.name ?? ""
       : "";
@@ -80,7 +89,9 @@ export function PartsView({
   subsystemsById,
 }: PartsViewProps) {
   const [partSearch, setPartSearch] = useState("");
+  const [showArchivedPartDefinitions, setShowArchivedPartDefinitions] = useState(false);
   const [partSubsystem, setPartSubsystem] = useState<FilterSelection>([]);
+  const [partMechanism, setPartMechanism] = useState<FilterSelection>([]);
   const [partStatus, setPartStatus] = useState<FilterSelection>([]);
 
   const filteredPartDefinitions = useMemo(
@@ -90,12 +101,14 @@ export function PartsView({
         partSearch,
         partStatus,
         partSubsystem,
+        showArchivedPartDefinitions,
       }),
     [
       bootstrap,
       partSearch,
       partStatus,
       partSubsystem,
+      showArchivedPartDefinitions,
     ],
   );
 
@@ -113,18 +126,29 @@ export function PartsView({
         definition?.partNumber.toLowerCase().includes(search) ||
         mechanismName.toLowerCase().includes(search);
       const matchesSubsystem = filterSelectionIncludes(partSubsystem, partInstance.subsystemId);
+      const matchesMechanism = filterSelectionIncludes(partMechanism, partInstance.mechanismId);
       const matchesStatus = filterSelectionIncludes(partStatus, partInstance.status);
-      return matchesSearch && matchesSubsystem && matchesStatus;
+      return matchesSearch && matchesSubsystem && matchesMechanism && matchesStatus;
     });
-  }, [bootstrap.partInstances, mechanismsById, partDefinitionsById, partSearch, partStatus, partSubsystem]);
+  }, [
+    bootstrap.partInstances,
+    mechanismsById,
+    partDefinitionsById,
+    partMechanism,
+    partSearch,
+    partStatus,
+    partSubsystem,
+  ]);
   const partDefinitionPagination = useWorkspacePagination(filteredPartDefinitions);
   const partInstancePagination = useWorkspacePagination(filteredPartInstances);
   const partDefinitionFilterMotionClass = useFilterChangeMotionClass([
     partSearch,
     partStatus,
     partSubsystem,
+    showArchivedPartDefinitions,
   ]);
   const partInstanceFilterMotionClass = useFilterChangeMotionClass([
+    partMechanism,
     partSearch,
     partStatus,
     partSubsystem,
@@ -146,6 +170,22 @@ export function PartsView({
             placeholder="Search parts..."
             value={partSearch}
           />
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              color: "var(--text-copy)",
+              fontSize: "0.85rem",
+            }}
+          >
+            <input
+              checked={showArchivedPartDefinitions}
+              onChange={(event) => setShowArchivedPartDefinitions(event.target.checked)}
+              type="checkbox"
+            />
+            Show archived definitions
+          </label>
 
           <FilterDropdown
             allLabel="All subsystems"
@@ -183,7 +223,7 @@ export function PartsView({
         <div className={`table-shell ${partDefinitionFilterMotionClass}`}>
           <div
             className="ops-table ops-table-header"
-            style={{ "--workspace-grid-template": "minmax(180px, 2fr) 1fr 0.6fr 0.7fr 0.8fr 1fr" } as CSSProperties}
+            style={{ "--workspace-grid-template": PART_DEFINITION_GRID_TEMPLATE } as CSSProperties}
           >
             <span>Part</span>
             <span>Number</span>
@@ -192,41 +232,55 @@ export function PartsView({
             <span>Type</span>
             <span>Material</span>
           </div>
-          {partDefinitionPagination.pageItems.map((partDefinition) => (
-            <div
-              className="ops-table ops-row editable-row-clickable editable-hover-target editable-hover-target-row"
-              key={partDefinition.id}
-              onClick={() => openEditPartDefinitionModal(partDefinition)}
-              onKeyDown={(event) => {
-                if (event.target !== event.currentTarget) {
-                  return;
-                }
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  openEditPartDefinitionModal(partDefinition);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              style={{ "--workspace-grid-template": "minmax(180px, 2fr) 1fr 0.6fr 0.7fr 0.8fr 1fr" } as CSSProperties}
-              title={`Edit ${partDefinition.name}`}
-            >
-              <TableCell label="Part">
-                <strong>{partDefinition.name}</strong>
-                {partDefinition.description ? <small>{partDefinition.description}</small> : null}
-              </TableCell>
-              <TableCell label="Number">{partDefinition.partNumber}</TableCell>
-              <TableCell label="Rev">{partDefinition.revision}</TableCell>
-              <TableCell label="Iteration">Iteration {partDefinition.iteration}</TableCell>
-              <TableCell label="Type">{partDefinition.type}</TableCell>
-              <TableCell label="Material">
-                {(partDefinition.materialId
-                  ? bootstrap.materials.find((material) => material.id === partDefinition.materialId)?.name
-                  : null) ?? "Unassigned"}
-              </TableCell>
-              <EditableHoverIndicator />
-            </div>
-          ))}
+          {partDefinitionPagination.pageItems.map((partDefinition) => {
+            const materialName =
+              (partDefinition.materialId
+                ? bootstrap.materials.find((material) => material.id === partDefinition.materialId)?.name
+                : null) ?? "Unassigned";
+            const partSubtitle =
+              partDefinition.description.trim().length > 0
+                ? partDefinition.description
+                : `Source: ${partDefinition.source} | Material: ${materialName}`;
+
+            return (
+              <div
+                className="ops-table ops-row editable-row-clickable editable-hover-target editable-hover-target-row"
+                key={partDefinition.id}
+                onClick={() => openEditPartDefinitionModal(partDefinition)}
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) {
+                    return;
+                  }
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openEditPartDefinitionModal(partDefinition);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                style={{ "--workspace-grid-template": PART_DEFINITION_GRID_TEMPLATE } as CSSProperties}
+                title={`Edit ${partDefinition.name}`}
+              >
+                <span className="queue-title table-cell table-cell-primary part-primary-cell" data-label="Part">
+                  <span className="requested-item-meta">
+                    <span className="requested-item-title">{partDefinition.name}</span>
+                    {partDefinition.isArchived ? (
+                      <small className="requested-item-subtitle">Archived</small>
+                    ) : null}
+                    <small className="requested-item-subtitle" title={partSubtitle}>
+                      {partSubtitle}
+                    </small>
+                  </span>
+                </span>
+                <TableCell label="Number">{partDefinition.partNumber}</TableCell>
+                <TableCell label="Rev">{partDefinition.revision}</TableCell>
+                <TableCell label="Iteration">Iteration {partDefinition.iteration}</TableCell>
+                <TableCell label="Type">{partDefinition.type}</TableCell>
+                <TableCell label="Material">{materialName}</TableCell>
+                <EditableHoverIndicator />
+              </div>
+            );
+          })}
           {filteredPartDefinitions.length === 0 ? (
             <p className="empty-state">No part definitions match the current search.</p>
           ) : null}
@@ -252,11 +306,20 @@ export function PartsView({
         <div className={`table-shell ${partInstanceFilterMotionClass}`}>
           <div
             className="ops-table ops-table-header"
-            style={{ "--workspace-grid-template": "minmax(180px, 2fr) 1fr 1fr 1fr 0.5fr 0.8fr" } as CSSProperties}
+            style={{ "--workspace-grid-template": PART_INSTANCE_GRID_TEMPLATE } as CSSProperties}
           >
             <span>Instance</span>
             <span>Definition</span>
-            <span>Mechanism</span>
+            <span className="table-column-header-cell">
+              <span className="table-column-title">Mechanism</span>
+              <ColumnFilterDropdown
+                allLabel="All mechanisms"
+                ariaLabel="Filter parts by mechanism"
+                onChange={setPartMechanism}
+                options={bootstrap.mechanisms}
+                value={partMechanism}
+              />
+            </span>
             <span className="table-column-header-cell">
               <span className="table-column-title">Subsystem</span>
               <ColumnFilterDropdown
@@ -279,33 +342,46 @@ export function PartsView({
               />
             </span>
           </div>
-          {partInstancePagination.pageItems.map((partInstance) => (
-            <div
-              className="ops-table ops-row"
-              key={partInstance.id}
-              style={{ "--workspace-grid-template": "minmax(180px, 2fr) 1fr 1fr 1fr 0.5fr 0.8fr" } as CSSProperties}
-            >
-              <TableCell label="Instance">
-                <strong>{partInstance.name}</strong>
-                <small>{partInstance.trackIndividually ? "Individual tracking" : "Bulk quantity"}</small>
-              </TableCell>
-              <TableCell label="Definition">
-                {partDefinitionsById[partInstance.partDefinitionId]?.name ?? "Unknown part"}
-              </TableCell>
-              <TableCell label="Mechanism">
-                {partInstance.mechanismId
-                  ? mechanismsById[partInstance.mechanismId]?.name ?? "Unknown"
-                  : "Unassigned"}
-              </TableCell>
-              <TableCell label="Subsystem">
-                {(partInstance.subsystemId ? subsystemsById[partInstance.subsystemId]?.name : null) ?? "Unknown"}
-              </TableCell>
-              <TableCell label="Qty">{partInstance.quantity}</TableCell>
-              <TableCell label="Status" valueClassName="table-cell-pill">
-                <span className={getStatusPillClassName(partInstance.status)}>{partInstance.status}</span>
-              </TableCell>
-            </div>
-          ))}
+          {partInstancePagination.pageItems.map((partInstance) => {
+            const trackingSubtitle = partInstance.trackIndividually ? "Individual tracking" : "Bulk quantity";
+            const mechanismName = partInstance.mechanismId
+              ? mechanismsById[partInstance.mechanismId]?.name ?? "Unknown"
+              : "Unassigned";
+            const subsystemName =
+              (partInstance.subsystemId ? subsystemsById[partInstance.subsystemId]?.name : null) ?? "Unknown";
+
+            return (
+              <div
+                className="ops-table ops-row"
+                key={partInstance.id}
+                style={{ "--workspace-grid-template": PART_INSTANCE_GRID_TEMPLATE } as CSSProperties}
+              >
+                <span className="queue-title table-cell table-cell-primary part-instance-primary-cell" data-label="Instance">
+                  <span className="requested-item-meta">
+                    <span className="requested-item-title">{partInstance.name}</span>
+                    <small className="requested-item-subtitle">{trackingSubtitle}</small>
+                  </span>
+                </span>
+                <TableCell label="Definition">
+                  {partDefinitionsById[partInstance.partDefinitionId]?.name ?? "Unknown part"}
+                </TableCell>
+                <TableCell label="Mechanism">
+                  <span className="part-instance-dropdown-chip" title={mechanismName}>
+                    <span>{mechanismName}</span>
+                  </span>
+                </TableCell>
+                <TableCell label="Subsystem">
+                  <span className="part-instance-dropdown-chip" title={subsystemName}>
+                    <span>{subsystemName}</span>
+                  </span>
+                </TableCell>
+                <TableCell label="Qty">{partInstance.quantity}</TableCell>
+                <TableCell label="Status" valueClassName="table-cell-pill">
+                  <span className={getStatusPillClassName(partInstance.status)}>{partInstance.status}</span>
+                </TableCell>
+              </div>
+            );
+          })}
           {filteredPartInstances.length === 0 ? (
             <p className="empty-state">No part instances match the current filters.</p>
           ) : null}

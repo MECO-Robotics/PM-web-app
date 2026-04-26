@@ -33,7 +33,19 @@ function renderTopbar(
     isActive: false,
     memberName: "Ava Chen",
   },
+  isSignedIn = false,
 ) {
+  const sessionUser = isSignedIn
+    ? {
+        accountId: "account-1",
+        authProvider: "google" as const,
+        email: "ava.chen@example.com",
+        hostedDomain: "meco-robotics.com",
+        name: "Ava Chen",
+        picture: null,
+      }
+    : null;
+
   return renderToStaticMarkup(
     React.createElement(AppTopbar, {
       activeTab: "inventory",
@@ -60,7 +72,7 @@ function renderTopbar(
         },
       ],
       selectedProjectId: selectedProject.id,
-      sessionUser: null,
+      sessionUser,
       isMyViewActive: myView.isActive,
       myViewMemberName: myView.memberName,
       setInventoryView: jest.fn(),
@@ -113,8 +125,23 @@ describe("AppTopbar", () => {
       },
     );
 
-    expect(markup).toContain("My View");
+    expect(markup).toContain('aria-label="Clear My View filter"');
     expect(markup).toContain('aria-pressed="true"');
     expect(markup).toContain("Showing Ava Chen");
+    expect(markup).not.toContain(">My View<");
+  });
+
+  it("keeps a standalone dark mode button for local access", () => {
+    const markup = renderTopbar(false);
+
+    expect(markup).toContain('aria-label="Toggle dark mode"');
+  });
+
+  it("moves dark mode toggle under profile menu for signed-in users", () => {
+    const markup = renderTopbar(false, undefined, undefined, true);
+
+    expect(markup).toContain("profile-menu-item-theme-toggle");
+    expect(markup).toContain("Dark mode");
+    expect(markup).not.toContain('aria-label="Toggle dark mode"');
   });
 });

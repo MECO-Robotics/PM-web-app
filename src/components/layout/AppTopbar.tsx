@@ -217,6 +217,8 @@ export function AppTopbar({
   const selectedProject =
     projects.find((project) => project.id === selectedProjectId) ?? null;
   const canEditSelectedRobot = selectedProject?.projectType === "robot";
+  const themeToggleMenuLabel = isDarkMode ? "Light mode" : "Dark mode";
+  const themeToggleMenuTitle = isDarkMode ? "Switch to light mode" : "Switch to dark mode";
 
   const handleProjectChange = (value: string) => {
     if (value === ADD_ROBOT_PROJECT_VALUE) {
@@ -256,10 +258,19 @@ export function AppTopbar({
       </div>
 
       <div className="app-topbar-project-slot">
-        <label className="app-topbar-project-picker">
-          <span className="app-topbar-project-label">Project</span>
+        <div
+          className={
+            canEditSelectedRobot
+              ? "app-topbar-project-picker has-overlay-action"
+              : "app-topbar-project-picker"
+          }
+        >
+          <label className="app-topbar-project-label" htmlFor="app-topbar-project-select">
+            Project
+          </label>
           <select
             className="app-topbar-project-select"
+            id="app-topbar-project-select"
             onChange={(event) => handleProjectChange(event.target.value)}
             value={selectedProjectId ?? ""}
           >
@@ -279,18 +290,18 @@ export function AppTopbar({
             )}
             <option value={ADD_ROBOT_PROJECT_VALUE}>Add robot</option>
           </select>
-        </label>
-        {canEditSelectedRobot ? (
-          <button
-            aria-label="Edit robot name"
-            className="app-topbar-project-action"
-            onClick={onEditSelectedRobot}
-            title="Edit robot name"
-            type="button"
-          >
-            <IconEdit />
-          </button>
-        ) : null}
+          {canEditSelectedRobot ? (
+            <button
+              aria-label="Edit robot name"
+              className="app-topbar-project-action"
+              onClick={onEditSelectedRobot}
+              title="Edit robot name"
+              type="button"
+            >
+              <IconEdit />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="app-topbar-nav">
@@ -328,7 +339,6 @@ export function AppTopbar({
           type="button"
         >
           <IconEye />
-          <span>My View</span>
         </button>
 
         {sessionUser ? (
@@ -357,6 +367,18 @@ export function AppTopbar({
             </button>
             <div aria-label="Profile menu" className="profile-menu-popover" role="menu">
               <button
+                className="profile-menu-item profile-menu-item-theme-toggle"
+                onClick={toggleDarkMode}
+                role="menuitem"
+                title={themeToggleMenuTitle}
+                type="button"
+              >
+                <span aria-hidden="true" className="profile-menu-item-icon">
+                  {isDarkMode ? "\u2600" : "\u263E"}
+                </span>
+                <span className="profile-menu-item-theme-label">{themeToggleMenuLabel}</span>
+              </button>
+              <button
                 className="profile-menu-item"
                 onClick={handleSignOut}
                 role="menuitem"
@@ -372,15 +394,17 @@ export function AppTopbar({
           </div>
         )}
 
-        <button
-          aria-label="Toggle dark mode"
-          className="app-topbar-icon-button"
-          onClick={toggleDarkMode}
-          title="Toggle dark mode"
-          type="button"
-        >
-          <span aria-hidden="true">{isDarkMode ? "\u2600" : "\u263E"}</span>
-        </button>
+        {!sessionUser ? (
+          <button
+            aria-label="Toggle dark mode"
+            className="app-topbar-icon-button"
+            onClick={toggleDarkMode}
+            title="Toggle dark mode"
+            type="button"
+          >
+            <span aria-hidden="true">{isDarkMode ? "\u2600" : "\u263E"}</span>
+          </button>
+        ) : null}
 
         <button
           aria-label="Refresh workspace"

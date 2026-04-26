@@ -8,13 +8,14 @@ import { HelpView } from "@/features/workspace/views/HelpView";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 describe("HelpView", () => {
-  it("documents the current workspace tabs and roster access model", () => {
+  it("documents practical workspace scope, tab behavior, and roster guidance", () => {
     const html = renderToStaticMarkup(React.createElement(HelpView));
 
-    expect(html).toContain("CNC, prints, and fabrication");
-    expect(html).toContain("Documents and Purchases");
-    expect(html).toContain("External access");
-    expect(html).toContain("season selector");
+    expect(html).toContain("Start with scope");
+    expect(html).toContain("<strong>No data:</strong>");
+    expect(html).toContain("verify season, project, and person filter in that order.");
+    expect(html).toContain("CNC, prints, and fabrication queues");
+    expect(html).toContain("Students, Mentors, and External access");
   });
 
   it("offers a tutorial launch point inside help", () => {
@@ -31,7 +32,23 @@ describe("HelpView", () => {
 
     expect(html).toContain("Guided workspace tutorial");
     expect(html).toContain("Step 1 of 6");
-    expect(html).toContain("Choose season and project scope");
-    expect(html).toContain("Finish tutorial");
+    expect(html).toContain("Set season and project first");
+    expect(html).toContain("Next step");
+    expect(html).toContain("Close tutorial");
+  });
+
+  it("renders a completion state when the tutorial is finished", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(HelpView, {
+        tutorialInitiallyComplete: true,
+        tutorialInitiallyOpen: true,
+      }),
+    );
+
+    expect(html).toContain('data-tutorial-state="complete"');
+    expect(html).toContain("Tutorial complete");
+    expect(html).toContain("You are ready to run the workspace loop");
+    expect(html).toContain("Review last step");
+    expect(html).toContain("Start again");
   });
 });

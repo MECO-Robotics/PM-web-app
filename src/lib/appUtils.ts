@@ -19,6 +19,7 @@ import type {
   TaskRecord,
   WorkLogPayload,
   WorkstreamPayload,
+  WorkstreamRecord,
 } from "@/types";
 
 export function toErrorMessage(error: unknown) {
@@ -27,7 +28,15 @@ export function toErrorMessage(error: unknown) {
 }
 
 export function getDefaultSubsystemId(bootstrap: BootstrapPayload) {
-    return bootstrap.subsystems.find((subsystem) => subsystem.isCore)?.id ?? bootstrap.subsystems[0]?.id ?? "";
+    return (
+        bootstrap.subsystems.find(
+            (subsystem) => subsystem.isCore && !subsystem.isArchived,
+        )?.id ??
+        bootstrap.subsystems.find((subsystem) => !subsystem.isArchived)?.id ??
+        bootstrap.subsystems.find((subsystem) => subsystem.isCore)?.id ??
+        bootstrap.subsystems[0]?.id ??
+        ""
+    );
 }
 
 export function formatDate(value: string) {
@@ -617,13 +626,22 @@ export function inferManufacturingDraftFromProcessSelection(
         : nextDraft;
 }
 
-export function buildEmptyManufacturingPayload(bootstrap: BootstrapPayload, process: ManufacturingItemPayload["process"]): ManufacturingItemPayload {
+export function buildEmptyManufacturingPayload(
+    bootstrap: BootstrapPayload,
+    process: ManufacturingItemPayload["process"],
+    defaultRequesterId: string | null = null,
+): ManufacturingItemPayload {
     const firstMaterial = bootstrap.materials[0] ?? null;
     const firstPartDefinition = bootstrap.partDefinitions[0] ?? null;
+    const requesterId =
+        defaultRequesterId &&
+        bootstrap.members.some((member) => member.id === defaultRequesterId)
+            ? defaultRequesterId
+            : bootstrap.members[0]?.id ?? null;
     const basePayload: ManufacturingItemPayload = {
         title: firstPartDefinition?.name ?? "",
         subsystemId: getDefaultSubsystemId(bootstrap),
-        requestedById: bootstrap.members[0]?.id ?? null,
+        requestedById: requesterId,
         process,
         dueDate: new Date().toISOString().slice(0, 10),
         material: firstMaterial?.name ?? "",
@@ -712,6 +730,7 @@ export function buildEmptyArtifactPayload(
         summary: "",
         status: "draft",
         link: "",
+        isArchived: false,
         updatedAt: new Date().toISOString(),
     };
 }
@@ -730,6 +749,7 @@ export function buildEmptyWorkstreamPayload(
         projectId: resolvedProjectId,
         name: "",
         description: "",
+        isArchived: false,
     };
 }
 
@@ -739,6 +759,7 @@ export function buildEmptyPartDefinitionPayload(bootstrap: BootstrapPayload): Pa
         partNumber: "",
         revision: "A",
         iteration: 1,
+        isArchived: false,
         type: "custom",
         source: "",
         materialId: bootstrap.materials[0]?.id ?? null,
@@ -750,6 +771,9 @@ export function buildEmptySubsystemPayload(bootstrap: BootstrapPayload): Subsyst
     const defaultProjectId = bootstrap.projects[0]?.id ?? "";
     const defaultParentSubsystemId =
         (
+            bootstrap.subsystems.find(
+                (subsystem) => subsystem.projectId === defaultProjectId && !subsystem.isArchived,
+            )?.id ??
             bootstrap.subsystems.find((subsystem) => subsystem.projectId === defaultProjectId)?.id ??
             getDefaultSubsystemId(bootstrap)
         ) || null;
@@ -765,6 +789,7 @@ export function buildEmptySubsystemPayload(bootstrap: BootstrapPayload): Subsyst
         name: "",
         description: "",
         iteration: 1,
+        isArchived: false,
         parentSubsystemId: defaultParentSubsystemId,
         responsibleEngineerId: firstResponsibleEngineer,
         mentorIds: firstMentor ? [firstMentor] : [],
@@ -786,6 +811,7 @@ export function buildEmptyMechanismPayload(
         name: "",
         description: "",
         iteration: 1,
+        isArchived: false,
     };
 }
 
@@ -846,17 +872,20 @@ export const artifactToPayload = (item: ArtifactRecord): ArtifactPayload => ({
     workstreamId: item.workstreamId ?? null,
     summary: item.summary ?? "",
     link: item.link ?? "",
+    isArchived: item.isArchived ?? false,
     updatedAt: item.updatedAt || new Date().toISOString(),
 });
 
 export const partDefinitionToPayload = (item: PartDefinitionRecord): PartDefinitionPayload => ({
     ...item,
     iteration: normalizeIteration(item.iteration),
+    isArchived: item.isArchived ?? false,
     materialId: item.materialId ?? null,
 });
 
 export const subsystemToPayload = (item: SubsystemRecord): SubsystemPayload => ({
     ...item,
+    isArchived: item.isArchived ?? false,
     iteration: normalizeIteration(item.iteration),
 });
 
@@ -865,9 +894,16 @@ export const mechanismToPayload = (item: {
     name: string;
     description: string;
     iteration?: number;
+    isArchived?: boolean;
 }): MechanismPayload => ({
     ...item,
+    isArchived: item.isArchived ?? false,
     iteration: normalizeIteration(item.iteration),
+});
+
+export const workstreamToPayload = (item: WorkstreamRecord): WorkstreamPayload => ({
+    ...item,
+    isArchived: item.isArchived ?? false,
 });
 
 export const partInstanceToPayload = (item: PartInstanceRecord): PartInstancePayload => ({

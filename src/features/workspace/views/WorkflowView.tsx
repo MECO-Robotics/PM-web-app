@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { ArtifactRecord, BootstrapPayload } from "@/types";
 import {
+  EditableHoverIndicator,
   SearchToolbarInput,
   TableCell,
   useFilterChangeMotionClass,
@@ -13,6 +14,7 @@ interface WorkflowViewProps {
   bootstrap: BootstrapPayload;
   membersById: Record<string, BootstrapPayload["members"][number]>;
   openCreateWorkstreamModal: () => void;
+  openEditWorkstreamModal: (workstream: BootstrapPayload["workstreams"][number]) => void;
 }
 
 export function WorkflowView({
@@ -20,8 +22,10 @@ export function WorkflowView({
   bootstrap,
   membersById,
   openCreateWorkstreamModal,
+  openEditWorkstreamModal,
 }: WorkflowViewProps) {
   const [search, setSearch] = useState("");
+  const [showArchivedWorkflows, setShowArchivedWorkflows] = useState(false);
 
   const workflowRows = useMemo(() => {
     return bootstrap.workstreams
@@ -65,11 +69,15 @@ export function WorkflowView({
 
   const filteredRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
+    const rows = workflowRows.filter((row) =>
+      showArchivedWorkflows ? true : !row.workstream.isArchived,
+    );
+
     if (normalizedSearch.length === 0) {
-      return workflowRows;
+      return rows;
     }
 
-    return workflowRows.filter((row) =>
+    return rows.filter((row) =>
       [
         row.workstream.name,
         row.workstream.description,
@@ -79,8 +87,8 @@ export function WorkflowView({
         .toLowerCase()
         .includes(normalizedSearch),
     );
-  }, [search, workflowRows]);
-  const workflowFilterMotionClass = useFilterChangeMotionClass([search]);
+  }, [search, showArchivedWorkflows, workflowRows]);
+  const workflowFilterMotionClass = useFilterChangeMotionClass([search, showArchivedWorkflows]);
 
   return (
     <section className={`panel dense-panel subsystem-manager-shell ${WORKSPACE_PANEL_CLASS}`}>
@@ -98,6 +106,22 @@ export function WorkflowView({
             placeholder="Search workflows..."
             value={search}
           />
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              color: "var(--text-copy)",
+              fontSize: "0.85rem",
+            }}
+          >
+            <input
+              checked={showArchivedWorkflows}
+              onChange={(event) => setShowArchivedWorkflows(event.target.checked)}
+              type="checkbox"
+            />
+            Show archived
+          </label>
 
           <button
             aria-label="Add workflow"
@@ -129,8 +153,20 @@ export function WorkflowView({
 
           {filteredRows.map((row) => (
             <div
-              className="ops-table ops-row subsystem-manager-row"
+              className="ops-table ops-row subsystem-manager-row editable-row-clickable editable-hover-target editable-hover-target-row"
               key={row.workstream.id}
+              onClick={() => openEditWorkstreamModal(row.workstream)}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) {
+                  return;
+                }
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openEditWorkstreamModal(row.workstream);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               style={{
                 gridTemplateColumns: "minmax(220px, 2.2fr) 0.8fr 0.8fr 1.2fr",
                 padding: "12px 16px",
@@ -141,6 +177,9 @@ export function WorkflowView({
             >
               <TableCell label="Workflow">
                 <strong style={{ color: "var(--text-title)" }}>{row.workstream.name}</strong>
+                {row.workstream.isArchived ? (
+                  <small style={{ color: "var(--text-copy)" }}>Archived</small>
+                ) : null}
                 <small>{row.workstream.description || "No description yet."}</small>
               </TableCell>
               <TableCell label="Open tasks">
@@ -153,6 +192,7 @@ export function WorkflowView({
                   ? row.contributorNames.join(", ")
                   : "Unassigned"}
               </TableCell>
+              <EditableHoverIndicator />
             </div>
           ))}
 

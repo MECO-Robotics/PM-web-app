@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
-import { TimelineView } from "@/features/workspace/views/TimelineView";
+import { monthEndFromDay, TimelineView } from "@/features/workspace/views/TimelineView";
 import type { BootstrapPayload } from "@/types";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -161,7 +161,7 @@ describe("TimelineView", () => {
           activePersonFilter: [],
           setActivePersonFilter: jest.fn(),
           membersById,
-          openEditTaskModal: jest.fn(),
+          openTaskDetailModal: jest.fn(),
           openCreateTaskModal: jest.fn(),
           onDeleteTimelineEvent: jest.fn(),
           onSaveTimelineEvent: jest.fn(),
@@ -184,7 +184,7 @@ describe("TimelineView", () => {
           activePersonFilter: [],
           setActivePersonFilter: jest.fn(),
           membersById,
-          openEditTaskModal: jest.fn(),
+          openTaskDetailModal: jest.fn(),
           openCreateTaskModal: jest.fn(),
           onDeleteTimelineEvent: jest.fn(),
           onSaveTimelineEvent: jest.fn(),
@@ -224,7 +224,7 @@ describe("TimelineView", () => {
           activePersonFilter: [],
           setActivePersonFilter: jest.fn(),
           membersById,
-          openEditTaskModal: jest.fn(),
+          openTaskDetailModal: jest.fn(),
           openCreateTaskModal: jest.fn(),
           onDeleteTimelineEvent: jest.fn(),
           onSaveTimelineEvent: jest.fn(),
@@ -267,7 +267,7 @@ describe("TimelineView", () => {
           activePersonFilter: [],
           setActivePersonFilter: jest.fn(),
           membersById,
-          openEditTaskModal: jest.fn(),
+          openTaskDetailModal: jest.fn(),
           openCreateTaskModal: jest.fn(),
           onDeleteTimelineEvent: jest.fn(),
           onSaveTimelineEvent: jest.fn(),
@@ -288,7 +288,7 @@ describe("TimelineView", () => {
   );
 
   it.each([false, true])(
-    "renders day grid cells for empty subsystem rows when all-projects view is %s",
+    "hides subsystem rows with no tasks in the selected period when all-projects view is %s",
     (isAllProjectsView) => {
       const markup = renderToStaticMarkup(
         React.createElement(TimelineView, {
@@ -297,7 +297,7 @@ describe("TimelineView", () => {
           activePersonFilter: [],
           setActivePersonFilter: jest.fn(),
           membersById,
-          openEditTaskModal: jest.fn(),
+          openTaskDetailModal: jest.fn(),
           openCreateTaskModal: jest.fn(),
           onDeleteTimelineEvent: jest.fn(),
           onSaveTimelineEvent: jest.fn(),
@@ -307,13 +307,13 @@ describe("TimelineView", () => {
 
       const gridCellCount = (markup.match(/data-timeline-grid-cell="true"/g) ?? []).length;
 
-      expect(markup).toContain("Controls");
-      expect(gridCellCount).toBe(60);
+      expect(markup).not.toContain("Controls");
+      expect(gridCellCount).toBe(30);
     },
   );
 
   it.each([false, true])(
-    "renders subsystem rows when every subsystem has no tasks and all-projects view is %s",
+    "hides all subsystem rows when every subsystem has no tasks and all-projects view is %s",
     (isAllProjectsView) => {
       const markup = renderToStaticMarkup(
         React.createElement(TimelineView, {
@@ -322,7 +322,7 @@ describe("TimelineView", () => {
           activePersonFilter: [],
           setActivePersonFilter: jest.fn(),
           membersById,
-          openEditTaskModal: jest.fn(),
+          openTaskDetailModal: jest.fn(),
           openCreateTaskModal: jest.fn(),
           onDeleteTimelineEvent: jest.fn(),
           onSaveTimelineEvent: jest.fn(),
@@ -332,8 +332,8 @@ describe("TimelineView", () => {
 
       const gridCellCount = (markup.match(/data-timeline-grid-cell="true"/g) ?? []).length;
 
-      expect(markup).toContain("Drivebase");
-      expect(gridCellCount).toBe(30);
+      expect(markup).not.toContain("Drivebase");
+      expect(gridCellCount).toBe(0);
     },
   );
 
@@ -345,7 +345,7 @@ describe("TimelineView", () => {
         activePersonFilter: [],
         setActivePersonFilter: jest.fn(),
         membersById,
-        openEditTaskModal: jest.fn(),
+        openTaskDetailModal: jest.fn(),
         openCreateTaskModal: jest.fn(),
         onDeleteTimelineEvent: jest.fn(),
         onSaveTimelineEvent: jest.fn(),
@@ -358,6 +358,12 @@ describe("TimelineView", () => {
     expect(markup).toContain("April 2026");
   });
 
+  it("keeps month-end bounds in the same calendar month for month-edge dates", () => {
+    expect(monthEndFromDay("2026-01-31")).toBe("2026-01-31");
+    expect(monthEndFromDay("2026-04-30")).toBe("2026-04-30");
+    expect(monthEndFromDay("2026-02-14")).toBe("2026-02-28");
+  });
+
   it("marks the timeline grid as motion-capable for period changes", () => {
     const markup = renderToStaticMarkup(
       React.createElement(TimelineView, {
@@ -366,7 +372,7 @@ describe("TimelineView", () => {
         activePersonFilter: [],
         setActivePersonFilter: jest.fn(),
         membersById,
-        openEditTaskModal: jest.fn(),
+        openTaskDetailModal: jest.fn(),
         openCreateTaskModal: jest.fn(),
         onDeleteTimelineEvent: jest.fn(),
         onSaveTimelineEvent: jest.fn(),
@@ -434,7 +440,7 @@ describe("TimelineView", () => {
         activePersonFilter: [],
         setActivePersonFilter: jest.fn(),
         membersById,
-        openEditTaskModal: jest.fn(),
+        openTaskDetailModal: jest.fn(),
         openCreateTaskModal: jest.fn(),
         onDeleteTimelineEvent: jest.fn(),
         onSaveTimelineEvent: jest.fn(),
