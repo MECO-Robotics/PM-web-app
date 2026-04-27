@@ -197,7 +197,7 @@ describe("TimelineView", () => {
         (match) => match[1],
       );
       const taskBarStyles = Array.from(
-        markup.matchAll(/class="timeline-bar [^"]+" style="([^"]+)"/g),
+        markup.matchAll(/class="timeline-bar [^"]+"[^>]*style="([^"]+)"/g),
         (match) => match[1],
       );
 
