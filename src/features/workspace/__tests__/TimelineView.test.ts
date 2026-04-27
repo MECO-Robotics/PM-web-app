@@ -7,6 +7,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
 import { monthEndFromDay } from "@/features/workspace/shared/timelineDateUtils";
+import {
+  clampTimelineZoom,
+  formatTimelineZoomLabel,
+  getTimelineDayTrackSize,
+  getTimelineGridMinWidth,
+} from "@/features/workspace/shared/timelineZoom";
 import { TimelineView } from "@/features/workspace/views/TimelineView";
 import type { BootstrapPayload } from "@/types";
 
@@ -172,6 +178,33 @@ describe("TimelineView", () => {
 
       expect(markup).toContain('data-timeline-grid-cell="true"');
       expect(markup).toContain("border-right:1px solid var(--border-base)");
+    },
+  );
+
+  it.each([false, true])(
+    "does not keep the absolute day overlay grid block when all-projects view is %s",
+    (isAllProjectsView) => {
+      const markup = renderToStaticMarkup(
+        React.createElement(TimelineView, {
+          bootstrap: createBootstrap(),
+          isAllProjectsView,
+          activePersonFilter: [],
+          setActivePersonFilter: jest.fn(),
+          membersById,
+          openTaskDetailModal: jest.fn(),
+          openCreateTaskModal: jest.fn(),
+          onDeleteTimelineEvent: jest.fn(),
+          onSaveTimelineEvent: jest.fn(),
+          triggerCreateMilestoneToken: 0,
+        }),
+      );
+      const bodySource = readFileSync(
+        join(process.cwd(), "src/features/workspace/views/TimelineGridBody.tsx"),
+        "utf8",
+      );
+
+      expect(markup).toContain('data-timeline-grid-cell="true"');
+      expect(bodySource).not.toContain("timelineSharedDayBackgrounds.length > 0 ? (");
     },
   );
 
@@ -384,6 +417,42 @@ describe("TimelineView", () => {
     expect(markup).toContain('class="timeline-grid-motion"');
   });
 
+  it("exposes timeline zoom controls and uses zoom to widen the grid", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(TimelineView, {
+        bootstrap: createBootstrap(),
+        isAllProjectsView: false,
+        activePersonFilter: [],
+        setActivePersonFilter: jest.fn(),
+        membersById,
+        openTaskDetailModal: jest.fn(),
+        openCreateTaskModal: jest.fn(),
+        onDeleteTimelineEvent: jest.fn(),
+        onSaveTimelineEvent: jest.fn(),
+        triggerCreateMilestoneToken: 0,
+      }),
+    );
+
+    expect(markup).toContain('aria-label="Timeline zoom"');
+    expect(markup).toContain('aria-label="Zoom out timeline"');
+    expect(markup).toContain('aria-label="Zoom in timeline"');
+    expect(formatTimelineZoomLabel(1.2)).toBe("120%");
+    expect(clampTimelineZoom(0.2)).toBe(0.8);
+    expect(getTimelineDayTrackSize("month", 1)).toBe("minmax(28px, 1fr)");
+    expect(getTimelineDayTrackSize("month", 1.6)).toBe("minmax(45px, 1fr)");
+    expect(
+      getTimelineGridMinWidth({
+        dayCount: 10,
+        hasProjectColumn: true,
+        projectColumnWidth: 112,
+        subsystemColumnWidth: 128,
+        taskColumnWidth: 148,
+        viewInterval: "week",
+        zoom: 1.2,
+      }),
+    ).toBe(918);
+  });
+
   it("defines timeline period animations for every timeline navigation direction", () => {
     const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
 
@@ -431,6 +500,17 @@ describe("TimelineView", () => {
         /translate3d\(\s*-?\d+px\s*,\s*0\s*,\s*0\s*\)/,
       );
     }
+  });
+
+  it("only transitions timeline grid width during period motion", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+
+    expect(css).toMatch(
+      /\.timeline-grid-motion\[data-period-motion\]\s*\{[\s\S]*transition:\s*min-width 180ms ease,\s*grid-template-columns 180ms ease;/,
+    );
+    expect(css).toMatch(
+      /\.timeline-grid-motion\s*\{[\s\S]*will-change:\s*min-width,\s*grid-template-columns;/,
+    );
   });
 
   it("marks project, subsystem, and task columns as unfold-animation surfaces", () => {

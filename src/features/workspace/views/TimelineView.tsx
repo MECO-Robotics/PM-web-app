@@ -44,6 +44,15 @@ import {
   timePortion,
 } from "@/features/workspace/shared/timelineDateUtils";
 import {
+  clampTimelineZoom,
+  formatTimelineZoomLabel,
+  getTimelineDayTrackSize,
+  getTimelineGridMinWidth,
+  TIMELINE_ZOOM_MAX,
+  TIMELINE_ZOOM_MIN,
+  TIMELINE_ZOOM_STEP,
+} from "@/features/workspace/shared/timelineZoom";
+import {
   emptyTimelineEventDraft,
   isSameHoveredMilestonePopup,
   timelineEventDraftFromRecord,
@@ -56,7 +65,6 @@ import {
   buildTimelineDayMilestoneUnderlays,
   buildTimelineMonthGroups,
   buildTimelineProjectRows,
-  buildTimelineSharedDayBackgrounds,
   type MilestoneGeometry,
   type TimelineDayCellLayouts,
 } from "@/features/workspace/views/timelineViewModel";
@@ -101,6 +109,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 }) => {
   const [viewInterval, setViewInterval] = useState<TimelineViewInterval>("month");
   const [viewAnchorDate, setViewAnchorDate] = useState(localTodayDate);
+  const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineGridMotion, setTimelineGridMotion] = useState<{
     direction: TimelineGridMotion | null;
     token: number;
@@ -217,12 +226,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   );
 
   const timelineGridTemplate = useMemo(() => {
-    const dayWidth =
-      viewInterval === "all"
-        ? "44px"
-        : viewInterval === "week"
-          ? "minmax(44px, 1fr)"
-          : "minmax(28px, 1fr)";
+    const dayWidth = getTimelineDayTrackSize(viewInterval, timelineZoom);
     return `${hasProjectColumn ? `${projectColumnWidth}px ` : ""}${subsystemColumnWidth}px ${taskColumnWidth}px repeat(${timeline.days.length}, ${dayWidth})`;
   }, [
     hasProjectColumn,
@@ -230,59 +234,32 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     subsystemColumnWidth,
     taskColumnWidth,
     timeline.days.length,
+    timelineZoom,
     viewInterval,
   ]);
 
   const gridMinWidth = useMemo(() => {
-    const minDayWidth = viewInterval === "month" ? 28 : 44;
-    return (
-      (hasProjectColumn ? projectColumnWidth : 0) +
-      subsystemColumnWidth +
-      taskColumnWidth +
-      timeline.days.length * minDayWidth
-    );
+    return getTimelineGridMinWidth({
+      dayCount: timeline.days.length,
+      hasProjectColumn,
+      projectColumnWidth,
+      subsystemColumnWidth,
+      taskColumnWidth,
+      viewInterval,
+      zoom: timelineZoom,
+    });
   }, [
     hasProjectColumn,
     projectColumnWidth,
     subsystemColumnWidth,
     taskColumnWidth,
     timeline.days.length,
+    timelineZoom,
     viewInterval,
   ]);
 
   const monthGroups = useMemo(() => buildTimelineMonthGroups(timeline.days), [timeline.days]);
   const dayEventsByDate = timeline.dayEvents;
-  const timelineSharedDayBackgrounds = useMemo(
-    () => {
-      const mergedDayCellLayouts = timeline.days.reduce<TimelineDayCellLayouts>(
-        (layouts, day) => {
-          const measured = timelineDayCellLayouts[day];
-          if (measured) {
-            layouts[day] = measured;
-            return layouts;
-          }
-
-          const dayCell = timelineDayCellRefs.current[day];
-          if (dayCell) {
-            layouts[day] = {
-              left: dayCell.offsetLeft,
-              width: dayCell.offsetWidth,
-            };
-          }
-
-          return layouts;
-        },
-        {},
-      );
-
-      return buildTimelineSharedDayBackgrounds({
-        dayCellLayouts: mergedDayCellLayouts,
-        dayEventsByDate,
-        days: timeline.days,
-      });
-    },
-    [dayEventsByDate, timeline.days, timelineDayCellLayouts],
-  );
   const timelineDayHeaderCells = useMemo(
     () => buildTimelineDayHeaderCells(timeline.days, dayEventsByDate),
     [dayEventsByDate, timeline.days],
@@ -326,6 +303,21 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     setIsTaskColumnVisible((previous) => {
       return !previous;
     });
+  }, []);
+
+  const adjustTimelineZoom = useCallback((direction: 1 | -1) => {
+    setTimelineZoom((previous) => clampTimelineZoom(previous + direction * TIMELINE_ZOOM_STEP));
+  }, []);
+
+  const handleTimelineZoomWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    if (!(event.ctrlKey || event.metaKey) || event.deltaY === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    setTimelineZoom((previous) =>
+      clampTimelineZoom(previous + (event.deltaY > 0 ? -TIMELINE_ZOOM_STEP : TIMELINE_ZOOM_STEP)),
+    );
   }, []);
 
   const playTimelineGridAnimation = useCallback((direction: TimelineGridMotion) => {
@@ -871,6 +863,29 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 </button>
               </div>
             ) : null}
+            <div aria-label="Timeline zoom" className="timeline-zoom-controls" role="group">
+              <button
+                aria-label="Zoom out timeline"
+                className="icon-button timeline-zoom-button"
+                disabled={timelineZoom <= TIMELINE_ZOOM_MIN}
+                onClick={() => adjustTimelineZoom(-1)}
+                title="Zoom out timeline"
+                type="button"
+              >
+                -
+              </button>
+              <span className="timeline-zoom-label">{formatTimelineZoomLabel(timelineZoom)}</span>
+              <button
+                aria-label="Zoom in timeline"
+                className="icon-button timeline-zoom-button"
+                disabled={timelineZoom >= TIMELINE_ZOOM_MAX}
+                onClick={() => adjustTimelineZoom(1)}
+                title="Zoom in timeline"
+                type="button"
+              >
+                +
+              </button>
+            </div>
           </div>
           <button
             className="primary-action queue-toolbar-action"
@@ -915,7 +930,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         timelineGridMotion={timelineGridMotion}
         timelineGridRef={timelineGridRef}
         timelineGridTemplate={timelineGridTemplate}
-        timelineSharedDayBackgrounds={timelineSharedDayBackgrounds}
+        handleTimelineZoomWheel={handleTimelineZoomWheel}
         timelineShellRef={timelineShellRef}
         subsystemRows={subsystemRows}
         toggleProject={toggleProject}

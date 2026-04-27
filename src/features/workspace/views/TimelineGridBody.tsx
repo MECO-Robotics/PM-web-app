@@ -8,7 +8,6 @@ import type {
   TimelineMonthGroup,
   TimelineProjectRow,
   TimelineSubsystemRow,
-  TimelineSharedDayBackground,
 } from "@/features/workspace/views/timelineViewModel";
 
 type TimelineGridMotion = "left" | "right" | "neutral";
@@ -23,12 +22,12 @@ interface TimelineGridBodyProps {
   };
   timelineGridTemplate: string;
   gridMinWidth: number;
+  handleTimelineZoomWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
   timelineShellRef: React.MutableRefObject<HTMLDivElement | null>;
   timelineGridRef: React.MutableRefObject<HTMLDivElement | null>;
   timelineDayCellRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
   monthGroups: TimelineMonthGroup[];
   timelineDayHeaderCells: TimelineDayHeaderCell[];
-  timelineSharedDayBackgrounds: TimelineSharedDayBackground[];
   projectRows: TimelineProjectRow[];
   subsystemRows: TimelineSubsystemRow[];
   hasProjectColumn: boolean;
@@ -64,12 +63,12 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
   timelineGridMotion,
   timelineGridTemplate,
   gridMinWidth,
+  handleTimelineZoomWheel,
   timelineShellRef,
   timelineGridRef,
   timelineDayCellRefs,
   monthGroups,
   timelineDayHeaderCells,
-  timelineSharedDayBackgrounds,
   projectRows,
   subsystemRows,
   hasProjectColumn,
@@ -150,6 +149,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
     <div
       className={`timeline-shell ${timelineFilterMotionClass}`}
       ref={timelineShellRef}
+      onWheel={handleTimelineZoomWheel}
       style={{
         overflowX: "auto",
         padding: 0,
@@ -377,38 +377,6 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
           </div>
         ))}
       </div>
-
-      {timelineSharedDayBackgrounds.length > 0 ? (
-        <div
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            width: "100%",
-            minWidth: `${gridMinWidth}px`,
-            height: "100%",
-            pointerEvents: "none",
-            zIndex: 1,
-          }}
-        >
-          {timelineSharedDayBackgrounds.map((backgroundColumn) => (
-            <div
-              className="timeline-day-slot"
-              key={`timeline-shared-day-background-${backgroundColumn.day}`}
-              style={{
-                position: "absolute",
-                left: `${backgroundColumn.left}px`,
-                top: 0,
-                width: `${backgroundColumn.width}px`,
-                height: "100%",
-                borderRight: `1px solid ${backgroundColumn.style?.columnBorder ?? "var(--border-base)"}`,
-                background: backgroundColumn.style?.columnBackground,
-              }}
-            />
-          ))}
-        </div>
-      ) : null}
 
       {hasProjectColumn ? (
         projectRows.map((project, projectIndex) => {

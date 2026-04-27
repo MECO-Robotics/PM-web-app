@@ -55,13 +55,6 @@ export interface TimelineDayHeaderCell {
   primaryEventEndDay: string;
 }
 
-export interface TimelineSharedDayBackground {
-  day: string;
-  left: number;
-  width: number;
-  style: WorkspaceEventStyle | null;
-}
-
 export interface TimelineDayCellLayout {
   left: number;
   width: number;
@@ -411,32 +404,6 @@ export function buildTimelineProjectRows(subsystemRows: TimelineSubsystemRow[]) 
   });
 
   return Array.from(grouped.values());
-}
-
-export function buildTimelineSharedDayBackgrounds({
-  dayCellLayouts,
-  dayEventsByDate,
-  days,
-}: {
-  dayCellLayouts: TimelineDayCellLayouts;
-  dayEventsByDate: Record<string, EventRecord[]>;
-  days: string[];
-}): TimelineSharedDayBackground[] {
-  return days
-    .map((day) => {
-      const measured = dayCellLayouts[day];
-      if (!measured || measured.width <= 0) {
-        return null;
-      }
-
-      return {
-        day,
-        left: measured.left,
-        width: measured.width,
-        style: dayEventsByDate[day]?.length ? getEventTypeStyle(dayEventsByDate[day][0].type) : null,
-      } satisfies TimelineSharedDayBackground;
-    })
-    .filter((entry): entry is TimelineSharedDayBackground => entry !== null);
 }
 
 export function buildTimelineDayMilestoneUnderlays({
