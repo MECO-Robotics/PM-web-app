@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, useId, type CSSProperties } from "react";
 
 import { formatDate, formatIterationVersion } from "@/lib/appUtils";
 import type { BootstrapPayload, TaskRecord } from "@/types";
 import {
   IconManufacturing,
+  IconFilter,
   IconParts,
   IconPerson,
   IconTasks,
@@ -11,6 +12,7 @@ import {
 import {
   ColumnFilterDropdown,
   EditableHoverIndicator,
+  type DropdownOption,
   type FilterSelection,
   FilterDropdown,
   PaginationControls,
@@ -26,6 +28,12 @@ import {
 import { getStatusPillClassName } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from "@/features/workspace/shared";
+import {
+  formatTaskPlanningState,
+  getTaskPlanningState,
+} from "@/features/workspace/shared/taskPlanning";
+
+const TASK_QUEUE_MENU_BREAKPOINT = 900;
 
 type TaskSortField =
   | "dueDate"
@@ -113,6 +121,200 @@ function formatMechanismNames(
         : "Unknown";
     })
     .join(", ");
+}
+
+function TaskQueueCompactFilterMenu({
+  activeFilterCount,
+  isAllProjectsView,
+  isOpen,
+  onClose,
+  onToggle,
+  projectFilter,
+  setPriorityFilter,
+  setProjectFilter,
+  setStatusFilter,
+  setSubsystemFilter,
+  setSubsystemIterationFilter,
+  setOwnerFilter,
+  showSubsystemIterationFilter,
+  subsystemFilter,
+  subsystemFilterOptions,
+  subsystemIterationFilter,
+  subsystemIterationOptions,
+  ownerFilter,
+  priorityFilter,
+  statusFilter,
+  bootstrap,
+}: {
+  activeFilterCount: number;
+  bootstrap: BootstrapPayload;
+  isAllProjectsView: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onToggle: () => void;
+  ownerFilter: FilterSelection;
+  priorityFilter: FilterSelection;
+  projectFilter: FilterSelection;
+  setPriorityFilter: (value: FilterSelection) => void;
+  setProjectFilter: (value: FilterSelection) => void;
+  setStatusFilter: (value: FilterSelection) => void;
+  setSubsystemFilter: (value: FilterSelection) => void;
+  setSubsystemIterationFilter: (value: FilterSelection) => void;
+  setOwnerFilter: (value: FilterSelection) => void;
+  showSubsystemIterationFilter: boolean;
+  statusFilter: FilterSelection;
+  subsystemFilter: FilterSelection;
+  subsystemFilterOptions: DropdownOption[];
+  subsystemIterationFilter: FilterSelection;
+  subsystemIterationOptions: DropdownOption[];
+}) {
+  const menuRef = useRef<HTMLSpanElement>(null);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!isOpen || typeof document === "undefined") {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (target instanceof Node && !menuRef.current?.contains(target)) {
+        onClose();
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  return (
+    <span
+      className={`toolbar-filter toolbar-filter-dropdown task-queue-filter-menu${isActiveClass(activeFilterCount)}${isOpen ? " is-open" : ""}`}
+      ref={menuRef}
+    >
+      <button
+        aria-controls={menuId}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        className="toolbar-filter-menu-button task-queue-filter-menu-button"
+        onClick={onToggle}
+        type="button"
+      >
+        <span className="toolbar-filter-icon">
+          <IconFilter />
+        </span>
+        <span aria-hidden="true" className="toolbar-filter-value">
+          Filters
+        </span>
+        {activeFilterCount > 0 ? (
+          <span aria-hidden="true" className="task-queue-filter-count">
+            {activeFilterCount}
+          </span>
+        ) : null}
+        <span aria-hidden="true" className="toolbar-filter-chevron" />
+      </button>
+
+      {isOpen ? (
+        <div aria-label="Task filters" className="task-queue-filter-menu-popover" id={menuId} role="menu">
+          {isAllProjectsView ? (
+            <div className="task-queue-filter-menu-item">
+              <span className="task-queue-filter-menu-label">Project</span>
+              <FilterDropdown
+                allLabel="All projects"
+                ariaLabel="Filter tasks by project"
+                className="task-queue-filter-menu-submenu"
+                icon={<IconParts />}
+                onChange={setProjectFilter}
+                options={bootstrap.projects}
+                value={projectFilter}
+              />
+            </div>
+          ) : null}
+
+          <div className="task-queue-filter-menu-item">
+            <span className="task-queue-filter-menu-label">Subsystem</span>
+            <FilterDropdown
+              allLabel="All subsystems"
+              ariaLabel="Filter tasks by subsystem"
+              className="task-queue-filter-menu-submenu"
+              icon={<IconManufacturing />}
+              onChange={setSubsystemFilter}
+              options={subsystemFilterOptions}
+              value={subsystemFilter}
+            />
+          </div>
+
+          {showSubsystemIterationFilter ? (
+            <div className="task-queue-filter-menu-item">
+              <span className="task-queue-filter-menu-label">Iteration</span>
+              <FilterDropdown
+                allLabel="All iterations"
+                ariaLabel="Filter tasks by subsystem iteration"
+                className="task-queue-filter-menu-submenu"
+                icon={<IconManufacturing />}
+                onChange={setSubsystemIterationFilter}
+                options={subsystemIterationOptions}
+                value={subsystemIterationFilter}
+              />
+            </div>
+          ) : null}
+
+          <div className="task-queue-filter-menu-item">
+            <span className="task-queue-filter-menu-label">Assignee</span>
+            <FilterDropdown
+              allLabel="All assignees"
+              ariaLabel="Filter tasks by assigned student"
+              className="task-queue-filter-menu-submenu"
+              icon={<IconPerson />}
+              onChange={setOwnerFilter}
+              options={bootstrap.members}
+              value={ownerFilter}
+            />
+          </div>
+
+          <div className="task-queue-filter-menu-item">
+            <span className="task-queue-filter-menu-label">Status</span>
+            <FilterDropdown
+              allLabel="All statuses"
+              ariaLabel="Filter tasks by status"
+              className="task-queue-filter-menu-submenu"
+              icon={<IconTasks />}
+              onChange={setStatusFilter}
+              options={TASK_STATUS_OPTIONS}
+              value={statusFilter}
+            />
+          </div>
+
+          <div className="task-queue-filter-menu-item">
+            <span className="task-queue-filter-menu-label">Priority</span>
+            <FilterDropdown
+              allLabel="All priorities"
+              ariaLabel="Filter tasks by priority"
+              className="task-queue-filter-menu-submenu"
+              icon={<IconTasks />}
+              onChange={setPriorityFilter}
+              options={TASK_PRIORITY_OPTIONS}
+              value={priorityFilter}
+            />
+          </div>
+        </div>
+      ) : null}
+    </span>
+  );
+}
+
+function isActiveClass(activeFilterCount: number) {
+  return activeFilterCount > 0 ? " is-active" : "";
 }
 
 function readTaskMechanismIds(task: TaskRecord) {
@@ -253,6 +455,32 @@ export function TaskQueueView({
       setProjectFilter((current) => current.filter((projectId) => projectIds.has(projectId)));
     }
   }, [bootstrap.projects, projectFilter]);
+  const [isTaskQueueMenuVisible, setIsTaskQueueMenuVisible] = useState(false);
+  const [isTaskQueueMenuOpen, setIsTaskQueueMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const updateMenuVisibility = () => {
+      setIsTaskQueueMenuVisible(window.innerWidth <= TASK_QUEUE_MENU_BREAKPOINT);
+    };
+
+    updateMenuVisibility();
+
+    window.addEventListener("resize", updateMenuVisibility);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isTaskQueueMenuVisible) {
+      setIsTaskQueueMenuOpen(false);
+    }
+  }, [isTaskQueueMenuVisible]);
 
   useEffect(() => {
     if (!showSubsystemIterationFilter && subsystemIterationFilter.length > 0) {
@@ -464,70 +692,38 @@ export function TaskQueueView({
             />
           </div>
 
-          {isAllProjectsView ? (
-            <FilterDropdown
-              allLabel="All projects"
-              ariaLabel="Filter tasks by project"
-              className="mobile-filter-control"
-              icon={<IconParts />}
-              onChange={setProjectFilter}
-              options={bootstrap.projects}
-              value={projectFilter}
+          {isTaskQueueMenuVisible ? (
+            <TaskQueueCompactFilterMenu
+              activeFilterCount={[
+                isAllProjectsView ? projectFilter : [],
+                subsystemFilter,
+                showSubsystemIterationFilter ? subsystemIterationFilter : [],
+                ownerFilter,
+                statusFilter,
+                priorityFilter,
+              ].filter((selection) => selection.length > 0).length}
+              bootstrap={bootstrap}
+              isAllProjectsView={isAllProjectsView}
+              isOpen={isTaskQueueMenuOpen}
+              onClose={() => setIsTaskQueueMenuOpen(false)}
+              onToggle={() => setIsTaskQueueMenuOpen((current) => !current)}
+              ownerFilter={ownerFilter}
+              priorityFilter={priorityFilter}
+              projectFilter={projectFilter}
+              setPriorityFilter={setPriorityFilter}
+              setProjectFilter={setProjectFilter}
+              setStatusFilter={setStatusFilter}
+              setSubsystemFilter={setSubsystemFilter}
+              setSubsystemIterationFilter={setSubsystemIterationFilter}
+              setOwnerFilter={setOwnerFilter}
+              showSubsystemIterationFilter={showSubsystemIterationFilter}
+              statusFilter={statusFilter}
+              subsystemFilter={subsystemFilter}
+              subsystemFilterOptions={subsystemFilterOptions}
+              subsystemIterationFilter={subsystemIterationFilter}
+              subsystemIterationOptions={subsystemIterationOptions}
             />
           ) : null}
-
-          <div data-tutorial-target="task-queue-filter-control">
-            <FilterDropdown
-              allLabel="All subsystems"
-              ariaLabel="Filter tasks by subsystem"
-              className="mobile-filter-control"
-              icon={<IconManufacturing />}
-              onChange={setSubsystemFilter}
-              options={subsystemFilterOptions}
-              value={subsystemFilter}
-            />
-          </div>
-          {showSubsystemIterationFilter ? (
-            <FilterDropdown
-              allLabel="All iterations"
-              ariaLabel="Filter tasks by subsystem iteration"
-              className="mobile-filter-control"
-              icon={<IconManufacturing />}
-              onChange={setSubsystemIterationFilter}
-              options={subsystemIterationOptions}
-              value={subsystemIterationFilter}
-            />
-          ) : null}
-
-          <FilterDropdown
-            allLabel="All assignees"
-            ariaLabel="Filter tasks by assigned student"
-            className="mobile-filter-control"
-            icon={<IconPerson />}
-            onChange={setOwnerFilter}
-            options={bootstrap.members}
-            value={ownerFilter}
-          />
-
-          <FilterDropdown
-            allLabel="All statuses"
-            ariaLabel="Filter tasks by status"
-            className="mobile-filter-control"
-            icon={<IconTasks />}
-            onChange={setStatusFilter}
-            options={TASK_STATUS_OPTIONS}
-            value={statusFilter}
-          />
-
-          <FilterDropdown
-            allLabel="All priorities"
-            ariaLabel="Filter tasks by priority"
-            className="mobile-filter-control"
-            icon={<IconTasks />}
-            onChange={setPriorityFilter}
-            options={TASK_PRIORITY_OPTIONS}
-            value={priorityFilter}
-          />
 
           <button
             aria-label="Add task"
@@ -635,6 +831,7 @@ export function TaskQueueView({
         </div>
 
         {taskPagination.pageItems.map((task) => {
+          const planningState = getTaskPlanningState(task, bootstrap);
           const linkedPartNames = readTaskPartInstanceIds(task)
             .map((partInstanceId) => {
               const partInstance = partInstancesById[partInstanceId];
@@ -682,6 +879,11 @@ export function TaskQueueView({
                   {task.targetEventId
                     ? ` / target ${eventsById[task.targetEventId]?.title ?? "event"}`
                     : ""}
+                </small>
+                <small style={{ display: "flex", gap: "0.4rem", alignItems: "center", flexWrap: "wrap" }}>
+                  <span className={getStatusPillClassName(planningState)}>
+                    {formatTaskPlanningState(planningState)}
+                  </span>
                 </small>
               </span>
               {showSubsystemCol ? (
