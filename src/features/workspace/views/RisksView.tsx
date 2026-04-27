@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import type { RiskManagementViewTab } from "@/lib/workspaceNavigation";
 import type { BootstrapPayload, RiskPayload, RiskRecord } from "@/types";
 import {
   EditableHoverIndicator,
@@ -12,7 +13,6 @@ import {
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 
 type RiskEditorMode = "create" | "edit" | null;
-type RiskSubview = "risks" | "metrics";
 type RiskSeverityFilter = "all" | RiskPayload["severity"];
 type RiskSourceFilter = "all" | RiskPayload["sourceType"];
 
@@ -21,6 +21,7 @@ interface RisksViewProps {
   onCreateRisk: (payload: RiskPayload) => Promise<void>;
   onDeleteRisk: (riskId: string) => Promise<void>;
   onUpdateRisk: (riskId: string, payload: RiskPayload) => Promise<void>;
+  view: RiskManagementViewTab;
 }
 
 interface SelectOption {
@@ -152,11 +153,11 @@ export function RisksView({
   onCreateRisk,
   onDeleteRisk,
   onUpdateRisk,
+  view,
 }: RisksViewProps) {
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState<RiskSeverityFilter>("all");
   const [sourceFilter, setSourceFilter] = useState<RiskSourceFilter>("all");
-  const [activeSubview, setActiveSubview] = useState<RiskSubview>("risks");
   const [editorMode, setEditorMode] = useState<RiskEditorMode>(null);
   const [activeRiskId, setActiveRiskId] = useState<string | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
@@ -569,32 +570,7 @@ export function RisksView({
         </div>
       </div>
 
-      <div
-        aria-label="Risk management subviews"
-        className="tabbar workspace-section-tabs risk-management-subtabs"
-        role="group"
-      >
-        <button
-          aria-pressed={activeSubview === "risks"}
-          className="tab"
-          data-active={activeSubview === "risks" ? "true" : "false"}
-          onClick={() => setActiveSubview("risks")}
-          type="button"
-        >
-          Risks
-        </button>
-        <button
-          aria-pressed={activeSubview === "metrics"}
-          className="tab"
-          data-active={activeSubview === "metrics" ? "true" : "false"}
-          onClick={() => setActiveSubview("metrics")}
-          type="button"
-        >
-          Metrics
-        </button>
-      </div>
-
-      {activeSubview === "metrics" ? (
+      {view === "metrics" ? (
         <>
           <div className="risk-time-metrics-shell">
             <TimeMetricGraphic
@@ -629,7 +605,7 @@ export function RisksView({
         </>
       ) : null}
 
-      {activeSubview === "risks" ? (
+      {view === "risks" ? (
         <>
           <div className="panel-header compact-header">
             <div className="panel-actions filter-toolbar subsystem-manager-toolbar">

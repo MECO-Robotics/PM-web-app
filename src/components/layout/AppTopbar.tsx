@@ -9,6 +9,7 @@ import {
 } from "@/lib/branding";
 import {
   BASE_SECTION_LABELS,
+  RISK_MANAGEMENT_VIEW_OPTIONS,
   MANUFACTURING_VIEW_OPTIONS,
   NON_ROBOT_INVENTORY_VIEW_OPTIONS,
   ROBOT_INVENTORY_VIEW_OPTIONS,
@@ -16,6 +17,7 @@ import {
   WORKLOG_VIEW_OPTIONS,
   type InventoryViewTab,
   type ManufacturingViewTab,
+  type RiskManagementViewTab,
   type TaskViewTab,
   type WorklogsViewTab,
   type ViewOption,
@@ -70,9 +72,11 @@ function TopbarNavigation({
   inventoryView,
   isNonRobotProject,
   manufacturingView,
+  riskManagementView,
   worklogsView,
   setInventoryView,
   setManufacturingView,
+  setRiskManagementView,
   setWorklogsView,
   setTaskView,
   subsystemsLabel,
@@ -82,9 +86,11 @@ function TopbarNavigation({
   inventoryView: InventoryViewTab;
   isNonRobotProject: boolean;
   manufacturingView: ManufacturingViewTab;
+  riskManagementView: RiskManagementViewTab;
   worklogsView: WorklogsViewTab;
   setInventoryView: Dispatch<SetStateAction<InventoryViewTab>>;
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
+  setRiskManagementView: Dispatch<SetStateAction<RiskManagementViewTab>>;
   setWorklogsView: Dispatch<SetStateAction<WorklogsViewTab>>;
   setTaskView: Dispatch<SetStateAction<TaskViewTab>>;
   subsystemsLabel: string;
@@ -104,6 +110,19 @@ function TopbarNavigation({
             onChange={setTaskView}
             options={TASK_VIEW_OPTIONS}
             tutorialPrefix="task-view"
+          />
+        </>
+      );
+    case "risk-management":
+      return (
+        <>
+          <span className="app-topbar-page-label">{BASE_SECTION_LABELS["risk-management"]}</span>
+          <TopbarTabs
+            activeValue={riskManagementView}
+            ariaLabel="Risk management views"
+            onChange={setRiskManagementView}
+            options={RISK_MANAGEMENT_VIEW_OPTIONS}
+            tutorialPrefix="risk-management-view"
           />
         </>
       );
@@ -170,10 +189,12 @@ interface AppTopbarProps {
   isSidebarCollapsed: boolean;
   loadWorkspace: () => Promise<void>;
   manufacturingView: ManufacturingViewTab;
+  riskManagementView: RiskManagementViewTab;
   myViewMemberName: string | null;
   sessionUser: SessionUser | null;
   setInventoryView: Dispatch<SetStateAction<InventoryViewTab>>;
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
+  setRiskManagementView: Dispatch<SetStateAction<RiskManagementViewTab>>;
   setTaskView: Dispatch<SetStateAction<TaskViewTab>>;
   setWorklogsView: Dispatch<SetStateAction<WorklogsViewTab>>;
   taskView: TaskViewTab;
@@ -199,10 +220,12 @@ export function AppTopbar({
   isSidebarCollapsed,
   loadWorkspace,
   manufacturingView,
+  riskManagementView,
   myViewMemberName,
   sessionUser,
   setInventoryView,
   setManufacturingView,
+  setRiskManagementView,
   setTaskView,
   setWorklogsView,
   taskView,
@@ -264,9 +287,11 @@ export function AppTopbar({
           inventoryView={inventoryView}
           isNonRobotProject={isNonRobotProject}
           manufacturingView={manufacturingView}
+          riskManagementView={riskManagementView}
           worklogsView={worklogsView}
           setInventoryView={setInventoryView}
           setManufacturingView={setManufacturingView}
+          setRiskManagementView={setRiskManagementView}
           setWorklogsView={setWorklogsView}
           setTaskView={setTaskView}
           subsystemsLabel={subsystemsLabel}
