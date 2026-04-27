@@ -128,7 +128,6 @@ export function SubsystemsView({
     [bootstrap.partDefinitions],
   );
 
-
   const filteredSubsystems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
@@ -480,7 +479,3 @@ export function SubsystemsView({
     </section>
   );
 }
-
-
-
-

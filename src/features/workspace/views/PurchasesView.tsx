@@ -294,7 +294,3 @@ export function PurchasesView({
     </section>
   );
 }
-
-
-
-

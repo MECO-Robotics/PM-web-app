@@ -571,6 +571,3 @@ export function PaginationControls({
     </div>
   );
 }
-
-
-

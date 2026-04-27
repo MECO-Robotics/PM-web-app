@@ -424,5 +424,3 @@ export function AppTopbar({
     </header>
   );
 }
-
-

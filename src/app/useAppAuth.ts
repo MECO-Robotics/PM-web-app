@@ -324,4 +324,3 @@ export function useAppAuth({ resetWorkspace }: UseAppAuthArgs) {
     sessionUser,
   };
 }
-

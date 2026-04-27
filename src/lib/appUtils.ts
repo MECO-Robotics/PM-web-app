@@ -963,4 +963,3 @@ export const partInstanceToPayload = (item: PartInstanceRecord): PartInstancePay
     ...item,
     mechanismId: item.mechanismId ?? null,
 });
-

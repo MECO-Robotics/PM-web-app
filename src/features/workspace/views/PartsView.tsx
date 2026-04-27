@@ -409,7 +409,3 @@ export function PartsView({
     </section>
   );
 }
-
-
-
-

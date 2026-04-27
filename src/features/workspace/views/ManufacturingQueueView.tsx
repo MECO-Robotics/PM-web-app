@@ -388,7 +388,3 @@ export function ManufacturingQueueView({
     </section>
   );
 }
-
-
-
-

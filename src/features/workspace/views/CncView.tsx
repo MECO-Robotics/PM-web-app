@@ -63,7 +63,3 @@ export function CncView({
     />
   );
 }
-
-
-
-

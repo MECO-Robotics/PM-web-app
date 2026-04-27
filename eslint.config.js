@@ -20,6 +20,7 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
+      'no-multiple-empty-lines': ['error', { max: 1, maxBOF: 0, maxEOF: 0 }],
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/refs': 'off',
       'react-refresh/only-export-components': 'off',

@@ -24,4 +24,3 @@ export const EMPTY_BOOTSTRAP: BootstrapPayload = {
   purchaseItems: [],
   manufacturingItems: [],
 };
-

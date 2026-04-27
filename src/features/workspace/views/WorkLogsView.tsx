@@ -595,7 +595,3 @@ export function WorkLogsView({
     </section>
   );
 }
-
-
-
-

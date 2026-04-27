@@ -49,5 +49,3 @@ export {
   useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "./WorkspaceViewShared";
-
-

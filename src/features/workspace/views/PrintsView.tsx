@@ -53,7 +53,3 @@ export function PrintsView({
     />
   );
 }
-
-
-
-

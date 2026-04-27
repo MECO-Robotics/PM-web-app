@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
-import { monthEndFromDay, TimelineView } from "@/features/workspace/views/TimelineView";
+import { monthEndFromDay } from "@/features/workspace/shared/timelineDateUtils";
+import { TimelineView } from "@/features/workspace/views/TimelineView";
 import type { BootstrapPayload } from "@/types";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;

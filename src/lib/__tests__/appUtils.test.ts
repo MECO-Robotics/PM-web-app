@@ -605,4 +605,3 @@ describe("appUtils", () => {
     expect(payload.participantIds).toEqual(["lead-1"]);
   });
 });
-

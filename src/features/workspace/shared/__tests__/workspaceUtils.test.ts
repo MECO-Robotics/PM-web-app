@@ -27,5 +27,3 @@ describe("getStatusPillClassName", () => {
     expect(getStatusPillClassName("unknown-status")).toBe("pill status-pill status-pill-neutral");
   });
 });
-
-

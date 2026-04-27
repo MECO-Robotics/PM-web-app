@@ -727,7 +727,3 @@ export function TaskQueueView({
     </section>
   );
 }
-
-
-
-

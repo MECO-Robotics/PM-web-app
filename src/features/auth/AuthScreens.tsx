@@ -451,4 +451,3 @@ function EmailAuthPanel({
     </section>
   );
 }
-

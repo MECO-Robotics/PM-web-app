@@ -205,6 +205,3 @@ export function WorkflowView({
     </section>
   );
 }
-
-
-

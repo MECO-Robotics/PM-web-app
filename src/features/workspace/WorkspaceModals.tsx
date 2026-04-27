@@ -3359,5 +3359,3 @@ export function MechanismEditorModal({
     </div>
   );
 }
-
-

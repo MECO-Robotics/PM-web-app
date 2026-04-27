@@ -15,8 +15,6 @@ import {
   FilterDropdown,
   SearchToolbarInput,
   TableCell,
-  filterSelectionIncludes,
-  filterSelectionIntersects,
   useFilterChangeMotionClass,
 } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
@@ -25,8 +23,28 @@ import {
   getMilestoneSubsystemOptions,
   reconcileMilestoneSubsystemIds,
 } from "@/features/workspace/shared/eventProjectUtils";
-
-type MilestoneSortField = "startDateTime" | "title" | "type";
+import {
+  DEFAULT_EVENT_TYPE,
+  EVENT_TYPE_STYLES,
+} from "@/features/workspace/shared/eventStyles";
+import {
+  buildDateTime,
+  compareDateTimes,
+  datePortion,
+  localTodayDate,
+  timePortion,
+} from "@/features/workspace/shared/timelineDateUtils";
+import {
+  emptyTimelineEventDraft,
+  timelineEventDraftFromRecord,
+  type TimelineEventDraft,
+} from "@/features/workspace/shared/timelineEventHelpers";
+import {
+  buildMilestoneProjectLabels,
+  filterAndSortMilestones,
+  formatMilestoneDateTime,
+  type MilestoneSortField,
+} from "@/features/workspace/views/milestonesViewUtils";
 
 interface MilestonesViewProps {
   bootstrap: BootstrapPayload;
@@ -40,133 +58,14 @@ interface MilestonesViewProps {
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
 }
 
-interface EventStyle {
-  label: string;
-  columnBorder: string;
-  chipBackground: string;
-  chipText: string;
-  darkColumnBorder: string;
-  darkChipBackground: string;
-  darkChipText: string;
-}
-
-interface MilestoneDraft {
-  title: string;
-  type: EventType;
-  isExternal: boolean;
-  description: string;
-  projectIds: string[];
-  relatedSubsystemIds: string[];
-}
-
-const DEFAULT_EVENT_TYPE: EventType = "internal-review";
-const EVENT_TYPE_STYLES: Record<EventType, EventStyle> = {
-  "drive-practice": {
-    label: "Drive practice",
-    columnBorder: "rgba(22, 71, 142, 0.32)",
-    chipBackground: "rgba(22, 71, 142, 0.18)",
-    chipText: "#0d2e5c",
-    darkColumnBorder: "rgba(147, 197, 253, 0.48)",
-    darkChipBackground: "rgba(59, 130, 246, 0.22)",
-    darkChipText: "#bfdbfe",
-  },
-  competition: {
-    label: "Competition",
-    columnBorder: "rgba(76, 121, 207, 0.35)",
-    chipBackground: "rgba(76, 121, 207, 0.2)",
-    chipText: "#1f3f7a",
-    darkColumnBorder: "rgba(147, 197, 253, 0.5)",
-    darkChipBackground: "rgba(96, 165, 250, 0.24)",
-    darkChipText: "#dbeafe",
-  },
-  deadline: {
-    label: "Deadline",
-    columnBorder: "rgba(234, 28, 45, 0.36)",
-    chipBackground: "rgba(234, 28, 45, 0.18)",
-    chipText: "#8e1120",
-    darkColumnBorder: "rgba(251, 113, 133, 0.5)",
-    darkChipBackground: "rgba(244, 63, 94, 0.22)",
-    darkChipText: "#fecdd3",
-  },
-  "internal-review": {
-    label: "Internal review",
-    columnBorder: "rgba(36, 104, 71, 0.34)",
-    chipBackground: "rgba(36, 104, 71, 0.18)",
-    chipText: "#1d5338",
-    darkColumnBorder: "rgba(134, 239, 172, 0.46)",
-    darkChipBackground: "rgba(34, 197, 94, 0.2)",
-    darkChipText: "#bbf7d0",
-  },
-  demo: {
-    label: "Demo",
-    columnBorder: "rgba(84, 98, 123, 0.35)",
-    chipBackground: "rgba(84, 98, 123, 0.22)",
-    chipText: "#36475f",
-    darkColumnBorder: "rgba(203, 213, 225, 0.42)",
-    darkChipBackground: "rgba(148, 163, 184, 0.2)",
-    darkChipText: "#e2e8f0",
-  },
-};
+type MilestoneDraft = TimelineEventDraft;
 
 const EVENT_TYPE_OPTIONS: { id: EventType; name: string }[] = (
-  Object.entries(EVENT_TYPE_STYLES) as [EventType, EventStyle][]
+  Object.entries(EVENT_TYPE_STYLES) as [EventType, (typeof EVENT_TYPE_STYLES)[EventType]][]
 ).map(([id, style]) => ({
   id,
   name: style.label,
 }));
-
-function datePortion(dateTime: string) {
-  return dateTime.slice(0, 10);
-}
-
-function timePortion(dateTime: string) {
-  return dateTime.length >= 16 ? dateTime.slice(11, 16) : "12:00";
-}
-
-function buildDateTime(date: string, time: string) {
-  return `${date}T${time}:00`;
-}
-
-function compareDateTimes(a: string, b: string) {
-  return new Date(a).getTime() - new Date(b).getTime();
-}
-
-function localTodayDate() {
-  const now = new Date();
-  const offsetAdjusted = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
-  return offsetAdjusted.toISOString().slice(0, 10);
-}
-
-function emptyMilestoneDraft(): MilestoneDraft {
-  return {
-    title: "",
-    type: DEFAULT_EVENT_TYPE,
-    isExternal: false,
-    description: "",
-    projectIds: [],
-    relatedSubsystemIds: [],
-  };
-}
-
-function milestoneDraftFromRecord(record: EventRecord): MilestoneDraft {
-  return {
-    title: record.title,
-    type: record.type,
-    isExternal: record.isExternal,
-    description: record.description,
-    projectIds: record.projectIds,
-    relatedSubsystemIds: record.relatedSubsystemIds,
-  };
-}
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
 
 export function MilestonesView({
   bootstrap,
@@ -182,7 +81,9 @@ export function MilestonesView({
   const [searchFilter, setSearchFilter] = useState("");
   const [eventModalMode, setEventModalMode] = useState<"create" | "edit" | null>(null);
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
-  const [milestoneDraft, setMilestoneDraft] = useState<MilestoneDraft>(emptyMilestoneDraft);
+  const [milestoneDraft, setMilestoneDraft] = useState<MilestoneDraft>(
+    emptyTimelineEventDraft(DEFAULT_EVENT_TYPE),
+  );
   const [eventStartDate, setEventStartDate] = useState("");
   const [eventStartTime, setEventStartTime] = useState("18:00");
   const [eventEndDate, setEventEndDate] = useState("");
@@ -244,89 +145,16 @@ export function MilestonesView({
     .filter(Boolean)
     .join(" ");
 
-  const projectLabelByEventId = useMemo(() => {
-    const labels: Record<string, string> = {};
-
-    bootstrap.events.forEach((event) => {
-      const relatedProjectIds = getEventProjectIds(event, subsystemsById);
-
-      if (
-        relatedProjectIds.length === 0 ||
-        (relatedProjectIds.length === scopedProjectIds.length &&
-          relatedProjectIds.every((projectId) => scopedProjectIds.includes(projectId)))
-      ) {
-        labels[event.id] = "All projects";
-      } else if (relatedProjectIds.length === 1) {
-        labels[event.id] = projectsById[relatedProjectIds[0]]?.name ?? "Unknown project";
-      } else {
-        const firstProjectName =
-          projectsById[relatedProjectIds[0]]?.name ?? "Multiple projects";
-        labels[event.id] = `${firstProjectName} +${relatedProjectIds.length - 1}`;
-      }
-    });
-
-    return labels;
-  }, [bootstrap.events, projectsById, scopedProjectIds, subsystemsById]);
-
   const processedEvents = useMemo(() => {
-    let result = [...bootstrap.events];
-
-    if (isAllProjectsView && projectFilter.length > 0) {
-      result = result.filter((event) => {
-        const eventProjectIds = getEventProjectIds(event, subsystemsById);
-
-        if (eventProjectIds.length === 0) {
-          return true;
-        }
-
-        return filterSelectionIntersects(projectFilter, eventProjectIds);
-      });
-    }
-
-    if (typeFilter.length > 0) {
-      result = result.filter((event) => filterSelectionIncludes(typeFilter, event.type));
-    }
-
-    if (searchFilter.trim() !== "") {
-      const search = searchFilter.toLowerCase();
-
-      result = result.filter((event) => {
-        const relatedSubsystemNames = event.relatedSubsystemIds
-          .map((subsystemId) => subsystemsById[subsystemId]?.name ?? "")
-          .join(" ")
-          .toLowerCase();
-
-        return (
-          event.title.toLowerCase().includes(search) ||
-          event.description.toLowerCase().includes(search) ||
-          relatedSubsystemNames.includes(search)
-        );
-      });
-    }
-
-    const readSortValue = (event: EventRecord): string => {
-      if (sortField === "title") {
-        return event.title.toLowerCase();
-      }
-
-      if (sortField === "type") {
-        return EVENT_TYPE_STYLES[event.type].label;
-      }
-
-      return event.startDateTime;
-    };
-
-    return result.sort((left, right) => {
-      const leftValue = readSortValue(left);
-      const rightValue = readSortValue(right);
-
-      if (leftValue < rightValue) {
-        return sortOrder === "asc" ? -1 : 1;
-      }
-      if (leftValue > rightValue) {
-        return sortOrder === "asc" ? 1 : -1;
-      }
-      return 0;
+    return filterAndSortMilestones({
+      events: bootstrap.events,
+      isAllProjectsView,
+      projectFilter,
+      searchFilter,
+      sortField,
+      sortOrder,
+      subsystemsById,
+      typeFilter,
     });
   }, [
     bootstrap.events,
@@ -338,6 +166,16 @@ export function MilestonesView({
     subsystemsById,
     typeFilter,
   ]);
+  const projectLabelByEventId = useMemo(
+    () =>
+      buildMilestoneProjectLabels(
+        bootstrap.events,
+        projectsById,
+        scopedProjectIds,
+        subsystemsById,
+      ),
+    [bootstrap.events, projectsById, scopedProjectIds, subsystemsById],
+  );
   const milestoneFilterMotionClass = useFilterChangeMotionClass([
     isAllProjectsView,
     projectFilter,
@@ -359,7 +197,7 @@ export function MilestonesView({
     setEventModalMode("create");
     setActiveEventId(null);
     setMilestoneDraft({
-      ...emptyMilestoneDraft(),
+      ...emptyTimelineEventDraft(DEFAULT_EVENT_TYPE),
       projectIds: getDefaultEventProjectIds(),
     });
     setEventStartDate(localTodayDate());
@@ -374,7 +212,7 @@ export function MilestonesView({
     setEventModalMode("edit");
     setActiveEventId(event.id);
     setMilestoneDraft({
-      ...milestoneDraftFromRecord(event),
+      ...timelineEventDraftFromRecord(event),
       projectIds: eventProjectIds.length > 0 ? eventProjectIds : scopedProjectIds,
     });
     setEventStartDate(datePortion(event.startDateTime));
@@ -648,9 +486,9 @@ export function MilestonesView({
                   {eventStyle.label}
                 </span>
               </TableCell>
-              <TableCell label="Start">{formatDateTime(event.startDateTime)}</TableCell>
+              <TableCell label="Start">{formatMilestoneDateTime(event.startDateTime)}</TableCell>
               <TableCell label="End">
-                {event.endDateTime ? formatDateTime(event.endDateTime) : "No end"}
+                {event.endDateTime ? formatMilestoneDateTime(event.endDateTime) : "No end"}
               </TableCell>
               <TableCell label="Related subsystems">
                 {relatedSubsystems.length > 0 ? relatedSubsystems : "All subsystems"}
@@ -961,7 +799,3 @@ export function MilestonesView({
     </section>
   );
 }
-
-
-
-
