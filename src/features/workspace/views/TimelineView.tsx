@@ -3,11 +3,9 @@ import { createPortal } from "react-dom";
 import {
   IconChevronLeft,
   IconChevronRight,
-  IconEye,
   IconPerson,
   IconTasks,
 } from "@/components/shared";
-import { dateDiffInDays } from "@/lib/appUtils";
 import type {
   BootstrapPayload,
   EventPayload,
@@ -16,7 +14,6 @@ import type {
   TaskRecord,
 } from "@/types";
 import {
-  EditableHoverIndicator,
   type FilterSelection,
   FilterDropdown,
   filterSelectionMatchesTaskPeople,
@@ -29,6 +26,42 @@ import {
   getMilestoneSubsystemOptions,
   reconcileMilestoneSubsystemIds,
 } from "@/features/workspace/shared/eventProjectUtils";
+import {
+  DEFAULT_EVENT_TYPE,
+  EVENT_TYPE_OPTIONS,
+  getEventTypeStyle,
+} from "@/features/workspace/shared/eventStyles";
+import {
+  addDaysToDay,
+  addMonthsToDay,
+  buildDateTime,
+  compareDateTimes,
+  datePortion,
+  formatTimelinePeriodLabel,
+  localTodayDate,
+  type TimelineViewInterval,
+  timePortion,
+} from "@/features/workspace/shared/timelineDateUtils";
+import {
+  emptyTimelineEventDraft,
+  isSameHoveredMilestonePopup,
+  timelineEventDraftFromRecord,
+  type HoveredMilestonePopup,
+  type TimelineEventDraft,
+} from "@/features/workspace/shared/timelineEventHelpers";
+import {
+  buildTimelineData,
+  buildTimelineDayHeaderCells,
+  buildTimelineDayMilestoneUnderlays,
+  buildTimelineMonthGroups,
+  buildTimelineProjectRows,
+  buildTimelineSharedDayBackgrounds,
+  type MilestoneGeometry,
+  type TimelineDayCellLayouts,
+} from "@/features/workspace/views/timelineViewModel";
+import { TimelineMilestoneHoverLayer } from "@/features/workspace/views/TimelineMilestoneHoverLayer";
+import { TimelineMilestoneUnderlaysPortal } from "@/features/workspace/views/TimelineMilestoneUnderlaysPortal";
+import { TimelineGridBody } from "@/features/workspace/views/TimelineGridBody";
 
 interface TimelineViewProps {
   bootstrap: BootstrapPayload;
@@ -47,401 +80,11 @@ interface TimelineViewProps {
   triggerCreateMilestoneToken: number;
 }
 
-interface EventStyle {
-  label: string;
-  columnBackground: string;
-  columnBorder: string;
-  chipBackground: string;
-  chipText: string;
-}
-
-interface TimelineEventDraft {
-  title: string;
-  type: EventType;
-  isExternal: boolean;
-  description: string;
-  projectIds: string[];
-  relatedSubsystemIds: string[];
-}
-
-interface HoveredMilestonePopup {
-  anchorStartDay: string | null;
-  anchorEndDay: string | null;
-  rotationDeg: 45 | 90;
-  lines: string[];
-  background: string;
-  color: string;
-}
-
-function formatTaskAssignees(
-  task: TaskRecord,
-  membersById: Record<string, BootstrapPayload["members"][number]>,
-) {
-  const taskAssigneeIds = Array.isArray(task.assigneeIds) ? task.assigneeIds : [];
-  const assigneeIds =
-    taskAssigneeIds.length > 0
-      ? taskAssigneeIds
-      : task.ownerId
-        ? [task.ownerId]
-        : [];
-
-  if (assigneeIds.length === 0) {
-    return "Unassigned";
-  }
-
-  return assigneeIds.map((assigneeId) => membersById[assigneeId]?.name ?? "Unknown").join(", ");
-}
-
-type TimelineDayMilestoneUnderlayLayout = Record<
-  string,
-  {
-    left: number;
-    width: number;
-  }
->;
-
-interface TimelineDayMilestoneUnderlay {
-  id: string;
-  lines: string[];
-  color: string;
-  rotationDeg: 45 | 90;
-  geometry: MilestoneGeometry;
-  horizontalOffset: number;
-  stackOrder: number;
-}
-
-interface MilestoneGeometry {
-  left: number;
-  width: number;
-  centerX: number;
-  centerY: number;
-  bodyTop: number;
-  bodyHeight: number;
-}
-
-interface TimelineSharedDayBackground {
-  day: string;
-  left: number;
-  width: number;
-  style: EventStyle | null;
-}
-
-interface TimelineMilestoneHoverLayerProps {
-  controllerRef: React.MutableRefObject<(popup: HoveredMilestonePopup | null) => void>;
-  portalTarget: HTMLElement | null;
-  resolveGeometry: (
-    popupStartDay: string | null,
-    popupEndDay: string | null,
-  ) => MilestoneGeometry | null;
-}
-
-type TimelineViewInterval = "all" | "week" | "month";
 type TimelineGridMotion = "left" | "right" | "neutral";
-type TimelineColumnKey = "project" | "subsystem" | "task";
-type TimelineRowMotionKind = "project" | "subsystem";
-
-interface TimelineRowMotion {
-  kind: TimelineRowMotionKind;
-  id: string;
-}
-
 const PROJECT_COLUMN_WIDTH = 112;
 const SUBSYSTEM_COLUMN_WIDTH = 128;
 const TASK_LABEL_COLUMN_WIDTH = 148;
 const HIDDEN_COLUMN_PEEK_WIDTH = 34;
-const TIMELINE_LEFT_TASK_COLUMN_Z_INDEX = 10020;
-const TIMELINE_LEFT_SUBSYSTEM_COLUMN_Z_INDEX = 10021;
-const TIMELINE_LEFT_PROJECT_COLUMN_Z_INDEX = 10022;
-const TIMELINE_LEFT_HEADER_Z_INDEX = 10030;
-const TIMELINE_LEFT_PROJECT_HEADER_Z_INDEX = 10031;
-const ALL_INTERVAL_PAST_MONTHS = 9;
-const ALL_INTERVAL_FUTURE_MONTHS = 3;
-const MILESTONE_UNDERLAY_HORIZONTAL_GAP = 18;
-const DEFAULT_EVENT_TYPE: EventType = "internal-review";
-const MONTH_LABEL_FORMATTER = new Intl.DateTimeFormat(undefined, { month: "long" });
-const MONTH_YEAR_LABEL_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  month: "long",
-  year: "numeric",
-});
-const PERIOD_DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-});
-const PERIOD_DATE_WITH_YEAR_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-const WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "short" });
-const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat(undefined, { day: "numeric" });
-const EVENT_TYPE_STYLES: Record<EventType, EventStyle> = {
-  "drive-practice": {
-    label: "Drive practice",
-    columnBackground: "rgba(22, 71, 142, 0.1)",
-    columnBorder: "rgba(22, 71, 142, 0.32)",
-    chipBackground: "rgba(22, 71, 142, 0.18)",
-    chipText: "#0d2e5c",
-  },
-  competition: {
-    label: "Competition",
-    columnBackground: "rgba(76, 121, 207, 0.12)",
-    columnBorder: "rgba(76, 121, 207, 0.35)",
-    chipBackground: "rgba(76, 121, 207, 0.2)",
-    chipText: "#1f3f7a",
-  },
-  deadline: {
-    label: "Deadline",
-    columnBackground: "rgba(234, 28, 45, 0.11)",
-    columnBorder: "rgba(234, 28, 45, 0.36)",
-    chipBackground: "rgba(234, 28, 45, 0.18)",
-    chipText: "#8e1120",
-  },
-  "internal-review": {
-    label: "Internal review",
-    columnBackground: "rgba(36, 104, 71, 0.11)",
-    columnBorder: "rgba(36, 104, 71, 0.34)",
-    chipBackground: "rgba(36, 104, 71, 0.18)",
-    chipText: "#1d5338",
-  },
-  demo: {
-    label: "Demo",
-    columnBackground: "rgba(112, 128, 154, 0.13)",
-    columnBorder: "rgba(84, 98, 123, 0.35)",
-    chipBackground: "rgba(84, 98, 123, 0.22)",
-    chipText: "#36475f",
-  },
-};
-const EVENT_TYPE_OPTIONS = (
-  Object.entries(EVENT_TYPE_STYLES) as [EventType, EventStyle][]
-).map(([value, style]) => ({
-  value,
-  label: style.label,
-}));
-
-function getEventTypeStyle(type: string | null | undefined) {
-  return EVENT_TYPE_STYLES[type as EventType] ?? EVENT_TYPE_STYLES[DEFAULT_EVENT_TYPE];
-}
-
-function datePortion(dateTime: string) {
-  return dateTime.slice(0, 10);
-}
-
-function timePortion(dateTime: string) {
-  return dateTime.length >= 16 ? dateTime.slice(11, 16) : "12:00";
-}
-
-function buildDateTime(date: string, time: string) {
-  return `${date}T${time}:00`;
-}
-
-function compareDateTimes(a: string, b: string) {
-  const aMs = new Date(a).getTime();
-  const bMs = new Date(b).getTime();
-  return aMs - bMs;
-}
-
-function withColumnOverlayTint(color: string) {
-  const rgbaMatch = color.match(
-    /^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)$/i,
-  );
-  if (!rgbaMatch) {
-    return color;
-  }
-
-  const alpha = Number.parseFloat(rgbaMatch[4] ?? "0.1");
-  const overlayAlpha = Math.min(0.62, alpha + 0.36);
-  return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${overlayAlpha})`;
-}
-
-function localTodayDate() {
-  const now = new Date();
-  const offsetAdjusted = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
-  return offsetAdjusted.toISOString().slice(0, 10);
-}
-
-function addDaysToDay(day: string, dayCount: number) {
-  const candidate = new Date(`${day}T12:00:00`);
-  candidate.setDate(candidate.getDate() + dayCount);
-  return candidate.toISOString().slice(0, 10);
-}
-
-function addMonthsToDay(day: string, monthCount: number) {
-  const [year, month, date] = day.split("-").map(Number);
-  const targetMonthStart = new Date(year, month - 1 + monthCount, 1, 12);
-  const targetMonthEnd = new Date(
-    targetMonthStart.getFullYear(),
-    targetMonthStart.getMonth() + 1,
-    0,
-    12,
-  );
-  targetMonthStart.setDate(Math.min(date, targetMonthEnd.getDate()));
-  return targetMonthStart.toISOString().slice(0, 10);
-}
-
-function monthStartFromDay(day: string) {
-  return `${day.slice(0, 7)}-01`;
-}
-
-export function monthEndFromDay(day: string) {
-  const [yearText, monthText] = day.split("-");
-  const year = Number.parseInt(yearText, 10);
-  const month = Number.parseInt(monthText, 10);
-  const dayCount = new Date(year, month, 0).getDate();
-  return `${yearText}-${monthText}-${String(dayCount).padStart(2, "0")}`;
-}
-
-function monthLabelFromDay(day: string) {
-  return MONTH_LABEL_FORMATTER.format(new Date(`${day.slice(0, 7)}-01T00:00:00`));
-}
-
-function formatTimelinePeriodLabel(viewInterval: TimelineViewInterval, days: string[]) {
-  const startDay = days[0];
-  const endDay = days[days.length - 1];
-  if (!startDay || !endDay) {
-    return viewInterval === "week" ? "No week" : "No month";
-  }
-
-  if (viewInterval === "month") {
-    return MONTH_YEAR_LABEL_FORMATTER.format(new Date(`${startDay.slice(0, 7)}-01T00:00:00`));
-  }
-
-  if (viewInterval === "week") {
-    const startDate = new Date(`${startDay}T00:00:00`);
-    const endDate = new Date(`${endDay}T00:00:00`);
-    return `${PERIOD_DATE_FORMATTER.format(startDate)} - ${PERIOD_DATE_WITH_YEAR_FORMATTER.format(endDate)}`;
-  }
-
-  return "Recent window";
-}
-
-function emptyEventDraft(): TimelineEventDraft {
-  return {
-    title: "",
-    type: DEFAULT_EVENT_TYPE,
-    isExternal: false,
-    description: "",
-    projectIds: [],
-    relatedSubsystemIds: [],
-  };
-}
-
-function eventDraftFromRecord(record: EventRecord): TimelineEventDraft {
-  return {
-    title: record.title,
-    type: record.type,
-    isExternal: record.isExternal,
-    description: record.description,
-    projectIds: record.projectIds,
-    relatedSubsystemIds: record.relatedSubsystemIds,
-  };
-}
-
-function areSameLines(left: string[], right: string[]) {
-  if (left.length !== right.length) {
-    return false;
-  }
-
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function isSameHoveredMilestonePopup(
-  left: HoveredMilestonePopup | null,
-  right: HoveredMilestonePopup | null,
-) {
-  if (left === right) {
-    return true;
-  }
-
-  if (!left || !right) {
-    return false;
-  }
-
-  return (
-    left.anchorStartDay === right.anchorStartDay &&
-    left.anchorEndDay === right.anchorEndDay &&
-    left.rotationDeg === right.rotationDeg &&
-    left.background === right.background &&
-    left.color === right.color &&
-    areSameLines(left.lines, right.lines)
-  );
-}
-
-const TimelineMilestoneHoverLayer: React.FC<TimelineMilestoneHoverLayerProps> = React.memo(
-  ({ controllerRef, portalTarget, resolveGeometry }) => {
-    const [popup, setPopup] = useState<HoveredMilestonePopup | null>(null);
-
-    useEffect(() => {
-      controllerRef.current = setPopup;
-      return () => {
-        controllerRef.current = () => undefined;
-      };
-    }, [controllerRef]);
-
-    const geometry = popup
-      ? resolveGeometry(popup.anchorStartDay, popup.anchorEndDay)
-      : null;
-
-    if (!popup || !geometry || !portalTarget) {
-      return null;
-    }
-
-    return createPortal(
-      <>
-        <div
-          aria-hidden="true"
-          className="timeline-day-event-overlay-column"
-          style={{
-            background: withColumnOverlayTint(popup.background),
-            height: `${geometry.bodyHeight}px`,
-            left: `${geometry.left}px`,
-            top: `${geometry.bodyTop}px`,
-            width: `${geometry.width}px`,
-          }}
-        />
-        <div
-          className="timeline-day-event-overlay-tooltip"
-          role="presentation"
-          style={{
-            left: `${geometry.left}px`,
-            top: `${geometry.bodyTop}px`,
-            height: `${geometry.bodyHeight}px`,
-            width: `${geometry.width}px`,
-            transform: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#ffffff",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gap: "0.28rem",
-              justifyItems: "center",
-              transform: `rotate(${popup.rotationDeg}deg)`,
-              transformOrigin: "center",
-            }}
-          >
-            {popup.lines.map((line, index) => (
-              <span className="timeline-day-event-overlay-tooltip-item" key={`${line}-${index}`}>
-                {line}
-              </span>
-            ))}
-          </div>
-        </div>
-      </>,
-      portalTarget,
-    );
-  },
-);
-
-TimelineMilestoneHoverLayer.displayName = "TimelineMilestoneHoverLayer";
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
   bootstrap,
@@ -464,16 +107,14 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     direction: null,
     token: 0,
   });
-  const [unfoldingTimelineColumn, setUnfoldingTimelineColumn] =
-    useState<TimelineColumnKey | null>(null);
-  const [unfoldingTimelineRow, setUnfoldingTimelineRow] =
-    useState<TimelineRowMotion | null>(null);
   const [collapsedProjects, setCollapsedProjects] = useState<Record<string, boolean>>({});
   const [collapsedSubsystems, setCollapsedSubsystems] = useState<Record<string, boolean>>({});
   const [eventModalMode, setEventModalMode] = useState<"create" | "edit" | null>(null);
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [activeEventDay, setActiveEventDay] = useState<string | null>(null);
-  const [eventDraft, setEventDraft] = useState<TimelineEventDraft>(emptyEventDraft);
+  const [eventDraft, setEventDraft] = useState<TimelineEventDraft>(
+    emptyTimelineEventDraft(DEFAULT_EVENT_TYPE),
+  );
   const [eventStartDate, setEventStartDate] = useState("");
   const [eventStartTime, setEventStartTime] = useState("18:00");
   const [eventEndDate, setEventEndDate] = useState("");
@@ -484,8 +125,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const [isProjectColumnVisible, setIsProjectColumnVisible] = useState(true);
   const [isSubsystemColumnVisible, setIsSubsystemColumnVisible] = useState(true);
   const [isTaskColumnVisible, setIsTaskColumnVisible] = useState(true);
-  const [timelineDayMilestoneUnderlayLayouts, setTimelineDayMilestoneUnderlayLayouts] =
-    useState<TimelineDayMilestoneUnderlayLayout>({});
+  const [timelineDayCellLayouts, setTimelineDayCellLayouts] = useState<TimelineDayCellLayouts>({});
   const [timelineGridHeight, setTimelineGridHeight] = useState(0);
   const [timelineHeaderHeight, setTimelineHeaderHeight] = useState(0);
   const timelineShellRef = useRef<HTMLDivElement | null>(null);
@@ -557,195 +197,18 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     );
   }, [scopedSubsystems]);
 
-  const timeline = useMemo(() => {
-    let startDate: string;
-    let endDate: string;
-
-    if (viewInterval === "all") {
-      let earliestDate: string | null = null;
-      let latestDate: string | null = null;
-      const includeCandidate = (candidate: string) => {
-        if (!earliestDate || candidate < earliestDate) {
-          earliestDate = candidate;
-        }
-        if (!latestDate || candidate > latestDate) {
-          latestDate = candidate;
-        }
-      };
-
-      scopedTasks.forEach((task) => {
-        includeCandidate(task.startDate);
-        includeCandidate(task.dueDate);
-      });
-      bootstrap.events.forEach((event) => {
-        includeCandidate(datePortion(event.startDateTime));
-        includeCandidate(datePortion(event.endDateTime ?? event.startDateTime));
-      });
-
-      if (!earliestDate || !latestDate) {
-        return {
-          days: [] as string[],
-          dayEvents: {} as Record<string, EventRecord[]>,
-          subsystemRows: [] as Array<{
-            id: string;
-            name: string;
-            projectId: string;
-            projectName: string;
-            index: number;
-            taskCount: number;
-            completeCount: number;
-            tasks: Array<TaskRecord & { offset: number; span: number }>;
-          }>,
-        };
-      }
-
-      const startObj = new Date(`${monthStartFromDay(earliestDate)}T12:00:00`);
-      const endObj = new Date(`${monthEndFromDay(latestDate)}T12:00:00`);
-      const now = new Date();
-      now.setHours(12, 0, 0, 0);
-      const boundedStart = new Date(
-        now.getFullYear(),
-        now.getMonth() - ALL_INTERVAL_PAST_MONTHS,
-        1,
-        12,
-      );
-      const boundedEnd = new Date(
-        now.getFullYear(),
-        now.getMonth() + ALL_INTERVAL_FUTURE_MONTHS + 1,
-        0,
-        12,
-      );
-      if (startObj < boundedStart) {
-        startObj.setTime(boundedStart.getTime());
-      }
-      if (endObj > boundedEnd) {
-        endObj.setTime(boundedEnd.getTime());
-      }
-      if (startObj > endObj) {
-        startObj.setTime(boundedStart.getTime());
-        endObj.setTime(boundedEnd.getTime());
-      }
-
-      startDate = startObj.toISOString().slice(0, 10);
-      endDate = endObj.toISOString().slice(0, 10);
-    } else {
-      const now = new Date(`${viewAnchorDate}T12:00:00`);
-      let s: Date;
-      let e: Date;
-
-      if (viewInterval === "week") {
-        s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay(), 12);
-        e = new Date(s);
-        e.setDate(s.getDate() + 6);
-      } else {
-        s = new Date(now.getFullYear(), now.getMonth(), 1, 12);
-        e = new Date(now.getFullYear(), now.getMonth() + 1, 0, 12);
-      }
-
-      startDate = s.toISOString().slice(0, 10);
-      endDate = e.toISOString().slice(0, 10);
-    }
-
-    const totalDays = dateDiffInDays(startDate, endDate) + 1;
-    const days: string[] = [];
-    const dayCursor = new Date(`${startDate}T12:00:00`);
-    for (let index = 0; index < totalDays; index += 1) {
-      days.push(dayCursor.toISOString().slice(0, 10));
-      dayCursor.setDate(dayCursor.getDate() + 1);
-    }
-
-    const dayEvents: Record<string, EventRecord[]> = {};
-    const eventsSortedByStart = [...bootstrap.events].sort((left, right) =>
-      left.startDateTime.localeCompare(right.startDateTime),
-    );
-    eventsSortedByStart.forEach((event) => {
-      const eventStart = datePortion(event.startDateTime);
-      const eventEnd = datePortion(event.endDateTime ?? event.startDateTime);
-
-      if (eventStart > endDate || eventEnd < startDate) {
-        return;
-      }
-
-      const rangeStart = eventStart < startDate ? startDate : eventStart;
-      const rangeEnd = eventEnd > endDate ? endDate : eventEnd;
-      const cursor = new Date(`${rangeStart}T12:00:00`);
-      const finalDay = new Date(`${rangeEnd}T12:00:00`);
-
-      while (cursor <= finalDay) {
-        const dayKey = cursor.toISOString().slice(0, 10);
-        const existing = dayEvents[dayKey];
-        if (existing) {
-          existing.push(event);
-        } else {
-          dayEvents[dayKey] = [event];
-        }
-        cursor.setDate(cursor.getDate() + 1);
-      }
-    });
-
-    const tasksBySubsystem = new Map<string, Array<TaskRecord & { offset: number; span: number }>>();
-    scopedTasks.forEach((task) => {
-      if (task.startDate > endDate || task.dueDate < startDate) {
-        return;
-      }
-
-      const clampedStart = task.startDate < startDate ? startDate : task.startDate;
-      const clampedEnd = task.dueDate > endDate ? endDate : task.dueDate;
-      const projectedTask = {
-        ...task,
-        offset: dateDiffInDays(startDate, clampedStart),
-        span: Math.max(1, dateDiffInDays(clampedStart, clampedEnd) + 1),
-      };
-
-      const targetSubsystemIds =
-        task.subsystemIds.length > 0 ? task.subsystemIds : [task.subsystemId];
-      for (const subsystemId of targetSubsystemIds) {
-        const existingTasks = tasksBySubsystem.get(subsystemId);
-        if (existingTasks) {
-          existingTasks.push(projectedTask);
-        } else {
-          tasksBySubsystem.set(subsystemId, [projectedTask]);
-        }
-      }
-    });
-
-    const subsystemRows: Array<{
-      id: string;
-      name: string;
-      projectId: string;
-      projectName: string;
-      index: number;
-      taskCount: number;
-      completeCount: number;
-      tasks: Array<TaskRecord & { offset: number; span: number }>;
-    }> = [];
-    scopedSubsystems.forEach((subsystem) => {
-      const subsystemTasks = tasksBySubsystem.get(subsystem.id) ?? [];
-      if (subsystemTasks.length === 0) {
-        return;
-      }
-
-      let completeCount = 0;
-      subsystemTasks.forEach((task) => {
-        if (task.status === "complete") {
-          completeCount += 1;
-        }
-      });
-
-      subsystemRows.push({
-        id: subsystem.id,
-        name: subsystem.name,
-        projectId: subsystem.projectId,
-        projectName: projectsById[subsystem.projectId]?.name ?? "Unknown",
-        index: subsystemRows.length,
-        taskCount: subsystemTasks.length,
-        completeCount,
-        tasks: subsystemTasks,
-      });
-    });
-
-    return { days, dayEvents, subsystemRows };
-  }, [bootstrap.events, projectsById, scopedSubsystems, scopedTasks, viewAnchorDate, viewInterval]);
+  const timeline = useMemo(
+    () =>
+      buildTimelineData({
+        events: bootstrap.events,
+        projectsById,
+        scopedSubsystems,
+        scopedTasks,
+        viewAnchorDate,
+        viewInterval,
+      }),
+    [bootstrap.events, projectsById, scopedSubsystems, scopedTasks, viewAnchorDate, viewInterval],
+  );
 
   const timelinePeriodLabel = useMemo(
     () => formatTimelinePeriodLabel(viewInterval, timeline.days),
@@ -786,214 +249,83 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     viewInterval,
   ]);
 
-  const monthGroups = useMemo(() => {
-    const groups: { month: string; span: number }[] = [];
-    let lastMonthKey = "";
-    let lastMonthLabel = "";
-    let currentSpan = 0;
-
-    timeline.days.forEach((day) => {
-      const monthKey = day.slice(0, 7);
-      if (monthKey !== lastMonthKey) {
-        if (lastMonthLabel !== "") {
-          groups.push({ month: lastMonthLabel, span: currentSpan });
-        }
-        lastMonthKey = monthKey;
-        lastMonthLabel = monthLabelFromDay(day);
-        currentSpan = 1;
-      } else {
-        currentSpan += 1;
-      }
-    });
-
-    if (lastMonthLabel) {
-      groups.push({ month: lastMonthLabel, span: currentSpan });
-    }
-    return groups;
-  }, [timeline.days]);
-
+  const monthGroups = useMemo(() => buildTimelineMonthGroups(timeline.days), [timeline.days]);
   const dayEventsByDate = timeline.dayEvents;
-
   const timelineSharedDayBackgrounds = useMemo(
-    () =>
-      timeline.days
-        .map((day) => {
-          const measured = timelineDayMilestoneUnderlayLayouts[day];
-          const dayCell = measured ? null : timelineDayCellRefs.current[day];
-          const left = measured?.left ?? dayCell?.offsetLeft;
-          const width = measured?.width ?? dayCell?.offsetWidth;
-          if (typeof left !== "number" || typeof width !== "number" || width <= 0) {
-            return null;
+    () => {
+      const mergedDayCellLayouts = timeline.days.reduce<TimelineDayCellLayouts>(
+        (layouts, day) => {
+          const measured = timelineDayCellLayouts[day];
+          if (measured) {
+            layouts[day] = measured;
+            return layouts;
           }
 
-          return {
-            day,
-            left,
-            width,
-            style: dayEventsByDate[day]?.length
-              ? getEventTypeStyle(dayEventsByDate[day][0].type)
-              : null,
-          } satisfies TimelineSharedDayBackground;
-        })
-        .filter((entry): entry is TimelineSharedDayBackground => entry !== null),
-    [dayEventsByDate, timeline.days, timelineDayMilestoneUnderlayLayouts],
-  );
+          const dayCell = timelineDayCellRefs.current[day];
+          if (dayCell) {
+            layouts[day] = {
+              left: dayCell.offsetLeft,
+              width: dayCell.offsetWidth,
+            };
+          }
 
+          return layouts;
+        },
+        {},
+      );
+
+      return buildTimelineSharedDayBackgrounds({
+        dayCellLayouts: mergedDayCellLayouts,
+        dayEventsByDate,
+        days: timeline.days,
+      });
+    },
+    [dayEventsByDate, timeline.days, timelineDayCellLayouts],
+  );
   const timelineDayHeaderCells = useMemo(
-    () =>
-      timeline.days.map((day) => {
-        const eventsOnDay = dayEventsByDate[day] ?? [];
-        const primaryEvent = eventsOnDay[0];
-        const dayStyle = primaryEvent ? getEventTypeStyle(primaryEvent.type) : null;
-        const primaryEventStartDay = primaryEvent ? datePortion(primaryEvent.startDateTime) : day;
-        const primaryEventEndDay = primaryEvent?.endDateTime
-          ? datePortion(primaryEvent.endDateTime)
-          : primaryEventStartDay;
-        const dayDate = new Date(`${day}T00:00:00`);
-        return {
-          day,
-          weekdayLabel: WEEKDAY_SHORT_FORMATTER.format(dayDate),
-          dayNumberLabel: DAY_NUMBER_FORMATTER.format(dayDate),
-          eventsOnDay,
-          dayStyle,
-          primaryEventStartDay,
-          primaryEventEndDay,
-        };
-      }),
+    () => buildTimelineDayHeaderCells(timeline.days, dayEventsByDate),
     [dayEventsByDate, timeline.days],
   );
   const subsystemRows = timeline.subsystemRows;
-
-  const projectRows = useMemo(() => {
-    const grouped = new Map<
-      string,
-      {
-        id: string;
-        name: string;
-        subsystems: typeof subsystemRows;
-        taskCount: number;
-        completeCount: number;
-        tasks: Array<TaskRecord & { offset: number; span: number }>;
-      }
-    >();
-
-    subsystemRows.forEach((subsystem) => {
-      const existing = grouped.get(subsystem.projectId);
-      if (existing) {
-        existing.subsystems.push(subsystem);
-        existing.taskCount += subsystem.taskCount;
-        existing.completeCount += subsystem.completeCount;
-        existing.tasks.push(...subsystem.tasks);
-        return;
-      }
-
-      grouped.set(subsystem.projectId, {
-        id: subsystem.projectId,
-        name: subsystem.projectName,
-        subsystems: [subsystem],
-        taskCount: subsystem.taskCount,
-        completeCount: subsystem.completeCount,
-        tasks: [...subsystem.tasks],
-      });
-    });
-
-    return Array.from(grouped.values());
-  }, [subsystemRows]);
-
-  const playTimelineColumnUnfoldAnimation = useCallback((column: TimelineColumnKey) => {
-    setUnfoldingTimelineColumn(column);
-  }, []);
-
-  const playTimelineRowUnfoldAnimation = useCallback(
-    (kind: TimelineRowMotionKind, id: string) => {
-      setUnfoldingTimelineRow({ kind, id });
-    },
-    [],
-  );
+  const projectRows = useMemo(() => buildTimelineProjectRows(subsystemRows), [subsystemRows]);
 
   const toggleProject = useCallback(
     (id: string) => {
       setCollapsedProjects((previous) => {
         const nextCollapsed = !(previous[id] ?? false);
-        if (!nextCollapsed) {
-          playTimelineRowUnfoldAnimation("project", id);
-        }
-
         return { ...previous, [id]: nextCollapsed };
       });
     },
-    [playTimelineRowUnfoldAnimation],
+    [],
   );
 
   const toggleSubsystem = useCallback(
     (id: string) => {
       setCollapsedSubsystems((previous) => {
         const nextCollapsed = !(previous[id] ?? false);
-        if (!nextCollapsed) {
-          playTimelineRowUnfoldAnimation("subsystem", id);
-        }
-
         return { ...previous, [id]: nextCollapsed };
       });
     },
-    [playTimelineRowUnfoldAnimation],
+    [],
   );
 
   const toggleProjectColumn = useCallback(() => {
     setIsProjectColumnVisible((previous) => {
-      const nextVisible = !previous;
-      if (nextVisible) {
-        playTimelineColumnUnfoldAnimation("project");
-      }
-
-      return nextVisible;
+      return !previous;
     });
-  }, [playTimelineColumnUnfoldAnimation]);
+  }, []);
 
   const toggleSubsystemColumn = useCallback(() => {
     setIsSubsystemColumnVisible((previous) => {
-      const nextVisible = !previous;
-      if (nextVisible) {
-        playTimelineColumnUnfoldAnimation("subsystem");
-      }
-
-      return nextVisible;
+      return !previous;
     });
-  }, [playTimelineColumnUnfoldAnimation]);
+  }, []);
 
   const toggleTaskColumn = useCallback(() => {
     setIsTaskColumnVisible((previous) => {
-      const nextVisible = !previous;
-      if (nextVisible) {
-        playTimelineColumnUnfoldAnimation("task");
-      }
-
-      return nextVisible;
+      return !previous;
     });
-  }, [playTimelineColumnUnfoldAnimation]);
-
-  const getTimelineColumnMotionProps = (
-    column: TimelineColumnKey,
-    isVisible: boolean,
-  ) => ({
-    "data-timeline-column": column,
-    "data-column-motion":
-      isVisible && unfoldingTimelineColumn === column ? "unfolding" : undefined,
-  });
-
-  const getTimelineRowMotionProps = (
-    kind: TimelineRowMotionKind,
-    id: string,
-    isExpanded: boolean,
-  ) => ({
-    "data-timeline-row": `${kind}:${id}`,
-    "data-row-motion":
-      isExpanded &&
-      unfoldingTimelineRow?.kind === kind &&
-      unfoldingTimelineRow.id === id
-        ? "unfolding"
-        : undefined,
-  });
+  }, []);
 
   const playTimelineGridAnimation = useCallback((direction: TimelineGridMotion) => {
     setTimelineGridMotion((current) => ({
@@ -1047,7 +379,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     setActiveEventId(null);
     setActiveEventDay(day);
     setEventDraft({
-      ...emptyEventDraft(),
+      ...emptyTimelineEventDraft(DEFAULT_EVENT_TYPE),
       projectIds: scopedProjectIds,
     });
     setEventStartDate(day);
@@ -1071,7 +403,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     setActiveEventId(event.id);
     setActiveEventDay(day);
     setEventDraft({
-      ...eventDraftFromRecord(event),
+      ...timelineEventDraftFromRecord(event),
       projectIds: eventProjectIds.length > 0 ? eventProjectIds : scopedProjectIds,
     });
     setEventStartDate(datePortion(event.startDateTime));
@@ -1110,7 +442,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       const grid = timelineGridRef.current;
       const shell = timelineShellRef.current;
       if (!grid || !shell) {
-        setTimelineDayMilestoneUnderlayLayouts((previous) =>
+        setTimelineDayCellLayouts((previous) =>
           Object.keys(previous).length ? {} : previous,
         );
         setTimelineGridHeight((previous) => (previous === 0 ? previous : 0));
@@ -1118,7 +450,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         return;
       }
 
-      const layouts: TimelineDayMilestoneUnderlayLayout = {};
+      const layouts: TimelineDayCellLayouts = {};
       timeline.days.forEach((day) => {
         const dayCell = timelineDayCellRefs.current[day];
         if (!dayCell) {
@@ -1131,7 +463,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         };
       });
 
-      setTimelineDayMilestoneUnderlayLayouts((previous) => {
+      setTimelineDayCellLayouts((previous) => {
         const previousKeys = Object.keys(previous);
         const nextKeys = Object.keys(layouts);
         if (previousKeys.length !== nextKeys.length) {
@@ -1188,7 +520,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         return null;
       }
 
-      const measured = timelineDayMilestoneUnderlayLayouts[day];
+      const measured = timelineDayCellLayouts[day];
       if (measured) {
         return measured;
       }
@@ -1229,7 +561,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       bodyTop,
       bodyHeight,
     };
-  }, [timelineDayMilestoneUnderlayLayouts, timelineGridHeight, timelineHeaderHeight]);
+  }, [timelineDayCellLayouts, timelineGridHeight, timelineHeaderHeight]);
 
   const updateHoveredMilestonePopup = useCallback((
     target: HTMLElement,
@@ -1321,36 +653,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     showDateCellMilestonePopup(event.currentTarget, day);
   }, [showDateCellMilestonePopup]);
 
-  const renderTimelineDayGridCells = (
-    rowKey: string,
-    gridRow: string | number,
-    includeTopBorder = false,
-  ) =>
-    timelineDayHeaderCells.map((cell, dayIndex) => (
-      <div
-        aria-hidden="true"
-        className="timeline-day-slot"
-        data-popup-end-day={cell.primaryEventEndDay}
-        data-popup-start-day={cell.primaryEventStartDay}
-        data-timeline-day={cell.day}
-        data-timeline-grid-cell="true"
-        key={`${rowKey}-${cell.day}`}
-        onMouseEnter={handleTimelineDayMouseEnter}
-        onMouseLeave={clearHoveredMilestonePopup}
-        style={{
-          gridRow,
-          gridColumn: dayIndex + firstDayGridColumn,
-          borderRight: `1px solid ${cell.dayStyle?.columnBorder ?? "var(--border-base)"}`,
-          borderTop: includeTopBorder ? "1px solid var(--border-base)" : "none",
-          background: cell.dayStyle?.columnBackground,
-          minHeight: "44px",
-          boxSizing: "border-box",
-          position: "relative",
-          zIndex: 0,
-        }}
-      />
-    ));
-
   useEffect(() => {
     queueTimelineLayerUpdate();
     return () => {
@@ -1385,114 +687,15 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     };
   }, [queueTimelineLayerUpdate]);
 
-  const timelineDayMilestoneUnderlays = useMemo(() => {
-    if (!timeline.days.length) {
-      return [];
-    }
-
-    const timelineStart = timeline.days[0];
-    const timelineEnd = timeline.days[timeline.days.length - 1];
-    const underlayEntries = bootstrap.events
-      .map((event) => {
-        const eventStartDay = datePortion(event.startDateTime);
-        const eventEndDay = datePortion(event.endDateTime ?? event.startDateTime);
-        const clampedStartDay = eventStartDay < timelineStart ? timelineStart : eventStartDay;
-        const clampedEndDay = eventEndDay > timelineEnd ? timelineEnd : eventEndDay;
-
-        if (clampedStartDay > timelineEnd || clampedEndDay < timelineStart) {
-          return null;
-        }
-
-        const geometry = resolveMilestonePopupGeometry(clampedStartDay, clampedEndDay);
-        if (!geometry) {
-          return null;
-        }
-
-        const style = getEventTypeStyle(event.type);
-        const isMultiDayEvent = eventStartDay !== eventEndDay;
-
-        return {
-          id: event.id,
-          lines: [event.title],
-          color: style.chipText,
-          rotationDeg: isMultiDayEvent ? 45 : 90,
-          geometry,
-          startDay: clampedStartDay,
-          endDay: clampedEndDay,
-        };
-      })
-      .filter(
-        (
-          entry,
-        ): entry is {
-          id: string;
-          lines: string[];
-          color: string;
-          rotationDeg: 45 | 90;
-          geometry: MilestoneGeometry;
-          startDay: string;
-          endDay: string;
-        } => entry !== null,
-      )
-      .sort((left, right) => {
-        if (left.startDay !== right.startDay) {
-          return left.startDay.localeCompare(right.startDay);
-        }
-        if (left.endDay !== right.endDay) {
-          return left.endDay.localeCompare(right.endDay);
-        }
-        return left.id.localeCompare(right.id);
-      });
-
-    if (!underlayEntries.length) {
-      return [];
-    }
-
-    const laneEndDays: string[] = [];
-    let clusterIndex = -1;
-    let clusterEndDay = "";
-    const clusterLaneCounts = new Map<number, number>();
-
-    const layoutEntries = underlayEntries.map((entry) => {
-      if (clusterIndex < 0 || entry.startDay > clusterEndDay) {
-        clusterIndex += 1;
-        clusterEndDay = entry.endDay;
-      } else if (entry.endDay > clusterEndDay) {
-        clusterEndDay = entry.endDay;
-      }
-
-      const laneMatch = laneEndDays.findIndex((laneEndDay) => laneEndDay < entry.startDay);
-      const laneIndex = laneMatch === -1 ? laneEndDays.length : laneMatch;
-      laneEndDays[laneIndex] = entry.endDay;
-
-      const previousClusterLaneCount = clusterLaneCounts.get(clusterIndex) ?? 0;
-      if (laneIndex + 1 > previousClusterLaneCount) {
-        clusterLaneCounts.set(clusterIndex, laneIndex + 1);
-      }
-
-      return {
-        ...entry,
-        clusterIndex,
-        laneIndex,
-      };
-    });
-
-    return layoutEntries.map((entry) => {
-      const clusterLaneCount = clusterLaneCounts.get(entry.clusterIndex) ?? 1;
-      const horizontalOffset =
-        (entry.laneIndex - (clusterLaneCount - 1) / 2) * MILESTONE_UNDERLAY_HORIZONTAL_GAP;
-
-      return {
-        id: entry.id,
-        lines: entry.lines,
-        color: entry.color,
-        rotationDeg: entry.rotationDeg,
-        geometry: entry.geometry,
-        horizontalOffset,
-        stackOrder: entry.laneIndex,
-      } satisfies TimelineDayMilestoneUnderlay;
-    });
-  }, [bootstrap.events, resolveMilestonePopupGeometry, timeline.days]);
+  const timelineDayMilestoneUnderlays = useMemo(
+    () =>
+      buildTimelineDayMilestoneUnderlays({
+        events: bootstrap.events,
+        resolveGeometry: resolveMilestonePopupGeometry,
+        timelineDays: timeline.days,
+      }),
+    [bootstrap.events, resolveMilestonePopupGeometry, timeline.days],
+  );
 
   const activePersonFilterLabel =
     formatFilterSelectionLabel("All roster", bootstrap.members, activePersonFilter);
@@ -1667,1073 +870,50 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         </div>
       </div>
 
-      {timeline.days.length ? (
-        <div
-          className={`timeline-shell ${timelineFilterMotionClass}`}
-          ref={timelineShellRef}
-          style={{
-            overflowX: "auto",
-            padding: 0,
-            background: "var(--bg-panel)",
-            borderRadius: 0,
-            border: "1px solid var(--border-base)",
-            position: "relative",
-          }}
-        >
-          <div
-            className="timeline-grid-motion"
-            data-period-motion={timelineGridMotion.direction ?? undefined}
-            key={`timeline-grid-${timelineGridMotion.token}`}
-            ref={timelineGridRef}
-            style={{
-              display: "grid",
-              width: "100%",
-              minWidth: `${gridMinWidth}px`,
-              gridTemplateColumns: timelineGridTemplate,
-              position: "relative",
-              boxSizing: "border-box",
-            }}
-          >
-            <button
-              aria-label={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
-              aria-pressed={showSubsystemCol}
-              className={`sticky-label timeline-column-header timeline-column-header-button timeline-column-motion${showSubsystemCol ? "" : " is-hidden"}`}
-              onClick={toggleSubsystemColumn}
-              title={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
-              {...getTimelineColumnMotionProps("subsystem", showSubsystemCol)}
-              style={{
-                gridRow: showSubsystemCol ? "1 / span 2" : "1",
-                gridColumn: `${subsystemColumnIndex}`,
-                width: `${subsystemColumnWidth}px`,
-                minWidth: `${subsystemColumnWidth}px`,
-                maxWidth: `${subsystemColumnWidth}px`,
-                padding: showSubsystemCol ? "10px 12px" : "4px",
-                fontWeight: "bold",
-                borderRight: "1px solid var(--border-base)",
-                borderBottom: "1px solid var(--border-base)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: showSubsystemCol ? "space-between" : "center",
-                gap: "0.3rem",
-                boxSizing: "border-box",
-                height: "100%",
-                position: "sticky",
-                left: `${subsystemStickyLeft}px`,
-                zIndex: TIMELINE_LEFT_HEADER_Z_INDEX,
-                background: "var(--bg-panel)",
-              }}
-              type="button"
-            >
-              {showSubsystemCol ? <span className="timeline-column-header-label">Subsystem</span> : null}
-              <span
-                aria-hidden="true"
-                className={`timeline-column-visibility-icon${showSubsystemCol ? " is-active" : ""}`}
-              >
-                <IconEye />
-              </span>
-            </button>
+      <TimelineGridBody
+        clearHoveredMilestonePopup={clearHoveredMilestonePopup}
+        collapsedProjects={collapsedProjects}
+        collapsedSubsystems={collapsedSubsystems}
+        firstDayGridColumn={firstDayGridColumn}
+        gridMinWidth={gridMinWidth}
+        hasProjectColumn={hasProjectColumn}
+        handleTimelineDayMouseEnter={handleTimelineDayMouseEnter}
+        membersById={membersById}
+        monthGroups={monthGroups}
+        openEventModalForDay={openEventModalForDay}
+        openTaskDetailModal={openTaskDetailModal}
+        projectColumnWidth={projectColumnWidth}
+        projectRows={projectRows}
+        showProjectCol={showProjectCol}
+        showSubsystemCol={showSubsystemCol}
+        showTaskCol={showTaskCol}
+        subsystemColumnIndex={subsystemColumnIndex}
+        subsystemColumnWidth={subsystemColumnWidth}
+        subsystemStickyLeft={subsystemStickyLeft}
+        taskColumnWidth={taskColumnWidth}
+        taskLabelColumnIndex={taskLabelColumnIndex}
+        taskLabelStickyLeft={taskLabelStickyLeft}
+        timelineDayCellRefs={timelineDayCellRefs}
+        timelineDayHeaderCells={timelineDayHeaderCells}
+        timelineDays={timeline.days}
+        timelineFilterMotionClass={timelineFilterMotionClass}
+        timelineGridMotion={timelineGridMotion}
+        timelineGridRef={timelineGridRef}
+        timelineGridTemplate={timelineGridTemplate}
+        timelineSharedDayBackgrounds={timelineSharedDayBackgrounds}
+        timelineShellRef={timelineShellRef}
+        subsystemRows={subsystemRows}
+        toggleProject={toggleProject}
+        toggleProjectColumn={toggleProjectColumn}
+        toggleSubsystem={toggleSubsystem}
+        toggleSubsystemColumn={toggleSubsystemColumn}
+        toggleTaskColumn={toggleTaskColumn}
+      />
 
-            <button
-              aria-label={`${showTaskCol ? "Hide" : "Show"} task column`}
-              aria-pressed={showTaskCol}
-              className={`sticky-label timeline-column-header timeline-column-header-button timeline-column-motion${showTaskCol ? "" : " is-hidden"}`}
-              onClick={toggleTaskColumn}
-              title={`${showTaskCol ? "Hide" : "Show"} task column`}
-              {...getTimelineColumnMotionProps("task", showTaskCol)}
-              style={{
-                gridRow: showTaskCol ? "1 / span 2" : "1",
-                gridColumn: `${taskLabelColumnIndex}`,
-                width: `${taskColumnWidth}px`,
-                minWidth: `${taskColumnWidth}px`,
-                maxWidth: `${taskColumnWidth}px`,
-                padding: showTaskCol ? "10px 12px" : "4px",
-                fontWeight: "bold",
-                borderRight: "1px solid var(--border-base)",
-                borderBottom: "1px solid var(--border-base)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: showTaskCol ? "space-between" : "center",
-                gap: "0.3rem",
-                boxSizing: "border-box",
-                height: "100%",
-                position: "sticky",
-                left: `${taskLabelStickyLeft}px`,
-                zIndex: TIMELINE_LEFT_HEADER_Z_INDEX,
-                background: "var(--bg-panel)",
-              }}
-              type="button"
-            >
-              {showTaskCol ? <span className="timeline-column-header-label">Task</span> : null}
-              <span
-                aria-hidden="true"
-                className={`timeline-column-visibility-icon${showTaskCol ? " is-active" : ""}`}
-              >
-                <IconEye />
-              </span>
-            </button>
-
-            {hasProjectColumn ? (
-              <button
-                aria-label={`${showProjectCol ? "Hide" : "Show"} project column`}
-                aria-pressed={showProjectCol}
-                className={`sticky-label timeline-column-header timeline-column-header-button timeline-column-motion${showProjectCol ? "" : " is-hidden"}`}
-                onClick={toggleProjectColumn}
-                title={`${showProjectCol ? "Hide" : "Show"} project column`}
-                {...getTimelineColumnMotionProps("project", showProjectCol)}
-                style={{
-                  gridRow: showProjectCol ? "1 / span 2" : "1",
-                  gridColumn: "1",
-                  width: `${projectColumnWidth}px`,
-                  minWidth: `${projectColumnWidth}px`,
-                  maxWidth: `${projectColumnWidth}px`,
-                  padding: showProjectCol ? "10px 12px" : "4px",
-                  fontWeight: "bold",
-                  borderRight: "1px solid var(--border-base)",
-                  borderBottom: "1px solid var(--border-base)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: showProjectCol ? "space-between" : "center",
-                  gap: "0.3rem",
-                  boxSizing: "border-box",
-                  height: "100%",
-                  position: "sticky",
-                  left: 0,
-                  zIndex: TIMELINE_LEFT_PROJECT_HEADER_Z_INDEX,
-                  background: "var(--bg-panel)",
-                }}
-                type="button"
-              >
-                {showProjectCol ? <span className="timeline-column-header-label">Project</span> : null}
-                <span
-                  aria-hidden="true"
-                  className={`timeline-column-visibility-icon${showProjectCol ? " is-active" : ""}`}
-                >
-                  <IconEye />
-                </span>
-              </button>
-            ) : null}
-
-            {(() => {
-              let currentColumn = firstDayGridColumn;
-              return monthGroups.map((group, index) => {
-                const start = currentColumn;
-                currentColumn += group.span;
-                return (
-                  <div
-                    key={`month-${index}`}
-                    style={{
-                      gridRow: "1",
-                      gridColumn: `${start} / span ${group.span}`,
-                      textAlign: "center",
-                      fontSize: "10px",
-                      fontWeight: "bold",
-                      padding: "6px 0",
-                      borderBottom: "1px solid var(--border-base)",
-                      borderRight: "1px solid var(--border-base)",
-                      textTransform: "uppercase",
-                      color: "var(--meco-blue)",
-                      background: "var(--bg-row-alt)",
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 12,
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    {group.month}
-                  </div>
-                );
-              });
-            })()}
-
-            {timelineDayHeaderCells.map((cell, dayIndex) => {
-              return (
-                <div
-                  className="timeline-day"
-                  data-timeline-day={cell.day}
-                  ref={(node) => {
-                    timelineDayCellRefs.current[cell.day] = node;
-                  }}
-                  onMouseEnter={handleTimelineDayMouseEnter}
-                  onMouseLeave={clearHoveredMilestonePopup}
-                  key={cell.day}
-                  style={{
-                    gridRow: "2",
-                    gridColumn: dayIndex + firstDayGridColumn,
-                    textAlign: "center",
-                    fontSize: "9px",
-                    padding: "6px 0",
-                    borderRight: `1px solid ${cell.dayStyle?.columnBorder ?? "var(--border-base)"}`,
-                    borderBottom: "2px solid var(--border-base)",
-                    color: "var(--text-copy)",
-                    textTransform: "uppercase",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    lineHeight: "1.1",
-                    minWidth: 0,
-                    overflow: "visible",
-                    boxSizing: "border-box",
-                    position: "sticky",
-                    top: "27px",
-                    zIndex: 12,
-                    background: cell.dayStyle?.columnBackground ?? "var(--bg-panel)",
-                  }}
-                  data-popup-start-day={cell.primaryEventStartDay}
-                  data-popup-end-day={cell.primaryEventEndDay}
-                >
-                  <span style={{ whiteSpace: "nowrap", fontSize: "8px" }}>
-                    {cell.weekdayLabel}
-                  </span>
-                  <button
-                    className={`timeline-day-number-button${cell.eventsOnDay.length ? " has-event" : ""}`}
-                    onClick={() => openEventModalForDay(cell.day)}
-                    title={
-                      cell.eventsOnDay.length
-                        ? `Edit milestone on ${cell.day}`
-                        : `Add milestone on ${cell.day}`
-                    }
-                    type="button"
-                  >
-                    <strong
-                      style={{
-                        fontSize: "11px",
-                        color: cell.dayStyle ? cell.dayStyle.chipText : "var(--text-title)",
-                      }}
-                    >
-                      {cell.dayNumberLabel}
-                    </strong>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          {timelineSharedDayBackgrounds.length > 0 &&
-          timelineGridHeight > timelineHeaderHeight ? (
-            <div
-              aria-hidden="true"
-              style={{
-                position: "absolute",
-                left: 0,
-                top: `${timelineHeaderHeight}px`,
-                width: "100%",
-                minWidth: `${gridMinWidth}px`,
-                height: `${timelineGridHeight - timelineHeaderHeight}px`,
-                pointerEvents: "none",
-                zIndex: 1,
-              }}
-            >
-              {timelineSharedDayBackgrounds.map((backgroundColumn) => (
-                <div
-                  className="timeline-day-slot"
-                  key={`timeline-shared-day-background-${backgroundColumn.day}`}
-                  style={{
-                    position: "absolute",
-                    left: `${backgroundColumn.left}px`,
-                    top: 0,
-                    width: `${backgroundColumn.width}px`,
-                    height: "100%",
-                    borderRight: `1px solid ${backgroundColumn.style?.columnBorder ?? "var(--border-base)"}`,
-                    background: backgroundColumn.style?.columnBackground,
-                  }}
-                />
-              ))}
-            </div>
-          ) : null}
-
-          {hasProjectColumn ? (
-            projectRows.map((project, projectIndex) => {
-              const projectCollapsed = collapsedProjects[project.id] ?? false;
-              const projectRowCount = projectCollapsed
-                ? 1
-                : project.subsystems.reduce((total, subsystem) => {
-                    const subsystemCollapsed = collapsedSubsystems[subsystem.id] ?? false;
-                    return (
-                      total +
-                      (subsystemCollapsed ? 1 : Math.max(1, subsystem.tasks.length))
-                    );
-                  }, 0);
-              const collapsedSummarySpan =
-                (showSubsystemCol ? 1 : 0) + (showTaskCol ? 1 : 0);
-              const collapsedSummaryStart = showSubsystemCol
-                ? subsystemColumnIndex
-                : taskLabelColumnIndex;
-              const collapsedSummaryStickyLeft = showSubsystemCol
-                ? subsystemStickyLeft
-                : taskLabelStickyLeft;
-              const projectBackground =
-                projectIndex % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
-
-              return (
-                <div
-                  className="subsystem-group"
-                  key={project.id}
-                  style={{
-                    display: "grid",
-                    width: "100%",
-                    minWidth: `${gridMinWidth}px`,
-                    gridTemplateColumns: timelineGridTemplate,
-                    background: projectBackground,
-                    borderBottom: "1px solid var(--border-base)",
-                    position: "relative",
-                  }}
-                  {...getTimelineRowMotionProps("project", project.id, !projectCollapsed)}
-                >
-                  {showProjectCol ? (
-                  <div
-                    className="timeline-merged-cell-column timeline-column-motion timeline-row-motion-item"
-                    {...getTimelineColumnMotionProps("project", showProjectCol)}
-                    {...getTimelineRowMotionProps("project", project.id, !projectCollapsed)}
-                    style={{
-                      gridRow: `1 / span ${Math.max(1, projectRowCount)}`,
-                      gridColumn: "1",
-                        position: "sticky",
-                        left: 0,
-                        zIndex: TIMELINE_LEFT_PROJECT_COLUMN_Z_INDEX,
-                        background: projectBackground,
-                        borderRight: "1px solid var(--border-base)",
-                        display: "flex",
-                        flexDirection: projectCollapsed ? "row" : "column",
-                        justifyContent: projectCollapsed ? "flex-start" : "center",
-                        alignItems: "center",
-                        minHeight: "44px",
-                        padding: projectCollapsed ? "0 12px" : "8px 6px",
-                        overflow: projectCollapsed ? "hidden" : "visible",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                    <button
-                      className="subsystem-toggle"
-                      onClick={() => toggleProject(project.id)}
-                      type="button"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "4px",
-                          fontSize: "12px",
-                          color: "var(--text-copy)",
-                          marginRight: projectCollapsed ? "6px" : 0,
-                          marginBottom: projectCollapsed ? 0 : 0,
-                          position: projectCollapsed ? "static" : "absolute",
-                          top: projectCollapsed ? undefined : "4px",
-                          right: projectCollapsed ? undefined : "4px",
-                          zIndex: 1,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {projectCollapsed ? "\u25B6" : "\u25BC"}
-                      </button>
-                    <div className={`timeline-merged-cell-text${projectCollapsed ? "" : " is-rotated"}`}>
-                      <span
-                        className="timeline-merged-cell-title timeline-ellipsis-reveal"
-                        data-full-text={project.name}
-                      >
-                        {project.name}
-                      </span>
-                        <span className="timeline-merged-cell-meta">
-                          {project.completeCount}/{project.taskCount}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {projectCollapsed ? (
-                    <>
-                      {collapsedSummarySpan > 0 ? (
-                        <div
-                          style={{
-                            gridRow: "1",
-                            gridColumn: `${collapsedSummaryStart} / span ${collapsedSummarySpan}`,
-                            position: "sticky",
-                            left: `${collapsedSummaryStickyLeft}px`,
-                            zIndex: TIMELINE_LEFT_SUBSYSTEM_COLUMN_Z_INDEX,
-                            background: projectBackground,
-                            borderRight: "1px solid var(--border-base)",
-                            boxSizing: "border-box",
-                            display: "flex",
-                            alignItems: "center",
-                            padding: "0 12px",
-                            minHeight: "44px",
-                            color: "var(--text-copy)",
-                            fontSize: "0.75rem",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {project.subsystems.length} subsystems
-                        </div>
-                      ) : null}
-
-                      {renderTimelineDayGridCells(`project-${project.id}-collapsed`, "1")}
-
-                      {project.tasks.map((task) => (
-                        <button
-                          key={task.id}
-                          className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                          data-tutorial-target="timeline-task-bar"
-                          onClick={() => openTaskDetailModal(task)}
-                          onMouseEnter={clearHoveredMilestonePopup}
-                          style={{
-                            gridRow: "1",
-                            gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
-                            height: "8px",
-                            margin: "0 2px",
-                            position: "relative",
-                            zIndex: 6,
-                            borderRadius: "2px",
-                            border: "none",
-                            cursor: "pointer",
-                            alignSelf: "center",
-                            minWidth: 0,
-                            padding: 0,
-                            opacity: 0.7,
-                          }}
-                          {...getTimelineRowMotionProps("project", project.id, !projectCollapsed)}
-                          title={`${task.title} (${task.status})`}
-                          type="button"
-                        >
-                          <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                        </button>
-                      ))}
-                    </>
-                  ) : (
-                    (() => {
-                      let rowCursor = 1;
-
-                    return project.subsystems.map((subsystem) => {
-                        const canToggleSubsystem = subsystem.tasks.length > 1;
-                        const collapsed = canToggleSubsystem ? collapsedSubsystems[subsystem.id] ?? false : false;
-                        const taskCount = Math.max(1, subsystem.tasks.length);
-                        const subsystemRowStart = rowCursor;
-                        const subsystemRowCount = collapsed ? 1 : taskCount;
-                        rowCursor += subsystemRowCount;
-                        const groupBackground =
-                          subsystem.index % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
-
-                        return (
-                          <React.Fragment key={subsystem.id}>
-                            {showSubsystemCol ? (
-                              <div
-                                className="timeline-merged-cell-column timeline-column-motion timeline-row-motion-item"
-                                {...getTimelineColumnMotionProps("subsystem", showSubsystemCol)}
-                                {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                                style={{
-                                  gridRow: collapsed
-                                    ? `${subsystemRowStart}`
-                                    : `${subsystemRowStart} / span ${taskCount}`,
-                                  gridColumn: `${subsystemColumnIndex}`,
-                                  position: "sticky",
-                                  left: `${subsystemStickyLeft}px`,
-                                  zIndex: TIMELINE_LEFT_SUBSYSTEM_COLUMN_Z_INDEX,
-                                  background: groupBackground,
-                                  borderRight: "1px solid var(--border-base)",
-                                  display: "flex",
-                                  flexDirection: collapsed ? "row" : "column",
-                                  justifyContent: collapsed ? "flex-start" : "center",
-                                  alignItems: "center",
-                                  minHeight: "44px",
-                                  padding: collapsed ? "0 12px" : "8px 6px",
-                                  overflow: collapsed ? "hidden" : "visible",
-                                  boxSizing: "border-box",
-                                }}
-                              >
-                                {canToggleSubsystem ? (
-                                  <button
-                                    className="subsystem-toggle"
-                                    onClick={() => toggleSubsystem(subsystem.id)}
-                                    type="button"
-                                    style={{
-                                      background: "none",
-                                      border: "none",
-                                      cursor: "pointer",
-                                      padding: "4px",
-                                      fontSize: "12px",
-                                      color: "var(--text-copy)",
-                                      marginRight: collapsed ? "6px" : 0,
-                                      marginBottom: collapsed ? 0 : 0,
-                                      position: collapsed ? "static" : "absolute",
-                                      top: collapsed ? undefined : "4px",
-                                      right: collapsed ? undefined : "4px",
-                                      zIndex: 1,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {collapsed ? "\u25B6" : "\u25BC"}
-                                  </button>
-                                ) : null}
-                                <div className={`timeline-merged-cell-text${collapsed ? "" : " is-rotated"}`}>
-                                  <span
-                                    className="timeline-merged-cell-title timeline-ellipsis-reveal"
-                                    data-full-text={subsystem.name}
-                                  >
-                                    {subsystem.name}
-                                  </span>
-                                </div>
-                                {!collapsed ? (
-                                  <span className="timeline-subsystem-counter-corner">
-                                    {subsystem.completeCount}/{subsystem.taskCount}
-                                  </span>
-                                ) : null}
-                              </div>
-                            ) : null}
-
-                            {collapsed && showTaskCol ? (
-                              <div
-                                className="timeline-column-motion"
-                                {...getTimelineColumnMotionProps("task", showTaskCol)}
-                                style={{
-                                  gridRow: `${subsystemRowStart}`,
-                                  gridColumn: `${taskLabelColumnIndex}`,
-                                  position: "sticky",
-                                  left: `${taskLabelStickyLeft}px`,
-                                  zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
-                                  background: groupBackground,
-                                  borderRight: "1px solid var(--border-base)",
-                                  boxSizing: "border-box",
-                                  minHeight: "44px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  padding: "0 12px",
-                                  fontSize: "0.72rem",
-                                  color: "var(--text-copy)",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                }}
-                              >
-                                {subsystem.tasks.length} task{subsystem.tasks.length === 1 ? "" : "s"}
-                              </div>
-                            ) : null}
-
-                            {!collapsed && showTaskCol ? (
-                              <div
-                                className="timeline-column-motion timeline-row-motion-item"
-                                {...getTimelineColumnMotionProps("task", showTaskCol)}
-                                {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                                style={{
-                                  gridRow: `${subsystemRowStart} / span ${taskCount}`,
-                                  gridColumn: `${taskLabelColumnIndex}`,
-                                  position: "sticky",
-                                  left: `${taskLabelStickyLeft}px`,
-                                  zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
-                                  background: groupBackground,
-                                  borderRight: "1px solid var(--border-base)",
-                                  boxSizing: "border-box",
-                                }}
-                              />
-                            ) : null}
-
-                            {collapsed
-                              ? renderTimelineDayGridCells(
-                                  `subsystem-${subsystem.id}-collapsed`,
-                                  `${subsystemRowStart}`,
-                                  subsystemRowStart > 1,
-                                )
-                              : null}
-
-                            {collapsed &&
-                              subsystem.tasks.map((task) => (
-                                <button
-                                  key={task.id}
-                                  className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                                  data-tutorial-target="timeline-task-bar"
-                                  onClick={() => openTaskDetailModal(task)}
-                                  onMouseEnter={clearHoveredMilestonePopup}
-                                  style={{
-                                    gridRow: subsystemRowStart,
-                                    gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
-                                    height: "8px",
-                                    margin: "0 2px",
-                                    position: "relative",
-                                    zIndex: 6,
-                                    borderRadius: "2px",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    alignSelf: "center",
-                                    minWidth: 0,
-                                    padding: 0,
-                                    opacity: 0.7,
-                                  }}
-                                  {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                                  title={`${task.title} (${task.status})`}
-                                  type="button"
-                                >
-                                  <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                                </button>
-                              ))}
-
-                            {!collapsed && subsystem.tasks.length === 0
-                              ? renderTimelineDayGridCells(
-                                  `subsystem-${subsystem.id}-empty`,
-                                  `${subsystemRowStart}`,
-                                  subsystemRowStart > 1,
-                                )
-                              : null}
-
-                            {!collapsed
-                              ? subsystem.tasks.map((task, taskIndex) => (
-                                  <React.Fragment key={task.id}>
-                                    {showTaskCol ? (
-                                      <button
-                                        className="task-label timeline-column-motion timeline-row-motion-item"
-                                        data-tutorial-target="timeline-task-label"
-                                        {...getTimelineColumnMotionProps("task", showTaskCol)}
-                                        {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                                        onClick={() => openTaskDetailModal(task)}
-                                        style={{
-                                          gridRow: subsystemRowStart + taskIndex,
-                                          gridColumn: `${taskLabelColumnIndex}`,
-                                          minHeight: "44px",
-                                          padding: "0 12px",
-                                          fontSize: "0.8rem",
-                                          border: "none",
-                                          borderRight: "1px solid var(--border-base)",
-                                          boxSizing: "border-box",
-                                          display: "flex",
-                                          flexDirection: "column",
-                                          justifyContent: "center",
-                                          alignItems: "flex-start",
-                                          position: "sticky",
-                                          left: `${taskLabelStickyLeft}px`,
-                                          zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
-                                          background: groupBackground,
-                                          overflow: "visible",
-                                          borderTop:
-                                            taskIndex === 0 ? "none" : "1px solid var(--border-base)",
-                                          borderRadius: 0,
-                                          textAlign: "left",
-                                          cursor: "pointer",
-                                        }}
-                                        type="button"
-                                      >
-                                        <strong
-                                          className="timeline-task-label-title timeline-ellipsis-reveal"
-                                          data-full-text={task.title}
-                                          style={{
-                                            display: "block",
-                                            color: "var(--text-title)",
-                                            lineHeight: "1.2",
-                                          }}
-                                        >
-                                          {task.title}
-                                        </strong>
-                                        <span
-                                          className="timeline-task-label-owner timeline-ellipsis-reveal"
-                                          data-full-text={formatTaskAssignees(task, membersById)}
-                                          style={{ fontSize: "0.7rem", color: "var(--text-copy)" }}
-                                          >
-                                            {formatTaskAssignees(task, membersById)}
-                                          </span>
-                                        </button>
-                                      ) : null}
-                                      {renderTimelineDayGridCells(
-                                        `subsystem-${subsystem.id}-task-${task.id}`,
-                                        subsystemRowStart + taskIndex,
-                                        subsystemRowStart + taskIndex > 1,
-                                      )}
-                                        <button
-                                          className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                                          data-tutorial-target="timeline-task-bar"
-                                          onClick={() => openTaskDetailModal(task)}
-                                          onMouseEnter={clearHoveredMilestonePopup}
-                                      style={{
-                                        gridRow: subsystemRowStart + taskIndex,
-                                        gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
-                                        margin: "6px 4px",
-                                        position: "relative",
-                                        zIndex: 6,
-                                        borderRadius: "4px",
-                                        border: "none",
-                                        color: "#fff",
-                                        fontSize: "0.7rem",
-                                        textAlign: "left",
-                                        padding: "0 8px",
-                                        cursor: "pointer",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        whiteSpace: "nowrap",
-                                        boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                                        alignSelf: "center",
-                                        minWidth: 0,
-                                      }}
-                                      {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                                      title={`View details for ${task.title}`}
-                                      type="button"
-                                    >
-                                      {task.title}
-                                      <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                                    </button>
-                                  </React.Fragment>
-                                ))
-                              : null}
-                          </React.Fragment>
-                        );
-                      });
-                    })()
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            timeline.subsystemRows.map((subsystem, subsystemIndex) => {
-            const canToggleSubsystem = subsystem.tasks.length > 1;
-            const collapsed = canToggleSubsystem ? collapsedSubsystems[subsystem.id] ?? false : false;
-            const taskCount = Math.max(1, subsystem.tasks.length);
-            const groupBackground =
-              subsystemIndex % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
-
-            return (
-              <div
-                className="subsystem-group"
-                key={subsystem.id}
-                style={{
-                  display: "grid",
-                  width: "100%",
-                  minWidth: `${gridMinWidth}px`,
-                  gridTemplateColumns: timelineGridTemplate,
-                  background: groupBackground,
-                  borderBottom: "1px solid var(--border-base)",
-                  position: "relative",
-                }}
-                {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-              >
-                {showSubsystemCol ? (
-                  <div
-                    className="timeline-merged-cell-column timeline-column-motion timeline-row-motion-item"
-                    {...getTimelineColumnMotionProps("subsystem", showSubsystemCol)}
-                    {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                    style={{
-                      gridRow: collapsed ? "1" : `1 / span ${taskCount}`,
-                      gridColumn: `${subsystemColumnIndex}`,
-                      position: "sticky",
-                      left: `${subsystemStickyLeft}px`,
-                      zIndex: TIMELINE_LEFT_SUBSYSTEM_COLUMN_Z_INDEX,
-                      background: groupBackground,
-                      borderRight: "1px solid var(--border-base)",
-                      display: "flex",
-                      flexDirection: collapsed ? "row" : "column",
-                      justifyContent: collapsed ? "flex-start" : "center",
-                      alignItems: "center",
-                      minHeight: "44px",
-                      padding: collapsed ? "0 12px" : "8px 6px",
-                      overflow: collapsed ? "hidden" : "visible",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    {canToggleSubsystem ? (
-                      <button
-                        className="subsystem-toggle"
-                        onClick={() => toggleSubsystem(subsystem.id)}
-                        type="button"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "4px",
-                          fontSize: "12px",
-                          color: "var(--text-copy)",
-                          marginRight: collapsed ? "6px" : 0,
-                          marginBottom: collapsed ? 0 : 0,
-                          position: collapsed ? "static" : "absolute",
-                          top: collapsed ? undefined : "4px",
-                          right: collapsed ? undefined : "4px",
-                          zIndex: 1,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {collapsed ? "\u25B6" : "\u25BC"}
-                      </button>
-                    ) : null}
-                    <div className={`timeline-merged-cell-text${collapsed ? "" : " is-rotated"}`}>
-                      <span
-                        className="timeline-merged-cell-title timeline-ellipsis-reveal"
-                        data-full-text={subsystem.name}
-                      >
-                        {subsystem.name}
-                      </span>
-                    </div>
-                    {!collapsed ? (
-                      <span className="timeline-subsystem-counter-corner">
-                        {subsystem.completeCount}/{subsystem.taskCount}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {showProjectCol ? (
-                  <div
-                    className="timeline-merged-cell-column timeline-column-motion"
-                    {...getTimelineColumnMotionProps("project", showProjectCol)}
-                    style={{
-                      gridRow: `1 / span ${taskCount}`,
-                      gridColumn: "1",
-                      minHeight: "44px",
-                      padding: "10px 12px",
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      color: "var(--text-title)",
-                      borderRight: "1px solid var(--border-base)",
-                      boxSizing: "border-box",
-                      display: "flex",
-                      alignItems: "center",
-                      position: "sticky",
-                      left: 0,
-                      zIndex: TIMELINE_LEFT_PROJECT_COLUMN_Z_INDEX,
-                      background: groupBackground,
-                      overflow: "visible",
-                      whiteSpace: "nowrap",
-                    }}
-                    title={subsystem.projectName}
-                  >
-                    <span
-                      className="timeline-merged-cell-title timeline-ellipsis-reveal"
-                      data-full-text={subsystem.projectName}
-                    >
-                      {subsystem.projectName}
-                    </span>
-                  </div>
-                ) : null}
-
-                {collapsed && showTaskCol ? (
-                  <div
-                    className="timeline-column-motion"
-                    {...getTimelineColumnMotionProps("task", showTaskCol)}
-                    style={{
-                      gridRow: "1",
-                      gridColumn: `${taskLabelColumnIndex}`,
-                      position: "sticky",
-                      left: `${taskLabelStickyLeft}px`,
-                      zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
-                      background: groupBackground,
-                      borderRight: "1px solid var(--border-base)",
-                      boxSizing: "border-box",
-                      minHeight: "44px",
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "0 12px",
-                      fontSize: "0.72rem",
-                      color: "var(--text-copy)",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {subsystem.tasks.length} task{subsystem.tasks.length === 1 ? "" : "s"}
-                  </div>
-                ) : null}
-
-                {!collapsed && showTaskCol ? (
-                  <div
-                    className="timeline-column-motion timeline-row-motion-item"
-                    {...getTimelineColumnMotionProps("task", showTaskCol)}
-                    {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                    style={{
-                      gridRow: `1 / span ${taskCount}`,
-                      gridColumn: `${taskLabelColumnIndex}`,
-                      position: "sticky",
-                      left: `${taskLabelStickyLeft}px`,
-                      zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
-                      background: groupBackground,
-                      borderRight: "1px solid var(--border-base)",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                ) : null}
-
-                {collapsed
-                  ? renderTimelineDayGridCells(`subsystem-${subsystem.id}-collapsed`, "1")
-                  : null}
-
-                {collapsed &&
-                  subsystem.tasks.map((task) => (
-                    <button
-                      key={task.id}
-                      className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                      data-tutorial-target="timeline-task-bar"
-                      onClick={() => openTaskDetailModal(task)}
-                      onMouseEnter={clearHoveredMilestonePopup}
-                      style={{
-                        gridRow: "1",
-                        gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
-                        height: "8px",
-                        margin: "0 2px",
-                        position: "relative",
-                        zIndex: 6,
-                        borderRadius: "2px",
-                        border: "none",
-                        cursor: "pointer",
-                        alignSelf: "center",
-                        minWidth: 0,
-                        padding: 0,
-                        opacity: 0.7,
-                      }}
-                      {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                      title={`${task.title} (${task.status})`}
-                      type="button"
-                    >
-                      <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                    </button>
-                  ))}
-
-                {!collapsed && subsystem.tasks.length === 0
-                  ? renderTimelineDayGridCells(`subsystem-${subsystem.id}-empty`, "1")
-                  : null}
-
-                {!collapsed
-                  ? subsystem.tasks.map((task, taskIndex) => (
-                      <React.Fragment key={task.id}>
-                        {showTaskCol ? (
-                          <button
-                            className="task-label timeline-column-motion timeline-row-motion-item"
-                            data-tutorial-target="timeline-task-label"
-                            {...getTimelineColumnMotionProps("task", showTaskCol)}
-                            {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                            onClick={() => openTaskDetailModal(task)}
-                            style={{
-                              gridRow: taskIndex + 1,
-                              gridColumn: `${taskLabelColumnIndex}`,
-                              minHeight: "44px",
-                              padding: "0 12px",
-                              fontSize: "0.8rem",
-                              border: "none",
-                              borderRight: "1px solid var(--border-base)",
-                              boxSizing: "border-box",
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "center",
-                              alignItems: "flex-start",
-                              position: "sticky",
-                              left: `${taskLabelStickyLeft}px`,
-                              zIndex: TIMELINE_LEFT_TASK_COLUMN_Z_INDEX,
-                              background: groupBackground,
-                              overflow: "visible",
-                              borderTop:
-                                taskIndex === 0 ? "none" : "1px solid var(--border-base)",
-                              borderRadius: 0,
-                              textAlign: "left",
-                              cursor: "pointer",
-                            }}
-                            type="button"
-                          >
-                            <strong
-                              className="timeline-task-label-title timeline-ellipsis-reveal"
-                              data-full-text={task.title}
-                              style={{
-                                display: "block",
-                                color: "var(--text-title)",
-                                lineHeight: "1.2",
-                              }}
-                            >
-                              {task.title}
-                            </strong>
-                            <span
-                              className="timeline-task-label-owner timeline-ellipsis-reveal"
-                              data-full-text={formatTaskAssignees(task, membersById)}
-                              style={{ fontSize: "0.7rem", color: "var(--text-copy)" }}
-                            >
-                              {formatTaskAssignees(task, membersById)}
-                            </span>
-                          </button>
-                        ) : null}
-                        {renderTimelineDayGridCells(
-                          `subsystem-${subsystem.id}-task-${task.id}`,
-                          taskIndex + 1,
-                          taskIndex > 0,
-                        )}
-                        <button
-                          className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                          data-tutorial-target="timeline-task-bar"
-                          onClick={() => openTaskDetailModal(task)}
-                          onMouseEnter={clearHoveredMilestonePopup}
-                          style={{
-                            gridRow: taskIndex + 1,
-                            gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
-                            margin: "6px 4px",
-                            position: "relative",
-                            zIndex: 6,
-                            borderRadius: "4px",
-                            border: "none",
-                            color: "#fff",
-                            fontSize: "0.7rem",
-                            textAlign: "left",
-                            padding: "0 8px",
-                            cursor: "pointer",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                            alignSelf: "center",
-                            minWidth: 0,
-                          }}
-                          {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
-                          title={`View details for ${task.title}`}
-                          type="button"
-                        >
-                          {task.title}
-                          <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                        </button>
-                      </React.Fragment>
-                    ))
-                  : null}
-              </div>
-            );
-          })
-          )}
-        </div>
-      ) : (
-        <p className="section-copy">
-          Add a milestone or create a task to populate the subsystem timeline.
-        </p>
-      )}
-
-      {tooltipPortalTarget
-        ? createPortal(
-            <>
-              {timelineDayMilestoneUnderlays.map((underlay) => (
-                <div
-                  aria-hidden="true"
-                  key={`timeline-underlay-${underlay.id}`}
-                  className="timeline-day-event-underlay"
-                  title={underlay.lines.join(", ")}
-                  style={{
-                    left: `${underlay.geometry.left + underlay.horizontalOffset}px`,
-                    top: `${underlay.geometry.bodyTop}px`,
-                    height: `${underlay.geometry.bodyHeight}px`,
-                    width: `${underlay.geometry.width}px`,
-                    transform: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: underlay.color,
-                    zIndex: 4 + underlay.stackOrder,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: "0.28rem",
-                      justifyItems: "center",
-                      transform: `rotate(${underlay.rotationDeg}deg)`,
-                      transformOrigin: "center",
-                    }}
-                  >
-                    {underlay.lines.map((line, index) => (
-                      <span
-                        className="timeline-day-event-overlay-tooltip-item"
-                        key={`${underlay.id}-${line}-${index}`}
-                      >
-                        {line}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </>,
-            tooltipPortalTarget,
-          )
-        : null}
+      <TimelineMilestoneUnderlaysPortal
+        portalTarget={tooltipPortalTarget}
+        underlays={timelineDayMilestoneUnderlays}
+      />
 
       <TimelineMilestoneHoverLayer
         controllerRef={setHoveredMilestonePopupLayerRef}
@@ -3079,7 +1259,3 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     </section>
   );
 };
-
-
-
-
