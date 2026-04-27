@@ -12,7 +12,7 @@ export type ViewTab =
 
 export type TaskViewTab = "timeline" | "queue" | "milestones";
 export type RiskManagementViewTab = "risks" | "metrics";
-export type WorklogsViewTab = "logs" | "summary";
+export type WorklogsViewTab = "logs" | "qa" | "event-result" | "summary";
 export type ManufacturingViewTab = "cnc" | "prints" | "fabrication";
 export type InventoryViewTab = "materials" | "parts" | "purchases";
 
@@ -37,7 +37,12 @@ export const RISK_MANAGEMENT_VIEW_ORDER: readonly RiskManagementViewTab[] = [
   "risks",
   "metrics",
 ];
-export const WORKLOG_VIEW_ORDER: readonly WorklogsViewTab[] = ["logs", "summary"];
+export const WORKLOG_VIEW_ORDER: readonly WorklogsViewTab[] = [
+  "logs",
+  "qa",
+  "event-result",
+  "summary",
+];
 export const MANUFACTURING_VIEW_ORDER: readonly ManufacturingViewTab[] = [
   "cnc",
   "prints",
@@ -62,6 +67,8 @@ export const RISK_MANAGEMENT_VIEW_OPTIONS: readonly ViewOption<RiskManagementVie
 
 export const WORKLOG_VIEW_OPTIONS: readonly ViewOption<WorklogsViewTab>[] = [
   { value: "logs", label: "Logs" },
+  { value: "qa", label: "QA" },
+  { value: "event-result", label: "Event Result" },
   { value: "summary", label: "Summary" },
 ];
 

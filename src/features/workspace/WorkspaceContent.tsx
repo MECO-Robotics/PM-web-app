@@ -566,6 +566,44 @@ export function WorkspaceContent({
         </WorkspaceSubPanel>
 
         <WorkspaceSubPanel
+          description={SUBVIEW_INTERACTION_GUIDANCE.qa}
+          disableAnimations={disablePanelAnimations}
+          isActive={worklogsView === "qa"}
+          swipeDirection={worklogsSwipeDirection}
+        >
+          <WorkLogsView
+            activePersonFilter={activePersonFilter}
+            bootstrap={bootstrap}
+            membersById={membersById}
+            openCreateWorkLogModal={openCreateWorkLogModal}
+            openCreateQaReportModal={openCreateQaReportModal}
+            openCreateEventReportModal={openCreateEventReportModal}
+            openEditTaskModal={openTimelineTaskDetailsModal}
+            subsystemsById={subsystemsById}
+            view="qa"
+          />
+        </WorkspaceSubPanel>
+
+        <WorkspaceSubPanel
+          description={SUBVIEW_INTERACTION_GUIDANCE["event-result"]}
+          disableAnimations={disablePanelAnimations}
+          isActive={worklogsView === "event-result"}
+          swipeDirection={worklogsSwipeDirection}
+        >
+          <WorkLogsView
+            activePersonFilter={activePersonFilter}
+            bootstrap={bootstrap}
+            membersById={membersById}
+            openCreateWorkLogModal={openCreateWorkLogModal}
+            openCreateQaReportModal={openCreateQaReportModal}
+            openCreateEventReportModal={openCreateEventReportModal}
+            openEditTaskModal={openTimelineTaskDetailsModal}
+            subsystemsById={subsystemsById}
+            view="event-result"
+          />
+        </WorkspaceSubPanel>
+
+        <WorkspaceSubPanel
           description={SUBVIEW_INTERACTION_GUIDANCE.summary}
           disableAnimations={disablePanelAnimations}
           isActive={worklogsView === "summary"}

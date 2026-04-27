@@ -16,30 +16,31 @@ import { AppTopbar } from "@/components/layout/AppTopbar";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 function renderTopbar(
+  activeTab: "inventory" | "worklogs" = "inventory",
   isNonRobotProject: boolean,
   myView: {
     isActive: boolean;
     memberName: string | null;
   } = {
-    isActive: false,
-    memberName: "Ava Chen",
-  },
+      isActive: false,
+      memberName: "Ava Chen",
+    },
   isSignedIn = false,
 ) {
   const sessionUser = isSignedIn
     ? {
-        accountId: "account-1",
-        authProvider: "google" as const,
-        email: "ava.chen@example.com",
-        hostedDomain: "meco-robotics.com",
-        name: "Ava Chen",
-        picture: null,
-      }
+      accountId: "account-1",
+      authProvider: "google" as const,
+      email: "ava.chen@example.com",
+      hostedDomain: "meco-robotics.com",
+      name: "Ava Chen",
+      picture: null,
+    }
     : null;
 
   return renderToStaticMarkup(
     React.createElement(AppTopbar, {
-      activeTab: "inventory",
+      activeTab,
       handleSignOut: jest.fn(),
       inventoryView: "materials",
       isDarkMode: false,
@@ -81,7 +82,7 @@ function renderTopbar(
 
 describe("AppTopbar", () => {
   it("omits the non-technical inventory subtab for non-robot projects", () => {
-    const markup = renderTopbar(true);
+    const markup = renderTopbar("inventory", true);
 
     expect(markup).toContain("Documents");
     expect(markup).toContain("Purchases");
@@ -89,7 +90,7 @@ describe("AppTopbar", () => {
   });
 
   it("renders season controls in the signed-in profile menu", () => {
-    const markup = renderTopbar(false, undefined, true);
+    const markup = renderTopbar("inventory", false, undefined, true);
 
     expect(markup).toContain('data-tutorial-target="season-select"');
     expect(markup).toContain("Create new season");
@@ -97,6 +98,7 @@ describe("AppTopbar", () => {
 
   it("renders My View as an active topbar filter toggle", () => {
     const markup = renderTopbar(
+      "inventory",
       false,
       {
         isActive: true,
@@ -111,16 +113,23 @@ describe("AppTopbar", () => {
   });
 
   it("keeps a standalone dark mode button for local access", () => {
-    const markup = renderTopbar(false);
+    const markup = renderTopbar("inventory", false);
 
     expect(markup).toContain('aria-label="Toggle dark mode"');
   });
 
   it("moves dark mode toggle under profile menu for signed-in users", () => {
-    const markup = renderTopbar(false, undefined, true);
+    const markup = renderTopbar("inventory", false, undefined, true);
 
     expect(markup).toContain("profile-menu-item-theme-toggle");
     expect(markup).toContain("Dark mode");
     expect(markup).not.toContain('aria-label="Toggle dark mode"');
+  });
+
+  it("shows QA and Event Result worklog tabs in the top bar", () => {
+    const markup = renderTopbar("worklogs", false);
+
+    expect(markup).toContain("QA");
+    expect(markup).toContain("Event Result");
   });
 });
