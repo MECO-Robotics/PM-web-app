@@ -59,6 +59,7 @@ export function CncView({
       showInHouseColumn
       subsystemsById={subsystemsById}
       title="cnc"
+      tutorialTargetPrefix="cnc"
     />
   );
 }

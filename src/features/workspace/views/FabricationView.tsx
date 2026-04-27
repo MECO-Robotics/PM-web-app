@@ -49,6 +49,7 @@ export function FabricationView({
       onEdit={onEdit}
       subsystemsById={subsystemsById}
       title="Fabrication queue"
+      tutorialTargetPrefix="fabrication"
     />
   );
 }

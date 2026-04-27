@@ -120,14 +120,14 @@ function renderTaskModal(taskModalMode: ComponentProps<typeof TaskEditorModal>["
   );
 }
 
-function renderIterationEditors() {
+function renderIterationEditors(mode: "create" | "edit") {
   const bootstrap = createBootstrap();
   const noop = jest.fn();
 
   return [
     renderToStaticMarkup(
       React.createElement(PartDefinitionEditorModal, {
-        activePartDefinitionId: null,
+        activePartDefinitionId: mode === "edit" ? "part-definition-1" : null,
         bootstrap,
         closePartDefinitionModal: noop,
         handleDeletePartDefinition: noop,
@@ -145,13 +145,13 @@ function renderIterationEditors() {
           materialId: null,
           description: "",
         },
-        partDefinitionModalMode: "create",
+        partDefinitionModalMode: mode,
         setPartDefinitionDraft: noop,
       }),
     ),
     renderToStaticMarkup(
       React.createElement(SubsystemEditorModal, {
-        activeSubsystemId: null,
+        activeSubsystemId: mode === "edit" ? "subsystem-1" : null,
         bootstrap,
         closeSubsystemModal: noop,
         handleToggleSubsystemArchived: noop,
@@ -168,14 +168,14 @@ function renderIterationEditors() {
           risks: [],
         },
         subsystemDraftRisks: "",
-        subsystemModalMode: "create",
+        subsystemModalMode: mode,
         setSubsystemDraft: noop,
         setSubsystemDraftRisks: noop,
       }),
     ),
     renderToStaticMarkup(
       React.createElement(MechanismEditorModal, {
-        activeMechanismId: null,
+        activeMechanismId: mode === "edit" ? "mechanism-1" : null,
         bootstrap,
         closeMechanismModal: noop,
         handleDeleteMechanism: noop,
@@ -189,7 +189,7 @@ function renderIterationEditors() {
           description: "Drive gearbox",
           iteration: 1,
         },
-        mechanismModalMode: "create",
+        mechanismModalMode: mode,
         setMechanismDraft: noop,
       }),
     ),
@@ -338,13 +338,17 @@ describe("TaskEditorModal", () => {
     expect(renderTaskModal("edit")).not.toContain("Task traceability");
   });
 
-  it("renders iteration selectors for definition editors", () => {
-    const markup = renderIterationEditors();
+  it("hides iteration selectors while creating definition editors", () => {
+    const markup = renderIterationEditors("create");
 
-    expect(markup).toContain("Part iteration");
-    expect(markup).toContain("Subsystem iteration");
-    expect(markup).toContain("Mechanism iteration");
-    expect(markup).toContain("Iteration 1");
+    expect(markup).not.toContain(">Iteration</span>");
+  });
+
+  it("renders iteration selectors for definition editors in edit mode", () => {
+    const markup = renderIterationEditors("edit");
+
+    expect(markup).toContain(">Iteration</span>");
+    expect(markup).toContain("v1");
   });
 
   it("renders the in-house checkbox only for CNC manufacturing jobs", () => {

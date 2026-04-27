@@ -165,12 +165,23 @@ interface HelpViewProps {
   tutorialInitiallyOpen?: boolean;
   tutorialInitiallyComplete?: boolean;
   onStartInteractiveTutorial?: () => void;
+  onStartInteractiveTutorialChapter?: (chapterId: string) => void;
+  interactiveTutorialChapters?: Array<{
+    id: string;
+    title: string;
+    summary: string;
+    completed?: boolean;
+  }>;
+  isInteractiveTutorialActive?: boolean;
 }
 
 export function HelpView({
   tutorialInitiallyOpen = false,
   tutorialInitiallyComplete = false,
   onStartInteractiveTutorial,
+  onStartInteractiveTutorialChapter,
+  interactiveTutorialChapters = [],
+  isInteractiveTutorialActive = false,
 }: HelpViewProps) {
   const [isTutorialOpen, setIsTutorialOpen] = useState(tutorialInitiallyOpen);
   const [activeTutorialStep, setActiveTutorialStep] = useState(0);
@@ -211,6 +222,8 @@ export function HelpView({
 
   const currentStep = HELP_TUTORIAL_STEPS[activeTutorialStep] ?? HELP_TUTORIAL_STEPS[0];
   const isLastStep = activeTutorialStep === HELP_TUTORIAL_STEPS.length - 1;
+  const hasInteractiveChapterLauncher =
+    Boolean(onStartInteractiveTutorialChapter) && interactiveTutorialChapters.length > 0;
   const progressPercent = isTutorialComplete
     ? 100
     : ((activeTutorialStep + 1) / HELP_TUTORIAL_STEPS.length) * 100;
@@ -255,7 +268,13 @@ export function HelpView({
           aria-controls={onStartInteractiveTutorial ? undefined : "help-tutorial-dialog"}
           className="primary-action help-tutorial-launch"
           data-tutorial-launch="help"
+          disabled={isInteractiveTutorialActive}
           onClick={() => {
+            if (hasInteractiveChapterLauncher && onStartInteractiveTutorialChapter) {
+              onStartInteractiveTutorialChapter(interactiveTutorialChapters[0].id);
+              return;
+            }
+
             if (onStartInteractiveTutorial) {
               onStartInteractiveTutorial();
               return;
@@ -266,9 +285,36 @@ export function HelpView({
           type="button"
         >
           <IconHelp />
-          Start tutorial
+          {hasInteractiveChapterLauncher ? "Start chapter 1" : "Start tutorial"}
         </button>
       </div>
+
+      {hasInteractiveChapterLauncher ? (
+        <div className="panel-subsection help-doc-section">
+          <h3>Interactive tutorial chapters</h3>
+          <p>
+            Start any chapter directly. At the end of each chapter, you can end or continue.
+          </p>
+          <div style={{ display: "grid", gap: "0.6rem", marginTop: "0.6rem" }}>
+            {interactiveTutorialChapters.map((chapter, index) => (
+              <article className="help-doc-section" key={chapter.id} style={{ margin: 0 }}>
+                <h3 style={{ marginBottom: "0.35rem" }}>
+                  Chapter {index + 1}: {chapter.title}
+                </h3>
+                <p>{chapter.summary}</p>
+                <button
+                  className="secondary-action"
+                  disabled={isInteractiveTutorialActive}
+                  onClick={() => onStartInteractiveTutorialChapter?.(chapter.id)}
+                  type="button"
+                >
+                  {chapter.completed ? "Restart chapter" : "Start chapter"}
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="panel-subsection help-docs-list">
         {HELP_SECTIONS.map((section) => (

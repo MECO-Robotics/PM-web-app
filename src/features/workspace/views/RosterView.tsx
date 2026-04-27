@@ -103,6 +103,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
                         <button
                             aria-label={`Edit ${member.name}`}
                             className="member-action-button"
+                            data-tutorial-target="edit-roster-member-button"
                             onClick={() => openEditPersonPopup(member.id)}
                             title="Edit"
                             type="button"
@@ -135,7 +136,14 @@ export const RosterView: React.FC<RosterViewProps> = ({
                             <h3>Students</h3>
                             <span className="sidebar-tab-count">{sortedStudents.length}</span>
                         </div>
-                        <button className="roster-section-add" onClick={() => openAddPersonPanel("student")} type="button"><IconPlus /></button>
+                        <button
+                            className="roster-section-add"
+                            data-tutorial-target="create-student-button"
+                            onClick={() => openAddPersonPanel("student")}
+                            type="button"
+                        >
+                            <IconPlus />
+                        </button>
                     </div>
                     <div className="roster-list">
                         {sortedStudents.map(renderMemberRow)}

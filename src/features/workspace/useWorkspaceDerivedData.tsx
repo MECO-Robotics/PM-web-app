@@ -4,6 +4,7 @@ import {
   IconHelp,
   IconManufacturing,
   IconParts,
+  IconRisk,
   IconRoster,
   IconSubsystems,
   IconTasks,
@@ -114,6 +115,12 @@ export function useWorkspaceDerivedData({
           count: bootstrap.tasks.length,
         },
         {
+          value: "risk-management",
+          label: "Risks",
+          icon: <IconRisk />,
+          count: bootstrap.risks.length,
+        },
+        {
           value: "worklogs",
           label: "Work logs",
           icon: <IconWorkLogs />,
@@ -166,6 +173,7 @@ export function useWorkspaceDerivedData({
     },
     [
       bootstrap.tasks.length,
+      bootstrap.risks.length,
       bootstrap.workLogs.length,
       bootstrap.manufacturingItems,
       bootstrap.members.length,

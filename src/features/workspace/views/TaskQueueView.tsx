@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
-import { formatDate } from "@/lib/appUtils";
+import { formatDate, formatIterationVersion } from "@/lib/appUtils";
 import type { BootstrapPayload, TaskRecord } from "@/types";
 import {
   IconManufacturing,
@@ -63,6 +63,86 @@ function formatNames(
   return ids.map((id) => lookup[id]?.name ?? "Unknown").join(", ");
 }
 
+function readTaskSubsystemIds(task: TaskRecord) {
+  const subsystemIds = Array.isArray(task.subsystemIds) ? task.subsystemIds : [];
+  const candidateIds = subsystemIds.length > 0 ? subsystemIds : [task.subsystemId];
+
+  return Array.from(
+    new Set(
+      candidateIds.filter(
+        (subsystemId): subsystemId is string =>
+          typeof subsystemId === "string" && subsystemId.length > 0,
+      ),
+    ),
+  );
+}
+
+function formatSubsystemNames(
+  subsystemIds: string[],
+  lookup: Record<string, BootstrapPayload["subsystems"][number]>,
+  fallback: string,
+) {
+  if (subsystemIds.length === 0) {
+    return fallback;
+  }
+
+  return subsystemIds
+    .map((subsystemId) => {
+      const subsystem = lookup[subsystemId];
+      return subsystem
+        ? `${subsystem.name} (${formatIterationVersion(subsystem.iteration)})`
+        : "Unknown";
+    })
+    .join(", ");
+}
+
+function formatMechanismNames(
+  mechanismIds: string[],
+  lookup: Record<string, BootstrapPayload["mechanisms"][number]>,
+  fallback: string,
+) {
+  if (mechanismIds.length === 0) {
+    return fallback;
+  }
+
+  return mechanismIds
+    .map((mechanismId) => {
+      const mechanism = lookup[mechanismId];
+      return mechanism
+        ? `${mechanism.name} (${formatIterationVersion(mechanism.iteration)})`
+        : "Unknown";
+    })
+    .join(", ");
+}
+
+function readTaskMechanismIds(task: TaskRecord) {
+  const mechanismIds = Array.isArray(task.mechanismIds) ? task.mechanismIds : [];
+  const candidateIds = mechanismIds.length > 0 ? mechanismIds : [task.mechanismId];
+
+  return Array.from(
+    new Set(
+      candidateIds.filter(
+        (mechanismId): mechanismId is string =>
+          typeof mechanismId === "string" && mechanismId.length > 0,
+      ),
+    ),
+  );
+}
+
+function readTaskPartInstanceIds(task: TaskRecord) {
+  const partInstanceIds = Array.isArray(task.partInstanceIds) ? task.partInstanceIds : [];
+  const candidateIds = partInstanceIds.length > 0 ? partInstanceIds : [task.partInstanceId];
+
+  return Array.from(
+    new Set(
+      candidateIds.filter(
+        (partInstanceId): partInstanceId is string =>
+          typeof partInstanceId === "string" && partInstanceId.length > 0,
+      ),
+    ),
+  );
+}
+
 function readTaskAssigneeIds(task: TaskRecord) {
   const assigneeIds = Array.isArray(task.assigneeIds) ? task.assigneeIds : [];
 
@@ -99,6 +179,8 @@ export function TaskQueueView({
   const [projectFilter, setProjectFilter] = useState<FilterSelection>([]);
   const [statusFilter, setStatusFilter] = useState<FilterSelection>([]);
   const [subsystemFilter, setSubsystemFilter] = useState<FilterSelection>([]);
+  const [subsystemIterationFilter, setSubsystemIterationFilter] =
+    useState<FilterSelection>([]);
   const [ownerFilter, setOwnerFilter] = useState<FilterSelection>([]);
   const [priorityFilter, setPriorityFilter] = useState<FilterSelection>([]);
   const [searchFilter, setSearchFilter] = useState("");
@@ -110,6 +192,24 @@ export function TaskQueueView({
       ) as Record<string, BootstrapPayload["projects"][number]>,
     [bootstrap.projects],
   );
+  const subsystemFilterOptions = useMemo(
+    () =>
+      bootstrap.subsystems.map((subsystem) => ({
+        id: subsystem.id,
+        name: `${subsystem.name} (${formatIterationVersion(subsystem.iteration)})`,
+      })),
+    [bootstrap.subsystems],
+  );
+  const subsystemIterationOptions = useMemo(() => {
+    const uniqueIterations = Array.from(
+      new Set(bootstrap.subsystems.map((subsystem) => subsystem.iteration)),
+    ).sort((left, right) => left - right);
+
+    return uniqueIterations.map((iteration) => ({
+      id: `${iteration}`,
+      name: formatIterationVersion(iteration),
+    }));
+  }, [bootstrap.subsystems]);
 
   useEffect(() => {
     if (!isAllProjectsView && projectFilter.length > 0) {
@@ -163,8 +263,20 @@ export function TaskQueueView({
       result = result.filter((task) =>
         filterSelectionIntersects(
           subsystemFilter,
-          Array.from(new Set([task.subsystemId, ...task.subsystemIds].filter(Boolean))),
+          readTaskSubsystemIds(task),
         ),
+      );
+    }
+    if (subsystemIterationFilter.length > 0) {
+      result = result.filter((task) =>
+        readTaskSubsystemIds(task).some((subsystemId) => {
+          const subsystemIteration = subsystemsById[subsystemId]?.iteration;
+
+          return (
+            typeof subsystemIteration === "number" &&
+            subsystemIterationFilter.includes(`${subsystemIteration}`)
+          );
+        }),
       );
     }
     if (ownerFilter.length > 0) {
@@ -205,7 +317,7 @@ export function TaskQueueView({
         return statusValues[task.status] ?? 0;
       }
       if (sortField === "subsystemId") {
-        return formatNames(task.subsystemIds, subsystemsById, "");
+        return formatSubsystemNames(readTaskSubsystemIds(task), subsystemsById, "");
       }
       if (sortField === "projectId") {
         return projectsById[task.projectId]?.name ?? "";
@@ -245,6 +357,7 @@ export function TaskQueueView({
     sortOrder,
     statusFilter,
     subsystemFilter,
+    subsystemIterationFilter,
     subsystemsById,
   ]);
   const taskPagination = useWorkspacePagination(processedTasks);
@@ -259,6 +372,7 @@ export function TaskQueueView({
     sortOrder,
     statusFilter,
     subsystemFilter,
+    subsystemIterationFilter,
   ]);
 
   const toggleSort = (field: TaskSortField) => {
@@ -304,12 +418,14 @@ export function TaskQueueView({
           </p>
         </div>
         <div className="panel-actions filter-toolbar task-queue-toolbar">
-          <SearchToolbarInput
-            ariaLabel="Search tasks"
-            onChange={setSearchFilter}
-            placeholder="Search tasks..."
-            value={searchFilter}
-          />
+          <div data-tutorial-target="task-queue-search-input">
+            <SearchToolbarInput
+              ariaLabel="Search tasks"
+              onChange={setSearchFilter}
+              placeholder="Search tasks..."
+              value={searchFilter}
+            />
+          </div>
 
           {isAllProjectsView ? (
             <FilterDropdown
@@ -323,14 +439,25 @@ export function TaskQueueView({
             />
           ) : null}
 
+          <div data-tutorial-target="task-queue-filter-control">
+            <FilterDropdown
+              allLabel="All subsystems"
+              ariaLabel="Filter tasks by subsystem"
+              className="mobile-filter-control"
+              icon={<IconManufacturing />}
+              onChange={setSubsystemFilter}
+              options={subsystemFilterOptions}
+              value={subsystemFilter}
+            />
+          </div>
           <FilterDropdown
-            allLabel="All subsystems"
-            ariaLabel="Filter tasks by subsystem"
+            allLabel="All iterations"
+            ariaLabel="Filter tasks by subsystem iteration"
             className="mobile-filter-control"
             icon={<IconManufacturing />}
-            onChange={setSubsystemFilter}
-            options={bootstrap.subsystems}
-            value={subsystemFilter}
+            onChange={setSubsystemIterationFilter}
+            options={subsystemIterationOptions}
+            value={subsystemIterationFilter}
           />
 
           <FilterDropdown
@@ -366,6 +493,7 @@ export function TaskQueueView({
           <button
             aria-label="Add task"
             className="primary-action queue-toolbar-action"
+            data-tutorial-target="create-task-button"
             onClick={openCreateTaskModal}
             title="Add task"
             type="button"
@@ -406,8 +534,15 @@ export function TaskQueueView({
                 allLabel="All subsystems"
                 ariaLabel="Filter tasks by subsystem"
                 onChange={setSubsystemFilter}
-                options={bootstrap.subsystems}
+                options={subsystemFilterOptions}
                 value={subsystemFilter}
+              />
+              <ColumnFilterDropdown
+                allLabel="All iterations"
+                ariaLabel="Filter tasks by subsystem iteration"
+                onChange={setSubsystemIterationFilter}
+                options={subsystemIterationOptions}
+                value={subsystemIterationFilter}
               />
             </span>
           ) : null}
@@ -459,19 +594,24 @@ export function TaskQueueView({
         </div>
 
         {taskPagination.pageItems.map((task) => {
-          const linkedPartNames = task.partInstanceIds
+          const linkedPartNames = readTaskPartInstanceIds(task)
             .map((partInstanceId) => {
               const partInstance = partInstancesById[partInstanceId];
-              return (
-                partInstance?.name ??
-                partDefinitionsById[partInstance?.partDefinitionId ?? ""]?.name
-              );
+              if (!partInstance) {
+                return null;
+              }
+
+              const partDefinition = partDefinitionsById[partInstance.partDefinitionId];
+              return partDefinition
+                ? `${partInstance.name} (${partDefinition.name} (${formatIterationVersion(partDefinition.iteration)}))`
+                : partInstance.name;
             })
             .filter((name): name is string => Boolean(name));
 
           return (
             <button
               className="queue-table queue-row editable-hover-target editable-hover-target-row"
+              data-tutorial-target="edit-task-row"
               key={task.id}
               onClick={() => openEditTaskModal(task)}
               style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
@@ -491,7 +631,11 @@ export function TaskQueueView({
                 <small>
                   {(task.disciplineId ? disciplinesById[task.disciplineId]?.name : null) ?? "No discipline"}
                   {" / "}
-                  {formatNames(task.mechanismIds, mechanismsById, "No mechanism")}
+                  {formatMechanismNames(
+                    readTaskMechanismIds(task),
+                    mechanismsById,
+                    "No mechanism",
+                  )}
                   {" / "}
                   {linkedPartNames.length > 0 ? linkedPartNames.join(", ") : "No part"}
                   {task.targetEventId
@@ -501,7 +645,7 @@ export function TaskQueueView({
               </span>
               {showSubsystemCol ? (
                 <TableCell label="Subsystem">
-                  {formatNames(task.subsystemIds, subsystemsById, "Unknown")}
+                  {formatSubsystemNames(readTaskSubsystemIds(task), subsystemsById, "Unknown")}
                 </TableCell>
               ) : null}
               {showOwnerCol ? (

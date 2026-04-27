@@ -17,6 +17,7 @@ import {
 import { getStatusPillClassName } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import { PART_STATUS_OPTIONS } from "@/features/workspace/shared";
+import { formatIterationVersion } from "@/lib/appUtils";
 
 interface PartsViewProps {
   bootstrap: BootstrapPayload;
@@ -59,6 +60,7 @@ export function filterPartDefinitions({
       partDefinition.name.toLowerCase().includes(search) ||
       partDefinition.partNumber.toLowerCase().includes(search) ||
       `iteration ${partDefinition.iteration}`.includes(search) ||
+      formatIterationVersion(partDefinition.iteration).toLowerCase().includes(search) ||
       partDefinition.type.toLowerCase().includes(search) ||
       partDefinition.source.toLowerCase().includes(search) ||
       materialName.toLowerCase().includes(search);
@@ -164,12 +166,14 @@ export function PartsView({
           </p>
         </div>
         <div className="panel-actions filter-toolbar part-manager-toolbar">
-          <SearchToolbarInput
-            ariaLabel="Search parts"
-            onChange={setPartSearch}
-            placeholder="Search parts..."
-            value={partSearch}
-          />
+          <div data-tutorial-target="parts-search-input">
+            <SearchToolbarInput
+              ariaLabel="Search parts"
+              onChange={setPartSearch}
+              placeholder="Search parts..."
+              value={partSearch}
+            />
+          </div>
           <label
             style={{
               display: "inline-flex",
@@ -210,6 +214,7 @@ export function PartsView({
           <button
             aria-label="Add part definition"
             className="primary-action queue-toolbar-action part-manager-toolbar-action"
+            data-tutorial-target="create-part-button"
             onClick={openCreatePartDefinitionModal}
             title="Add part definition"
             type="button"
@@ -274,7 +279,9 @@ export function PartsView({
                 </span>
                 <TableCell label="Number">{partDefinition.partNumber}</TableCell>
                 <TableCell label="Rev">{partDefinition.revision}</TableCell>
-                <TableCell label="Iteration">Iteration {partDefinition.iteration}</TableCell>
+                <TableCell label="Iteration">
+                  {formatIterationVersion(partDefinition.iteration)}
+                </TableCell>
                 <TableCell label="Type">{partDefinition.type}</TableCell>
                 <TableCell label="Material">{materialName}</TableCell>
                 <EditableHoverIndicator />

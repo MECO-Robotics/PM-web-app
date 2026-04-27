@@ -9,14 +9,17 @@ import type {
   PartDefinitionPayload,
   PartInstancePayload,
   PurchaseItemPayload,
+  QaReportPayload,
   SubsystemPayload,
   TaskPayload,
   TaskRecord,
+  TestResultPayload,
   WorkLogPayload,
   WorkstreamPayload,
 } from "@/types";
 import {
   buildIterationOptions,
+  formatIterationVersion,
   getManufacturingPartInstanceOptions,
   getProjectTaskTargetLabel,
   inferManufacturingDraftFromPartSelection,
@@ -83,6 +86,10 @@ export function TaskEditorModal({
   const projectSubsystems = bootstrap.subsystems.filter(
     (subsystem) => subsystem.projectId === taskDraft.projectId,
   );
+  const sortedProjectSubsystems = [...projectSubsystems].sort(
+    (left, right) =>
+      left.name.localeCompare(right.name) || left.iteration - right.iteration,
+  );
   const selectedSubsystemIds =
     taskDraft.subsystemIds.length > 0
       ? taskDraft.subsystemIds
@@ -90,6 +97,17 @@ export function TaskEditorModal({
         ? [taskDraft.subsystemId]
         : [];
   const selectedPrimaryTargetId = selectedSubsystemIds[0] ?? "";
+  const selectedPrimaryTarget = selectedPrimaryTargetId
+    ? subsystemsById[selectedPrimaryTargetId] ?? null
+    : null;
+  const primaryTargetNameOptions = Array.from(
+    new Set(sortedProjectSubsystems.map((subsystem) => subsystem.name)),
+  );
+  const selectedPrimaryTargetName =
+    selectedPrimaryTarget?.name ?? primaryTargetNameOptions[0] ?? "";
+  const selectedPrimaryTargetIterations = sortedProjectSubsystems.filter(
+    (subsystem) => subsystem.name === selectedPrimaryTargetName,
+  );
   const projectMechanisms = bootstrap.mechanisms.filter(
     (mechanism) => mechanism.subsystemId === selectedPrimaryTargetId,
   );
@@ -114,15 +132,24 @@ export function TaskEditorModal({
       : taskDraft.ownerId
         ? [taskDraft.ownerId]
         : [];
+  const getSubsystemLabel = (subsystem: BootstrapPayload["subsystems"][number]) =>
+    `${subsystem.name} (${formatIterationVersion(subsystem.iteration)})`;
+  const getMechanismLabel = (mechanism: BootstrapPayload["mechanisms"][number]) =>
+    `${mechanism.name} (${formatIterationVersion(mechanism.iteration)})`;
   const getPartInstanceLabel = (partInstance: BootstrapPayload["partInstances"][number]) => {
     const partDefinition = partDefinitionsById[partInstance.partDefinitionId];
+    const partDefinitionLabel = partDefinition
+      ? `${partDefinition.name} (${formatIterationVersion(partDefinition.iteration)})`
+      : null;
 
-    return partDefinition ? `${partInstance.name} (${partDefinition.name})` : partInstance.name;
+    return partDefinitionLabel
+      ? `${partInstance.name} (${partDefinitionLabel})`
+      : partInstance.name;
   };
   const selectedScopeChips = [
     ...selectedMechanismIds.map((id) => ({
       key: `mechanism-${id}`,
-      label: mechanismsById[id]?.name,
+      label: mechanismsById[id] ? getMechanismLabel(mechanismsById[id]) : undefined,
     })),
     ...selectedPartInstanceIds.map((id) => ({
       key: `part-instance-${id}`,
@@ -131,6 +158,17 @@ export function TaskEditorModal({
   ].filter((chip): chip is { key: string; label: string } => Boolean(chip.label));
   const updatePrimaryTarget = (subsystemId: string) => {
     setTaskDraft((current) => setTaskPrimaryTargetSelection(current, bootstrap, subsystemId));
+  };
+  const updatePrimaryTargetName = (subsystemName: string) => {
+    const subsystemMatches = sortedProjectSubsystems.filter(
+      (subsystem) => subsystem.name === subsystemName,
+    );
+    const nextPrimaryTarget =
+      subsystemMatches.find((subsystem) => subsystem.id === selectedPrimaryTargetId) ??
+      subsystemMatches[0] ??
+      null;
+
+    updatePrimaryTarget(nextPrimaryTarget?.id ?? "");
   };
   const toggleTarget = (kind: TaskTargetKind, id: string) => {
     setTaskDraft((current) =>
@@ -270,22 +308,45 @@ export function TaskEditorModal({
             <label className="task-target-primary">
               <span>{targetGroupLabel === "Subsystems" ? "Subsystem" : "Workstream"}</span>
               <select
+                onChange={(event) => updatePrimaryTargetName(event.target.value)}
+                required
+                style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+                value={selectedPrimaryTargetName}
+              >
+                <option value="" disabled>
+                  {targetFallback}
+                </option>
+                {primaryTargetNameOptions.map((subsystemName) => (
+                  <option key={subsystemName} value={subsystemName}>
+                    {subsystemName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="task-target-primary">
+              <span>Iteration</span>
+              <select
                 onChange={(event) => updatePrimaryTarget(event.target.value)}
                 required
                 style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
                 value={selectedPrimaryTargetId}
               >
                 <option value="" disabled>
-                  {targetFallback}
+                  Select iteration
                 </option>
-                {projectSubsystems.map((subsystem) => (
+                {selectedPrimaryTargetIterations.map((subsystem) => (
                   <option key={subsystem.id} value={subsystem.id}>
-                    {subsystem.name}
+                    {formatIterationVersion(subsystem.iteration)}
                   </option>
                 ))}
               </select>
             </label>
             <div className="task-target-selected" aria-live="polite">
+              {selectedPrimaryTarget ? (
+                <span className="task-target-chip">
+                  {getSubsystemLabel(selectedPrimaryTarget)}
+                </span>
+              ) : null}
               {selectedScopeChips.length > 0 ? (
                 selectedScopeChips.map((chip) => (
                   <span className="task-target-chip" key={chip.key}>
@@ -303,8 +364,10 @@ export function TaskEditorModal({
                   renderTargetOption(
                     "mechanism",
                     mechanism.id,
-                    mechanism.name,
-                    subsystemsById[mechanism.subsystemId]?.name ?? null,
+                    getMechanismLabel(mechanism),
+                    subsystemsById[mechanism.subsystemId]
+                      ? getSubsystemLabel(subsystemsById[mechanism.subsystemId])
+                      : null,
                     selectedMechanismIds.includes(mechanism.id),
                   ),
                 )}
@@ -317,9 +380,11 @@ export function TaskEditorModal({
                     partInstance.id,
                     getPartInstanceLabel(partInstance),
                     [
-                      subsystemsById[partInstance.subsystemId]?.name,
-                      partInstance.mechanismId
-                        ? mechanismsById[partInstance.mechanismId]?.name
+                      partInstance.subsystemId && subsystemsById[partInstance.subsystemId]
+                        ? getSubsystemLabel(subsystemsById[partInstance.subsystemId])
+                        : null,
+                      partInstance.mechanismId && mechanismsById[partInstance.mechanismId]
+                        ? getMechanismLabel(mechanismsById[partInstance.mechanismId])
                         : null,
                     ]
                       .filter(Boolean)
@@ -658,10 +723,20 @@ export function TaskDetailsModal({
         ? [activeTask.partInstanceId]
         : [];
   const subsystemNames = selectedSubsystemIds
-    .map((subsystemId) => subsystemsById[subsystemId]?.name)
+    .map((subsystemId) => {
+      const subsystem = subsystemsById[subsystemId];
+      return subsystem
+        ? `${subsystem.name} (${formatIterationVersion(subsystem.iteration)})`
+        : null;
+    })
     .filter((name): name is string => Boolean(name));
   const mechanismNames = selectedMechanismIds
-    .map((mechanismId) => mechanismsById[mechanismId]?.name)
+    .map((mechanismId) => {
+      const mechanism = mechanismsById[mechanismId];
+      return mechanism
+        ? `${mechanism.name} (${formatIterationVersion(mechanism.iteration)})`
+        : null;
+    })
     .filter((name): name is string => Boolean(name));
   const partLabels = selectedPartInstanceIds
     .map((partInstanceId) => {
@@ -672,7 +747,7 @@ export function TaskDetailsModal({
 
       const partDefinition = partDefinitionsById[partInstance.partDefinitionId];
       return partDefinition
-        ? `${partInstance.name} (${partDefinition.name})`
+        ? `${partInstance.name} (${partDefinition.name} (${formatIterationVersion(partDefinition.iteration)}))`
         : partInstance.name;
     })
     .filter((label): label is string => Boolean(label));
@@ -830,7 +905,12 @@ export function TaskDetailsModal({
             >
               Close
             </button>
-            <button className="primary-action" onClick={() => onEditTask(activeTask)} type="button">
+            <button
+              className="primary-action"
+              data-tutorial-target="timeline-edit-task-button"
+              onClick={() => onEditTask(activeTask)}
+              type="button"
+            >
               Edit task
             </button>
           </div>
@@ -1059,6 +1139,392 @@ export function WorkLogEditorModal({
               type="submit"
             >
               {isSavingWorkLog ? "Saving..." : "Add work log"}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+interface QaReportEditorModalProps {
+  bootstrap: BootstrapPayload;
+  closeQaReportModal: () => void;
+  handleQaReportSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  isSavingQaReport: boolean;
+  qaReportDraft: QaReportPayload;
+  setQaReportDraft: Dispatch<SetStateAction<QaReportPayload>>;
+}
+
+export function QaReportEditorModal({
+  bootstrap,
+  closeQaReportModal,
+  handleQaReportSubmit,
+  isSavingQaReport,
+  qaReportDraft,
+  setQaReportDraft,
+}: QaReportEditorModalProps) {
+  const selectedTask = bootstrap.tasks.find((task) => task.id === qaReportDraft.taskId);
+
+  return (
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
+      <section
+        aria-modal="true"
+        className="modal-card"
+        role="dialog"
+        style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}
+      >
+        <div className="panel-header compact-header">
+          <div>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>
+              QA report
+            </p>
+            <h2 style={{ color: "var(--text-title)" }}>Add QA report</h2>
+          </div>
+          <button
+            className="icon-button"
+            onClick={closeQaReportModal}
+            style={{ color: "var(--text-copy)", background: "transparent" }}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+
+        <form
+          className="modal-form"
+          onSubmit={handleQaReportSubmit}
+          style={{ color: "var(--text-copy)" }}
+        >
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Task</span>
+            <select
+              onChange={(event) =>
+                setQaReportDraft((current) => ({
+                  ...current,
+                  taskId: event.target.value,
+                }))
+              }
+              required
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={qaReportDraft.taskId}
+            >
+              <option disabled value="">
+                Choose a task
+              </option>
+              {bootstrap.tasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
+            {selectedTask ? (
+              <small style={{ color: "var(--text-copy)" }}>{selectedTask.summary}</small>
+            ) : null}
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Result</span>
+            <select
+              onChange={(event) =>
+                setQaReportDraft((current) => ({
+                  ...current,
+                  result: event.target.value as QaReportPayload["result"],
+                }))
+              }
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={qaReportDraft.result}
+            >
+              <option value="pass">Pass</option>
+              <option value="minor-fix">Minor fix</option>
+              <option value="iteration-worthy">Iteration worthy</option>
+            </select>
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Reviewed date</span>
+            <input
+              onChange={(event) =>
+                setQaReportDraft((current) => ({
+                  ...current,
+                  reviewedAt: event.target.value,
+                }))
+              }
+              required
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              type="date"
+              value={qaReportDraft.reviewedAt}
+            />
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Participants</span>
+            <select
+              multiple
+              onChange={(event) =>
+                setQaReportDraft((current) => ({
+                  ...current,
+                  participantIds: Array.from(
+                    event.currentTarget.selectedOptions,
+                    (option) => option.value,
+                  ),
+                }))
+              }
+              size={Math.min(bootstrap.members.length || 1, 5)}
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={qaReportDraft.participantIds}
+            >
+              {bootstrap.members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+            <small style={{ color: "var(--text-copy)" }}>
+              Hold Ctrl or Cmd to select multiple people.
+            </small>
+          </label>
+
+          <label className="checkbox-field modal-wide">
+            <input
+              checked={qaReportDraft.mentorApproved}
+              onChange={(event) =>
+                setQaReportDraft((current) => ({
+                  ...current,
+                  mentorApproved: event.target.checked,
+                }))
+              }
+              type="checkbox"
+            />
+            <span style={{ color: "var(--text-title)" }}>Mentor approved</span>
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Notes</span>
+            <textarea
+              onChange={(event) =>
+                setQaReportDraft((current) => ({
+                  ...current,
+                  notes: event.target.value,
+                }))
+              }
+              placeholder="QA observations and follow-up."
+              rows={3}
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={qaReportDraft.notes}
+            />
+          </label>
+
+          <div className="modal-actions modal-wide">
+            <button
+              className="secondary-action"
+              onClick={closeQaReportModal}
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              className="primary-action"
+              disabled={
+                isSavingQaReport ||
+                bootstrap.tasks.length === 0 ||
+                bootstrap.members.length === 0
+              }
+              type="submit"
+            >
+              {isSavingQaReport ? "Saving..." : "Add QA report"}
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+interface EventReportEditorModalProps {
+  bootstrap: BootstrapPayload;
+  closeEventReportModal: () => void;
+  eventReportDraft: TestResultPayload;
+  eventReportFindings: string;
+  handleEventReportSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  isSavingEventReport: boolean;
+  setEventReportDraft: Dispatch<SetStateAction<TestResultPayload>>;
+  setEventReportFindings: (value: string) => void;
+}
+
+export function EventReportEditorModal({
+  bootstrap,
+  closeEventReportModal,
+  eventReportDraft,
+  eventReportFindings,
+  handleEventReportSubmit,
+  isSavingEventReport,
+  setEventReportDraft,
+  setEventReportFindings,
+}: EventReportEditorModalProps) {
+  const selectedEvent = bootstrap.events.find((item) => item.id === eventReportDraft.eventId);
+
+  return (
+    <div className="modal-scrim" role="presentation" style={{ zIndex: 2000 }}>
+      <section
+        aria-modal="true"
+        className="modal-card"
+        role="dialog"
+        style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}
+      >
+        <div className="panel-header compact-header">
+          <div>
+            <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>
+              Event report
+            </p>
+            <h2 style={{ color: "var(--text-title)" }}>Add event report</h2>
+          </div>
+          <button
+            className="icon-button"
+            onClick={closeEventReportModal}
+            style={{ color: "var(--text-copy)", background: "transparent" }}
+            type="button"
+          >
+            Close
+          </button>
+        </div>
+
+        <form
+          className="modal-form"
+          onSubmit={handleEventReportSubmit}
+          style={{ color: "var(--text-copy)" }}
+        >
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Event</span>
+            <select
+              onChange={(event) =>
+                setEventReportDraft((current) => ({
+                  ...current,
+                  eventId: event.target.value,
+                }))
+              }
+              required
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={eventReportDraft.eventId}
+            >
+              <option disabled value="">
+                Choose an event
+              </option>
+              {bootstrap.events.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+            {selectedEvent ? (
+              <small style={{ color: "var(--text-copy)" }}>{selectedEvent.description}</small>
+            ) : null}
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Title</span>
+            <input
+              onChange={(event) =>
+                setEventReportDraft((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
+              }
+              required
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={eventReportDraft.title}
+            />
+          </label>
+
+          <label className="field">
+            <span style={{ color: "var(--text-title)" }}>Status</span>
+            <select
+              onChange={(event) =>
+                setEventReportDraft((current) => ({
+                  ...current,
+                  status: event.target.value as TestResultPayload["status"],
+                }))
+              }
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={eventReportDraft.status}
+            >
+              <option value="pass">Pass</option>
+              <option value="fail">Fail</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </label>
+
+          <label className="field modal-wide">
+            <span style={{ color: "var(--text-title)" }}>Findings (one per line)</span>
+            <textarea
+              onChange={(event) => setEventReportFindings(event.target.value)}
+              placeholder="Add findings from this event."
+              rows={4}
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              value={eventReportFindings}
+            />
+          </label>
+
+          <div className="modal-actions modal-wide">
+            <button
+              className="secondary-action"
+              onClick={closeEventReportModal}
+              style={{
+                background: "var(--bg-row-alt)",
+                color: "var(--text-title)",
+                border: "1px solid var(--border-base)",
+              }}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              className="primary-action"
+              disabled={isSavingEventReport || bootstrap.events.length === 0}
+              type="submit"
+            >
+              {isSavingEventReport ? "Saving..." : "Add event report"}
             </button>
           </div>
         </form>
@@ -2238,25 +2704,27 @@ export function PartDefinitionEditorModal({
             <span style={{ color: "var(--text-title)" }}>Revision</span>
             <input onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, revision: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.revision} />
           </label>
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Part iteration</span>
-            <select
-              onChange={(event) =>
-                setPartDefinitionDraft((current) => ({
-                  ...current,
-                  iteration: Number(event.target.value),
-                }))
-              }
-              style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
-              value={partDefinitionDraft.iteration ?? 1}
-            >
-              {partDefinitionIterationOptions.map((iteration) => (
-                <option key={iteration} value={iteration}>
-                  Iteration {iteration}
-                </option>
-              ))}
-            </select>
-          </label>
+          {partDefinitionModalMode === "edit" ? (
+            <label className="field">
+              <span style={{ color: "var(--text-title)" }}>Iteration</span>
+              <select
+                onChange={(event) =>
+                  setPartDefinitionDraft((current) => ({
+                    ...current,
+                    iteration: Number(event.target.value),
+                  }))
+                }
+                style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }}
+                value={partDefinitionDraft.iteration ?? 1}
+              >
+                {partDefinitionIterationOptions.map((iteration) => (
+                  <option key={iteration} value={iteration}>
+                    {formatIterationVersion(iteration)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="field">
             <span style={{ color: "var(--text-title)" }}>Type</span>
             <input onChange={(event) => setPartDefinitionDraft((current) => ({ ...current, type: event.target.value }))} required style={{ background: "var(--bg-row-alt)", color: "var(--text-title)", border: "1px solid var(--border-base)" }} value={partDefinitionDraft.type} />
@@ -2539,29 +3007,31 @@ export function SubsystemEditorModal({
             />
           </label>
 
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Subsystem iteration</span>
-            <select
-              onChange={(event) =>
-                setSubsystemDraft((current) => ({
-                  ...current,
-                  iteration: Number(event.target.value),
-                }))
-              }
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
-              value={subsystemDraft.iteration ?? 1}
-            >
-              {subsystemIterationOptions.map((iteration) => (
-                <option key={iteration} value={iteration}>
-                  Iteration {iteration}
-                </option>
-              ))}
-            </select>
-          </label>
+          {subsystemModalMode === "edit" ? (
+            <label className="field">
+              <span style={{ color: "var(--text-title)" }}>Iteration</span>
+              <select
+                onChange={(event) =>
+                  setSubsystemDraft((current) => ({
+                    ...current,
+                    iteration: Number(event.target.value),
+                  }))
+                }
+                style={{
+                  background: "var(--bg-row-alt)",
+                  color: "var(--text-title)",
+                  border: "1px solid var(--border-base)",
+                }}
+                value={subsystemDraft.iteration ?? 1}
+              >
+                {subsystemIterationOptions.map((iteration) => (
+                  <option key={iteration} value={iteration}>
+                    {formatIterationVersion(iteration)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           {subsystemModalMode === "create" ? (
             <label className="field">
@@ -2778,29 +3248,31 @@ export function MechanismEditorModal({
             </select>
           </label>
 
-          <label className="field">
-            <span style={{ color: "var(--text-title)" }}>Mechanism iteration</span>
-            <select
-              onChange={(event) =>
-                setMechanismDraft((current) => ({
-                  ...current,
-                  iteration: Number(event.target.value),
-                }))
-              }
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
-              value={mechanismDraft.iteration ?? 1}
-            >
-              {mechanismIterationOptions.map((iteration) => (
-                <option key={iteration} value={iteration}>
-                  Iteration {iteration}
-                </option>
-              ))}
-            </select>
-          </label>
+          {mechanismModalMode === "edit" ? (
+            <label className="field">
+              <span style={{ color: "var(--text-title)" }}>Iteration</span>
+              <select
+                onChange={(event) =>
+                  setMechanismDraft((current) => ({
+                    ...current,
+                    iteration: Number(event.target.value),
+                  }))
+                }
+                style={{
+                  background: "var(--bg-row-alt)",
+                  color: "var(--text-title)",
+                  border: "1px solid var(--border-base)",
+                }}
+                value={mechanismDraft.iteration ?? 1}
+              >
+                {mechanismIterationOptions.map((iteration) => (
+                  <option key={iteration} value={iteration}>
+                    {formatIterationVersion(iteration)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
 
           <label className="field modal-wide">
             <span style={{ color: "var(--text-title)" }}>Name</span>

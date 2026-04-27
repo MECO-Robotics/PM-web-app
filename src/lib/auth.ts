@@ -24,6 +24,8 @@ import type {
   PurchaseItemRecord,
   QaReportPayload,
   QaReportRecord,
+  RiskPayload,
+  RiskRecord,
   SeasonCreatePayload,
   SeasonRecord,
   SubsystemPayload,
@@ -920,11 +922,18 @@ export async function startInteractiveTutorialSession(onUnauthorized?: () => voi
   return response.ok;
 }
 
-export async function resetInteractiveTutorialSession(onUnauthorized?: () => void) {
+export async function resetInteractiveTutorialSession(
+  onUnauthorized?: () => void,
+  mode: "session" | "baseline" = "session",
+) {
   const response = await requestApi<{ ok: boolean }>(
     "/tutorial/session/reset",
     {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ mode }),
     },
     onUnauthorized,
   );
@@ -1054,6 +1063,60 @@ export async function createTestResultRecord(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function createRiskRecord(
+  payload: RiskPayload,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: RiskRecord }>(
+    "/risks",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function updateRiskRecord(
+  riskId: string,
+  payload: Partial<RiskPayload>,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: RiskRecord }>(
+    `/risks/${riskId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+
+  return response.item;
+}
+
+export async function deleteRiskRecord(
+  riskId: string,
+  onUnauthorized?: () => void,
+) {
+  const response = await requestApi<{ item: RiskRecord }>(
+    `/risks/${riskId}`,
+    {
+      method: "DELETE",
     },
     onUnauthorized,
   );

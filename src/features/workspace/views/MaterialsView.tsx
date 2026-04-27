@@ -67,22 +67,26 @@ export function MaterialsView({
           </p>
         </div>
         <div className="panel-actions filter-toolbar materials-toolbar">
-          <SearchToolbarInput
-            ariaLabel="Search materials"
-            onChange={setSearch}
-            placeholder="Search materials..."
-            value={search}
-          />
+          <div data-tutorial-target="materials-search-input">
+            <SearchToolbarInput
+              ariaLabel="Search materials"
+              onChange={setSearch}
+              placeholder="Search materials..."
+              value={search}
+            />
+          </div>
 
-          <FilterDropdown
-            allLabel="All categories"
-            ariaLabel="Filter materials by category"
-            className="mobile-filter-control"
-            icon={<IconManufacturing />}
-            onChange={setCategory}
-            options={MATERIAL_CATEGORY_OPTIONS}
-            value={category}
-          />
+          <div data-tutorial-target="materials-filter-control">
+            <FilterDropdown
+              allLabel="All categories"
+              ariaLabel="Filter materials by category"
+              className="mobile-filter-control"
+              icon={<IconManufacturing />}
+              onChange={setCategory}
+              options={MATERIAL_CATEGORY_OPTIONS}
+              value={category}
+            />
+          </div>
 
           <FilterDropdown
             allLabel="All stock"
@@ -97,6 +101,7 @@ export function MaterialsView({
           <button
             aria-label="Add material"
             className="primary-action queue-toolbar-action"
+            data-tutorial-target="create-material-button"
             onClick={openCreateMaterialModal}
             title="Add material"
             type="button"
@@ -148,6 +153,7 @@ export function MaterialsView({
           return (
             <button
               className="ops-table ops-row materials-table editable-hover-target editable-hover-target-row"
+              data-tutorial-target="edit-material-row"
               key={material.id}
               onClick={() => openEditMaterialModal(material)}
               style={{ "--workspace-grid-template": MATERIALS_GRID_TEMPLATE } as CSSProperties}

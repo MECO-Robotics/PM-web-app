@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 export type ViewTab =
   | "tasks"
+  | "risk-management"
   | "worklogs"
   | "manufacturing"
   | "inventory"
@@ -10,6 +11,7 @@ export type ViewTab =
   | "help";
 
 export type TaskViewTab = "timeline" | "queue" | "milestones";
+export type WorklogsViewTab = "logs" | "summary";
 export type ManufacturingViewTab = "cnc" | "prints" | "fabrication";
 export type InventoryViewTab = "materials" | "parts" | "purchases";
 
@@ -25,7 +27,12 @@ export interface ViewOption<T extends string> {
   label: string;
 }
 
-export const TASK_VIEW_ORDER: readonly TaskViewTab[] = ["timeline", "queue", "milestones"];
+export const TASK_VIEW_ORDER: readonly TaskViewTab[] = [
+  "timeline",
+  "queue",
+  "milestones",
+];
+export const WORKLOG_VIEW_ORDER: readonly WorklogsViewTab[] = ["logs", "summary"];
 export const MANUFACTURING_VIEW_ORDER: readonly ManufacturingViewTab[] = [
   "cnc",
   "prints",
@@ -41,6 +48,11 @@ export const TASK_VIEW_OPTIONS: readonly ViewOption<TaskViewTab>[] = [
   { value: "timeline", label: "Timeline" },
   { value: "queue", label: "Queue" },
   { value: "milestones", label: "Milestones" },
+];
+
+export const WORKLOG_VIEW_OPTIONS: readonly ViewOption<WorklogsViewTab>[] = [
+  { value: "logs", label: "Logs" },
+  { value: "summary", label: "Summary" },
 ];
 
 export const MANUFACTURING_VIEW_OPTIONS: readonly ViewOption<ManufacturingViewTab>[] = [
@@ -62,6 +74,7 @@ export const NON_ROBOT_INVENTORY_VIEW_OPTIONS: readonly ViewOption<InventoryView
 
 export const BASE_SECTION_LABELS: Record<ViewTab, string> = {
   tasks: "Tasks",
+  "risk-management": "Risk Management",
   worklogs: "Worklogs",
   manufacturing: "Manufacturing",
   inventory: "Inventory",

@@ -7,7 +7,7 @@ import {
   TableCell,
   useFilterChangeMotionClass,
 } from "@/features/workspace/shared";
-import { getDefaultSubsystemId } from "@/lib/appUtils";
+import { formatIterationVersion, getDefaultSubsystemId } from "@/lib/appUtils";
 import type { MembersById } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 
@@ -34,6 +34,7 @@ export function SubsystemsView({
   bootstrap,
   membersById,
   openCreateMechanismModal,
+  openCreatePartInstanceModal,
   openCreateSubsystemModal,
   openEditMechanismModal,
   openEditSubsystemModal,
@@ -169,6 +170,7 @@ export function SubsystemsView({
           subsystem.name,
           subsystem.description,
           `iteration ${subsystem.iteration}`,
+          formatIterationVersion(subsystem.iteration),
           parentSubsystem?.name ?? "",
           responsibleEngineer,
           mentorNames,
@@ -213,12 +215,14 @@ export function SubsystemsView({
           </p>
         </div>
         <div className="panel-actions filter-toolbar subsystem-manager-toolbar">
-          <SearchToolbarInput
-            ariaLabel="Search subsystems and mechanisms"
-            onChange={setSearch}
-            placeholder="Search subsystems or mechanisms..."
-            value={search}
-          />
+          <div data-tutorial-target="subsystem-search-input">
+            <SearchToolbarInput
+              ariaLabel="Search subsystems and mechanisms"
+              onChange={setSearch}
+              placeholder="Search subsystems or mechanisms..."
+              value={search}
+            />
+          </div>
           <label
             style={{
               display: "inline-flex",
@@ -255,6 +259,7 @@ export function SubsystemsView({
           <button
             aria-label="Add subsystem"
             className="primary-action queue-toolbar-action subsystem-manager-toolbar-action"
+            data-tutorial-target="create-subsystem-button"
             onClick={openCreateSubsystemModal}
             type="button"
           >
@@ -352,7 +357,7 @@ export function SubsystemsView({
                         <span className="subsystem-cell-description">{subsystemDescription}</span>
                       ) : null}
                       <span className="subsystem-cell-details" aria-label="Subsystem metadata">
-                        <small>Iteration {subsystem.iteration}</small>
+                        <small>{formatIterationVersion(subsystem.iteration)}</small>
                         <small>
                           {subsystem.parentSubsystemId
                             ? `Parent: ${parentSubsystem?.name ?? "Unknown"}`
@@ -374,6 +379,7 @@ export function SubsystemsView({
                   <div className="subsystem-manager-row-actions">
                     <button
                       className="subsystem-manager-action-button subsystem-manager-action-button-primary"
+                      data-tutorial-target="create-mechanism-button"
                       disabled={subsystem.isArchived}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -387,6 +393,7 @@ export function SubsystemsView({
                     </button>
                     <button
                       className="subsystem-manager-action-button"
+                      data-tutorial-target="edit-subsystem-button"
                       onClick={(event) => {
                         event.stopPropagation();
                         openEditSubsystemModal(subsystem);
@@ -424,18 +431,31 @@ export function SubsystemsView({
                                   <small style={{ color: "var(--text-copy)" }}>Archived</small>
                                 ) : null}
                                 <small style={{ color: "var(--text-copy)" }}>
-                                  Iteration {mechanism.iteration} / {mechanism.description}
+                                  {formatIterationVersion(mechanism.iteration)} / {mechanism.description}
                                 </small>
                               </div>
-                              <button
-                                className="subsystem-manager-action-button"
-                                onClick={() => openEditMechanismModal(mechanism)}
-                                type="button"
-                                aria-label={`Edit ${mechanism.name}`}
-                                title="Edit mechanism"
-                              >
-                                <IconEdit />
-                              </button>
+                              <div style={{ display: "inline-flex", gap: "0.4rem" }}>
+                                <button
+                                  className="subsystem-manager-action-button subsystem-manager-action-button-primary"
+                                  data-tutorial-target="add-part-to-mechanism-button"
+                                  onClick={() => openCreatePartInstanceModal(mechanism)}
+                                  type="button"
+                                  aria-label={`Add part to ${mechanism.name}`}
+                                  title="Add part to mechanism"
+                                >
+                                  <IconPlus />
+                                </button>
+                                <button
+                                  className="subsystem-manager-action-button"
+                                  data-tutorial-target="edit-mechanism-button"
+                                  onClick={() => openEditMechanismModal(mechanism)}
+                                  type="button"
+                                  aria-label={`Edit ${mechanism.name}`}
+                                  title="Edit mechanism"
+                                >
+                                  <IconEdit />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}

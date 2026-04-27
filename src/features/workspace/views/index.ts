@@ -9,6 +9,7 @@ export { PartsView } from "./PartsView";
 export { PrintsView } from "./PrintsView";
 export { PurchasesView } from "./PurchasesView";
 export { RosterView } from "./RosterView";
+export { RisksView } from "./RisksView";
 export { SubsystemsView } from "./SubsystemsView";
 export { TaskQueueView } from "./TaskQueueView";
 export { TimelineView } from "./TimelineView";

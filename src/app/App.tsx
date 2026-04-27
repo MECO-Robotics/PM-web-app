@@ -16,6 +16,7 @@ import type {
   ManufacturingViewTab,
   TaskViewTab,
   ViewTab,
+  WorklogsViewTab,
 } from "@/lib/workspaceNavigation";
 import {
   artifactToPayload,
@@ -53,6 +54,7 @@ import {
   createMemberRecord,
   createProjectRecord,
   createQaReportRecord,
+  createRiskRecord,
   createSeasonRecord,
   createMechanismRecord,
   createTestResultRecord,
@@ -65,6 +67,7 @@ import {
   createPurchaseItemRecord,
   createTask,
   deleteEventRecord,
+  deleteRiskRecord,
   deleteMaterialRecord,
   deleteMemberRecord,
   deleteMechanismRecord,
@@ -79,6 +82,7 @@ import {
   updateMemberRecord,
   updateMechanismRecord,
   updateProjectRecord,
+  updateRiskRecord,
   updateSubsystemRecord,
   updatePartDefinitionRecord,
   updatePartInstanceRecord,
@@ -109,6 +113,7 @@ import type {
   PurchaseItemPayload,
   PurchaseItemRecord,
   QaReportPayload,
+  RiskPayload,
   SubsystemPayload,
   SubsystemRecord,
   TaskPayload,
@@ -149,30 +154,60 @@ import {
   scopeBootstrapBySelection,
 } from "@/app/workspaceStateUtils";
 
+type InteractiveTutorialChapterId = "planning" | "operations" | "outreach";
+
 type InteractiveTutorialStepId =
   | "season"
-  | "project"
+  | "project-robot"
+  | "project-outreach"
   | "tasks-tab"
   | "task-timeline"
+  | "timeline-week-view"
+  | "timeline-shift-period"
+  | "timeline-open-task"
+  | "timeline-edit-task"
   | "task-queue"
   | "create-task"
+  | "queue-filter"
+  | "queue-edit-task"
   | "task-milestones"
+  | "create-milestone"
+  | "milestone-search"
+  | "milestone-edit"
   | "worklogs-tab"
   | "create-worklog"
-  | "manufacturing-tab"
-  | "manufacturing-cnc"
-  | "manufacturing-prints"
-  | "manufacturing-fabrication"
-  | "inventory-tab"
-  | "inventory-materials"
-  | "inventory-parts"
-  | "create-part"
-  | "inventory-purchases"
-  | "workflow-tab"
-  | "create-subsystem"
-  | "create-mechanism"
   | "roster-tab"
   | "create-student"
+  | "inventory-tab"
+  | "inventory-materials"
+  | "create-material"
+  | "material-filter"
+  | "material-edit"
+  | "inventory-parts"
+  | "create-part"
+  | "part-search"
+  | "inventory-purchases"
+  | "create-purchase"
+  | "purchase-sort"
+  | "workflow-tab"
+  | "create-subsystem"
+  | "edit-subsystem"
+  | "create-mechanism"
+  | "edit-mechanism"
+  | "add-part-to-mechanism"
+  | "manufacturing-tab"
+  | "manufacturing-cnc"
+  | "create-cnc-job"
+  | "inspect-cnc-job"
+  | "manufacturing-prints"
+  | "create-print-job"
+  | "complete-print-job"
+  | "manufacturing-search"
+  | "manufacturing-fabrication"
+  | "create-fabrication-job"
+  | "inspect-fabrication-job"
+  | "workflow-edit"
+  | "create-document"
   | "help-tab";
 
 interface InteractiveTutorialStep {
@@ -182,9 +217,18 @@ interface InteractiveTutorialStep {
   selector: string;
 }
 
+interface InteractiveTutorialChapter {
+  id: InteractiveTutorialChapterId;
+  title: string;
+  summary: string;
+  preferredProjectType: "robot" | "outreach";
+  steps: InteractiveTutorialStep[];
+}
+
 interface InteractiveTutorialReturnState {
   activeTab: ViewTab;
   taskView: TaskViewTab;
+  worklogsView: WorklogsViewTab;
   manufacturingView: ManufacturingViewTab;
   inventoryView: InventoryViewTab;
   selectedSeasonId: string | null;
@@ -195,21 +239,37 @@ interface InteractiveTutorialCreationCounts {
   tasks: number;
   workLogs: number;
   partDefinitions: number;
+  partInstances: number;
   subsystems: number;
   mechanisms: number;
   students: number;
+  materials: number;
+  purchaseItems: number;
+  milestones: number;
+  cncJobs: number;
+  printJobs: number;
+  fabricationJobs: number;
+  completedPrintJobs: number;
+  documents: number;
 }
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ViewTab>("tasks");
   const [tabSwitchDirection, setTabSwitchDirection] = useState<"up" | "down">("down");
   const [taskView, setTaskView] = useState<TaskViewTab>("timeline");
+  const [worklogsView, setWorklogsView] = useState<WorklogsViewTab>("logs");
   const [manufacturingView, setManufacturingView] =
     useState<ManufacturingViewTab>("cnc");
   const [inventoryView, setInventoryView] = useState<InventoryViewTab>("materials");
   const [bootstrap, setBootstrap] = useState<BootstrapPayload>(EMPTY_BOOTSTRAP);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataMessage, setDataMessage] = useState<string | null>(null);
+  const [interactiveTutorialChapterId, setInteractiveTutorialChapterId] =
+    useState<InteractiveTutorialChapterId | null>(null);
+  const [interactiveTutorialCompletedChapterId, setInteractiveTutorialCompletedChapterId] =
+    useState<InteractiveTutorialChapterId | null>(null);
+  const [interactiveTutorialCompletedChapters, setInteractiveTutorialCompletedChapters] =
+    useState<InteractiveTutorialChapterId[]>([]);
   const [interactiveTutorialStepIndex, setInteractiveTutorialStepIndex] = useState<number | null>(
     null,
   );
@@ -245,6 +305,7 @@ export default function App() {
     } | null>(null);
   const interactiveTutorialCardRef = useRef<HTMLElement | null>(null);
   const interactiveTutorialTargetRef = useRef<HTMLElement | null>(null);
+  const interactiveTutorialStepBaselineRef = useRef<string | null>(null);
 
   const {
     isDarkMode,
@@ -517,217 +578,446 @@ export default function App() {
     () => new Set<ViewTab>(navigationItems.map((item) => item.value)),
     [navigationItems],
   );
-  const interactiveTutorialSteps = useMemo<InteractiveTutorialStep[]>(() => {
-    const steps: InteractiveTutorialStep[] = [
+  const interactiveTutorialChapters = useMemo<InteractiveTutorialChapter[]>(() => {
+    const planningSteps: InteractiveTutorialStep[] = [
       {
         id: "season",
-        title: "Pick the tutorial season",
-        instruction:
-          "Use the sidebar season picker and choose the fake Tutorial season sandbox.",
+        title: "Select the fake tutorial season",
+        instruction: "Use the season dropdown and choose Tutorial season (fake sandbox).",
         selector: '[data-tutorial-target="season-select"]',
       },
       {
-        id: "project",
-        title: "Pick the tutorial project",
-        instruction:
-          "Use the topbar project selector and choose the tutorial robot project in that fake season.",
+        id: "project-robot",
+        title: "Select the tutorial robot project",
+        instruction: "Use the project dropdown and select Tutorial Robot 2026.",
         selector: '[data-tutorial-target="project-select"]',
       },
       {
         id: "tasks-tab",
         title: "Open Tasks",
-        instruction:
-          "Open Tasks from the sidebar to start in planning.",
+        instruction: "Open the Tasks page from the sidebar.",
         selector: '[data-tutorial-target="sidebar-tab-tasks"]',
       },
       {
         id: "task-timeline",
-        title: "Task Timeline view",
-        instruction:
-          "Use the task view tabs and open Timeline.",
+        title: "Switch to Timeline",
+        instruction: "In Tasks, switch to Timeline.",
         selector: '[data-tutorial-target="task-view-timeline"]',
       },
       {
+        id: "timeline-week-view",
+        title: "Switch month to week",
+        instruction: "Change the timeline interval to Week.",
+        selector: '[data-tutorial-target="timeline-interval-select"]',
+      },
+      {
+        id: "timeline-shift-period",
+        title: "Move to a different period",
+        instruction: "Use the highlighted period button once.",
+        selector: '[data-tutorial-target="timeline-period-next-button"]',
+      },
+      {
+        id: "timeline-open-task",
+        title: "Open a timeline task",
+        instruction: "Click a task bar on the timeline.",
+        selector: '[data-tutorial-target="timeline-task-bar"]',
+      },
+      {
+        id: "timeline-edit-task",
+        title: "Edit the selected timeline task",
+        instruction: "From the task details popup, click Edit task.",
+        selector: '[data-tutorial-target="timeline-edit-task-button"]',
+      },
+      {
         id: "task-queue",
-        title: "Task Queue view",
-        instruction:
-          "Switch from Timeline to Queue.",
+        title: "Switch to Queue",
+        instruction: "Switch the Tasks subtab from Timeline to Queue.",
         selector: '[data-tutorial-target="task-view-queue"]',
       },
       {
         id: "create-task",
         title: "Create a task",
-        instruction:
-          "Use Add in Queue, fill the form, and save a new task in the tutorial project.",
+        instruction: "Use Add and save one new task.",
         selector: '[data-tutorial-target="create-task-button"]',
       },
       {
+        id: "queue-filter",
+        title: "Use queue filters",
+        instruction: "Apply at least one Queue filter.",
+        selector: '[data-tutorial-target="task-queue-filter-control"]',
+      },
+      {
+        id: "queue-edit-task",
+        title: "Edit a queued task",
+        instruction: "Click any task row in Queue to open edit mode.",
+        selector: '[data-tutorial-target="edit-task-row"]',
+      },
+      {
         id: "task-milestones",
-        title: "Task Milestones view",
-        instruction:
-          "Switch to the Milestones subview so the tutorial covers every task view.",
+        title: "Switch to Milestones",
+        instruction: "Switch the Tasks subtab to Milestones.",
         selector: '[data-tutorial-target="task-view-milestones"]',
+      },
+      {
+        id: "create-milestone",
+        title: "Create a milestone",
+        instruction: "Use Add and save one new milestone.",
+        selector: '[data-tutorial-target="create-milestone-button"]',
+      },
+      {
+        id: "milestone-search",
+        title: "Search milestones",
+        instruction: "Type in the milestone search box.",
+        selector: '[data-tutorial-target="milestone-search-input"]',
+      },
+      {
+        id: "milestone-edit",
+        title: "Edit a milestone",
+        instruction: "Click a milestone row to open the edit modal.",
+        selector: '[data-tutorial-target="edit-milestone-row"]',
       },
       {
         id: "worklogs-tab",
         title: "Open Work logs",
-        instruction:
-          "Open Work logs from the sidebar.",
+        instruction: "Open Work logs from the sidebar.",
         selector: '[data-tutorial-target="sidebar-tab-worklogs"]',
       },
       {
         id: "create-worklog",
-        title: "Create a work log",
-        instruction:
-          "Use Add in Work logs, attach it to a real task, and save it.",
+        title: "Create a work log on a task",
+        instruction: "Use Add and save one work log tied to a task.",
         selector: '[data-tutorial-target="create-worklog-button"]',
       },
     ];
 
-    if (visibleTabs.has("manufacturing")) {
-      steps.push(
-        {
-          id: "manufacturing-tab",
-          title: "Open Manufacturing",
-          instruction:
-            "Open Manufacturing from the sidebar.",
-          selector: '[data-tutorial-target="sidebar-tab-manufacturing"]',
-        },
-        {
-          id: "manufacturing-cnc",
-          title: "Manufacturing CNC view",
-          instruction:
-            "Switch to CNC.",
-          selector: '[data-tutorial-target="manufacturing-view-cnc"]',
-        },
-        {
-          id: "manufacturing-prints",
-          title: "Manufacturing 3D print view",
-          instruction:
-            "Switch to 3D print.",
-          selector: '[data-tutorial-target="manufacturing-view-prints"]',
-        },
-        {
-          id: "manufacturing-fabrication",
-          title: "Manufacturing Fabrication view",
-          instruction:
-            "Switch to Fabrication so all manufacturing views are covered.",
-          selector: '[data-tutorial-target="manufacturing-view-fabrication"]',
-        },
-      );
-    }
-
-    if (visibleTabs.has("inventory")) {
-      steps.push(
-        {
-          id: "inventory-tab",
-          title: "Open Inventory",
-          instruction:
-            "Open Inventory from the sidebar.",
-          selector: '[data-tutorial-target="sidebar-tab-inventory"]',
-        },
-        {
-          id: "inventory-materials",
-          title: "Inventory Materials view",
-          instruction:
-            "Switch to Materials (or Documents in non-robot mode).",
-          selector: '[data-tutorial-target="inventory-view-materials"]',
-        },
-        {
-          id: "inventory-parts",
-          title: "Inventory Parts view",
-          instruction:
-            "Switch to Parts.",
-          selector: '[data-tutorial-target="inventory-view-parts"]',
-        },
-        {
-          id: "create-part",
-          title: "Create a part definition",
-          instruction:
-            "Use Add in Parts, complete the modal, and save a new part definition.",
-          selector: '[data-tutorial-target="create-part-button"]',
-        },
-        {
-          id: "inventory-purchases",
-          title: "Inventory Purchases view",
-          instruction:
-            "Switch to Purchases so every inventory view is covered.",
-          selector: '[data-tutorial-target="inventory-view-purchases"]',
-        },
-      );
-    }
-
-    if (visibleTabs.has("subsystems")) {
-      steps.push(
-        {
-          id: "workflow-tab",
-          title: "Open Workflow/Subsystems",
-          instruction:
-            "Open Workflow or Subsystems from the sidebar.",
-          selector: '[data-tutorial-target="sidebar-tab-subsystems"]',
-        },
-        {
-          id: "create-subsystem",
-          title: "Create a subsystem",
-          instruction:
-            "Use Add subsystem, fill the form, and save it.",
-          selector: '[data-tutorial-target="create-subsystem-button"]',
-        },
-        {
-          id: "create-mechanism",
-          title: "Create a mechanism",
-          instruction:
-            "Use a subsystem row Add mechanism button, fill the modal, and save it.",
-          selector: '[data-tutorial-target="create-mechanism-button"]',
-        },
-      );
-    }
-
-    steps.push(
+    const operationsSteps: InteractiveTutorialStep[] = [
       {
         id: "roster-tab",
         title: "Open Roster",
-        instruction:
-          "Open Roster from the sidebar.",
+        instruction: "Open the Roster page from the sidebar.",
         selector: '[data-tutorial-target="sidebar-tab-roster"]',
       },
       {
         id: "create-student",
-        title: "Create a student",
-        instruction:
-          "Use the Students add button, keep role as Student, and save the new person.",
+        title: "Add a student",
+        instruction: "In Students, click + and save a new student.",
         selector: '[data-tutorial-target="create-student-button"]',
       },
       {
+        id: "inventory-tab",
+        title: "Open Inventory",
+        instruction: "Open Inventory from the sidebar.",
+        selector: '[data-tutorial-target="sidebar-tab-inventory"]',
+      },
+      {
+        id: "inventory-materials",
+        title: "Open Materials",
+        instruction: "Switch Inventory to the Materials subtab.",
+        selector: '[data-tutorial-target="inventory-view-materials"]',
+      },
+      {
+        id: "create-material",
+        title: "Add material",
+        instruction: "Use Add and save one material.",
+        selector: '[data-tutorial-target="create-material-button"]',
+      },
+      {
+        id: "material-filter",
+        title: "Filter materials",
+        instruction: "Apply at least one material filter.",
+        selector: '[data-tutorial-target="materials-filter-control"]',
+      },
+      {
+        id: "material-edit",
+        title: "Edit a material",
+        instruction: "Click any material row to open edit mode.",
+        selector: '[data-tutorial-target="edit-material-row"]',
+      },
+      {
+        id: "inventory-parts",
+        title: "Open Parts",
+        instruction: "Switch Inventory to the Parts subtab.",
+        selector: '[data-tutorial-target="inventory-view-parts"]',
+      },
+      {
+        id: "create-part",
+        title: "Add part definition",
+        instruction: "Use Add and save one part definition.",
+        selector: '[data-tutorial-target="create-part-button"]',
+      },
+      {
+        id: "part-search",
+        title: "Search parts",
+        instruction: "Type in the parts search box.",
+        selector: '[data-tutorial-target="parts-search-input"]',
+      },
+      {
+        id: "inventory-purchases",
+        title: "Open Purchases",
+        instruction: "Switch Inventory to the Purchases subtab.",
+        selector: '[data-tutorial-target="inventory-view-purchases"]',
+      },
+      {
+        id: "create-purchase",
+        title: "Add purchase request",
+        instruction: "Use Add and save one purchase request.",
+        selector: '[data-tutorial-target="create-purchase-button"]',
+      },
+      {
+        id: "purchase-sort",
+        title: "Sort or filter purchases",
+        instruction: "Use the Purchases status control.",
+        selector: '[data-tutorial-target="purchases-sort-control"]',
+      },
+      {
+        id: "workflow-tab",
+        title: "Open Subsystems",
+        instruction: "Open Workflow/Subsystems from the sidebar.",
+        selector: '[data-tutorial-target="sidebar-tab-subsystems"]',
+      },
+      {
+        id: "create-subsystem",
+        title: "Create a subsystem",
+        instruction: "Use Add subsystem and save it.",
+        selector: '[data-tutorial-target="create-subsystem-button"]',
+      },
+      {
+        id: "edit-subsystem",
+        title: "Edit a subsystem",
+        instruction: "Click the subsystem edit icon.",
+        selector: '[data-tutorial-target="edit-subsystem-button"]',
+      },
+      {
+        id: "create-mechanism",
+        title: "Add a mechanism",
+        instruction: "Use Add mechanism and save it.",
+        selector: '[data-tutorial-target="create-mechanism-button"]',
+      },
+      {
+        id: "edit-mechanism",
+        title: "Edit a mechanism",
+        instruction: "Click a mechanism edit icon.",
+        selector: '[data-tutorial-target="edit-mechanism-button"]',
+      },
+      {
+        id: "add-part-to-mechanism",
+        title: "Add a part to a mechanism",
+        instruction: "Use the Add part button on a mechanism and save it.",
+        selector: '[data-tutorial-target="add-part-to-mechanism-button"]',
+      },
+      {
+        id: "manufacturing-tab",
+        title: "Open Manufacturing",
+        instruction: "Open Manufacturing from the sidebar.",
+        selector: '[data-tutorial-target="sidebar-tab-manufacturing"]',
+      },
+      {
+        id: "manufacturing-cnc",
+        title: "Open CNC queue",
+        instruction: "Switch Manufacturing to CNC.",
+        selector: '[data-tutorial-target="manufacturing-view-cnc"]',
+      },
+      {
+        id: "create-cnc-job",
+        title: "Add CNC job",
+        instruction: "Use Add and save one CNC job.",
+        selector: '[data-tutorial-target="cnc-create-job-button"]',
+      },
+      {
+        id: "inspect-cnc-job",
+        title: "Inspect a CNC job",
+        instruction: "Click any CNC row to open the job editor.",
+        selector: '[data-tutorial-target="cnc-edit-job-row"]',
+      },
+      {
+        id: "manufacturing-prints",
+        title: "Open 3D print queue",
+        instruction: "Switch Manufacturing to 3D print.",
+        selector: '[data-tutorial-target="manufacturing-view-prints"]',
+      },
+      {
+        id: "create-print-job",
+        title: "Add 3D print job",
+        instruction: "Use Add and save one 3D print job.",
+        selector: '[data-tutorial-target="prints-create-job-button"]',
+      },
+      {
+        id: "complete-print-job",
+        title: "Complete a 3D print job",
+        instruction: "Open a print job and save it with Complete status.",
+        selector: '[data-tutorial-target="prints-edit-job-row"]',
+      },
+      {
+        id: "manufacturing-search",
+        title: "Search manufacturing queue",
+        instruction: "Use the search box in the 3D print queue.",
+        selector: '[data-tutorial-target="prints-search-input"]',
+      },
+      {
+        id: "manufacturing-fabrication",
+        title: "Open fabrication queue",
+        instruction: "Switch Manufacturing to Fabrication.",
+        selector: '[data-tutorial-target="manufacturing-view-fabrication"]',
+      },
+      {
+        id: "create-fabrication-job",
+        title: "Add fabrication job",
+        instruction: "Use Add and save one fabrication job.",
+        selector: '[data-tutorial-target="fabrication-create-job-button"]',
+      },
+      {
+        id: "inspect-fabrication-job",
+        title: "Inspect a fabrication job",
+        instruction: "Click any fabrication row to open the job editor.",
+        selector: '[data-tutorial-target="fabrication-edit-job-row"]',
+      },
+    ];
+
+    const outreachSteps: InteractiveTutorialStep[] = [
+      {
+        id: "project-outreach",
+        title: "Switch project to Outreach",
+        instruction: "Use the project dropdown and switch to Outreach.",
+        selector: '[data-tutorial-target="project-select"]',
+      },
+      {
+        id: "workflow-tab",
+        title: "Open Workflow",
+        instruction: "Open Workflow from the sidebar in Outreach mode.",
+        selector: '[data-tutorial-target="sidebar-tab-subsystems"]',
+      },
+      {
+        id: "workflow-edit",
+        title: "Edit a workflow row",
+        instruction: "Click a workflow row to open the edit modal.",
+        selector: '[data-tutorial-target="edit-workflow-row"]',
+      },
+      {
+        id: "inventory-tab",
+        title: "Open Inventory",
+        instruction: "Open Inventory from the sidebar.",
+        selector: '[data-tutorial-target="sidebar-tab-inventory"]',
+      },
+      {
+        id: "inventory-materials",
+        title: "Open Documents",
+        instruction: "Switch Inventory to Documents.",
+        selector: '[data-tutorial-target="inventory-view-materials"]',
+      },
+      {
+        id: "create-document",
+        title: "Add a dummy document",
+        instruction: "Use Add and save one document artifact.",
+        selector: '[data-tutorial-target="create-document-button"]',
+      },
+      {
         id: "help-tab",
-        title: "Return to Help",
-        instruction:
-          "Return to Help to finish the full tutorial loop.",
+        title: "Finish on Help",
+        instruction: "Open Help to complete the tutorial.",
         selector: '[data-tutorial-target="sidebar-tab-help"]',
       },
-    );
+    ];
 
-    return steps;
-  }, [visibleTabs]);
-  const isInteractiveTutorialActive = interactiveTutorialStepIndex !== null;
+    return [
+      {
+        id: "planning",
+        title: "Chapter 1: Tasks and Timeline",
+        summary: "Fake season scope, task workflow, milestones, and work logs.",
+        preferredProjectType: "robot",
+        steps: planningSteps,
+      },
+      {
+        id: "operations",
+        title: "Chapter 2: Build Operations",
+        summary: "Roster, Inventory, Subsystems, and Manufacturing end-to-end.",
+        preferredProjectType: "robot",
+        steps: operationsSteps,
+      },
+      {
+        id: "outreach",
+        title: "Chapter 3: Outreach Workflow",
+        summary: "Switch to Outreach, edit workflow, and add a document.",
+        preferredProjectType: "outreach",
+        steps: outreachSteps,
+      },
+    ];
+  }, []);
+  const interactiveTutorialChapterOrder = useMemo(
+    () => interactiveTutorialChapters.map((chapter) => chapter.id),
+    [interactiveTutorialChapters],
+  );
+  const activeInteractiveTutorialChapter = useMemo(
+    () =>
+      interactiveTutorialChapterId
+        ? interactiveTutorialChapters.find((chapter) => chapter.id === interactiveTutorialChapterId) ??
+          null
+        : null,
+    [interactiveTutorialChapterId, interactiveTutorialChapters],
+  );
+  const interactiveTutorialSteps = activeInteractiveTutorialChapter?.steps ?? [];
+  const isInteractiveTutorialActive =
+    interactiveTutorialChapterId !== null || interactiveTutorialCompletedChapterId !== null;
   const currentInteractiveTutorialStep =
     interactiveTutorialStepIndex !== null
       ? interactiveTutorialSteps[interactiveTutorialStepIndex] ?? null
       : null;
   const interactiveTutorialStepNumber =
     interactiveTutorialStepIndex !== null ? interactiveTutorialStepIndex + 1 : 0;
+  const interactiveTutorialNextChapterId = useMemo(() => {
+    if (!interactiveTutorialCompletedChapterId) {
+      return null;
+    }
+
+    const currentChapterIndex = interactiveTutorialChapterOrder.indexOf(
+      interactiveTutorialCompletedChapterId,
+    );
+    if (currentChapterIndex < 0) {
+      return null;
+    }
+
+    return interactiveTutorialChapterOrder[currentChapterIndex + 1] ?? null;
+  }, [interactiveTutorialChapterOrder, interactiveTutorialCompletedChapterId]);
+  const interactiveTutorialChapterStartOptions = useMemo(
+    () =>
+      interactiveTutorialChapters.map((chapter) => ({
+        id: chapter.id,
+        title: chapter.title,
+        summary: chapter.summary,
+        completed: interactiveTutorialCompletedChapters.includes(chapter.id),
+      })),
+    [interactiveTutorialChapters, interactiveTutorialCompletedChapters],
+  );
   const isInteractiveTutorialDropdownStep = useCallback(
-    (step: InteractiveTutorialStep) => step.id === "season" || step.id === "project",
+    (step: InteractiveTutorialStep) =>
+      step.id === "season" ||
+      step.id === "project-robot" ||
+      step.id === "project-outreach",
+    [],
+  );
+  const isInteractiveTutorialSearchStep = useCallback(
+    (step: InteractiveTutorialStep) =>
+      step.id === "part-search" ||
+      step.id === "milestone-search" ||
+      step.id === "manufacturing-search",
     [],
   );
   const isInteractiveTutorialCreationStep = useCallback(
     (step: InteractiveTutorialStep) =>
       step.id === "create-task" ||
       step.id === "create-worklog" ||
+      step.id === "create-material" ||
       step.id === "create-part" ||
+      step.id === "create-purchase" ||
+      step.id === "create-milestone" ||
       step.id === "create-subsystem" ||
       step.id === "create-mechanism" ||
-      step.id === "create-student",
+      step.id === "add-part-to-mechanism" ||
+      step.id === "create-student" ||
+      step.id === "create-cnc-job" ||
+      step.id === "create-print-job" ||
+      step.id === "complete-print-job" ||
+      step.id === "create-fabrication-job" ||
+      step.id === "create-document",
     [],
   );
   const getInteractiveTutorialCreationCounts = useCallback(
@@ -754,11 +1044,45 @@ export default function App() {
         tasks: scopedTasks.length,
         workLogs: payload.workLogs.filter((workLog) => scopedTaskIds.has(workLog.taskId)).length,
         partDefinitions: payload.partDefinitions.length,
+        partInstances: payload.partInstances.filter((partInstance) =>
+          scopedSubsystemIds.has(partInstance.subsystemId),
+        ).length,
         subsystems: scopedSubsystems.length,
         mechanisms: payload.mechanisms.filter((mechanism) =>
           scopedSubsystemIds.has(mechanism.subsystemId),
         ).length,
         students: scopedStudents.length,
+        materials: payload.materials.length,
+        purchaseItems: payload.purchaseItems.filter((item) =>
+          scopedSubsystemIds.has(item.subsystemId),
+        ).length,
+        milestones: payload.events.filter((event) =>
+          tutorialProjectId ? event.projectIds.includes(tutorialProjectId) : true,
+        ).length,
+        cncJobs: payload.manufacturingItems.filter(
+          (item) =>
+            item.process === "cnc" &&
+            (scopedSubsystemIds.size === 0 || scopedSubsystemIds.has(item.subsystemId)),
+        ).length,
+        printJobs: payload.manufacturingItems.filter(
+          (item) =>
+            item.process === "3d-print" &&
+            (scopedSubsystemIds.size === 0 || scopedSubsystemIds.has(item.subsystemId)),
+        ).length,
+        fabricationJobs: payload.manufacturingItems.filter(
+          (item) =>
+            item.process === "fabrication" &&
+            (scopedSubsystemIds.size === 0 || scopedSubsystemIds.has(item.subsystemId)),
+        ).length,
+        completedPrintJobs: payload.manufacturingItems.filter(
+          (item) =>
+            item.process === "3d-print" &&
+            item.status === "complete" &&
+            (scopedSubsystemIds.size === 0 || scopedSubsystemIds.has(item.subsystemId)),
+        ).length,
+        documents: payload.artifacts.filter((artifact) =>
+          tutorialProjectId ? artifact.projectId === tutorialProjectId : true,
+        ).length,
       };
     },
     [],
@@ -833,16 +1157,39 @@ export default function App() {
             return currentCounts.tasks > interactiveTutorialBaselineCounts.tasks;
           case "create-worklog":
             return currentCounts.workLogs > interactiveTutorialBaselineCounts.workLogs;
+          case "create-material":
+            return currentCounts.materials > interactiveTutorialBaselineCounts.materials;
           case "create-part":
             return (
               currentCounts.partDefinitions > interactiveTutorialBaselineCounts.partDefinitions
             );
+          case "create-purchase":
+            return currentCounts.purchaseItems > interactiveTutorialBaselineCounts.purchaseItems;
+          case "create-milestone":
+            return currentCounts.milestones > interactiveTutorialBaselineCounts.milestones;
           case "create-subsystem":
             return currentCounts.subsystems > interactiveTutorialBaselineCounts.subsystems;
           case "create-mechanism":
             return currentCounts.mechanisms > interactiveTutorialBaselineCounts.mechanisms;
+          case "add-part-to-mechanism":
+            return currentCounts.partInstances > interactiveTutorialBaselineCounts.partInstances;
           case "create-student":
             return currentCounts.students > interactiveTutorialBaselineCounts.students;
+          case "create-cnc-job":
+            return currentCounts.cncJobs > interactiveTutorialBaselineCounts.cncJobs;
+          case "create-print-job":
+            return currentCounts.printJobs > interactiveTutorialBaselineCounts.printJobs;
+          case "complete-print-job":
+            return (
+              currentCounts.completedPrintJobs >
+              interactiveTutorialBaselineCounts.completedPrintJobs
+            );
+          case "create-fabrication-job":
+            return (
+              currentCounts.fabricationJobs > interactiveTutorialBaselineCounts.fabricationJobs
+            );
+          case "create-document":
+            return currentCounts.documents > interactiveTutorialBaselineCounts.documents;
           default:
             return false;
         }
@@ -860,23 +1207,86 @@ export default function App() {
             typeof interactiveTutorialSeasonId === "string" &&
             target.value === interactiveTutorialSeasonId
           );
-        case "project":
+        case "project-robot":
+        case "project-outreach":
           return (
             target instanceof HTMLSelectElement &&
             typeof interactiveTutorialProjectId === "string" &&
             target.value === interactiveTutorialProjectId
           );
+        case "timeline-week-view":
+          return (
+            target instanceof HTMLSelectElement &&
+            target.value === "week"
+          );
+        case "timeline-shift-period": {
+          const baselineLabel = interactiveTutorialStepBaselineRef.current ?? "";
+          const currentLabel =
+            target.parentElement?.querySelector<HTMLElement>(".timeline-period-label")?.textContent?.trim() ??
+            "";
+          if (currentLabel.length === 0) {
+            return false;
+          }
+          if (baselineLabel.length === 0) {
+            interactiveTutorialStepBaselineRef.current = currentLabel;
+            return false;
+          }
+          return currentLabel !== baselineLabel;
+        }
+        case "timeline-open-task":
+          return activeTimelineTaskDetailId !== null;
+        case "timeline-edit-task":
+        case "queue-edit-task":
+          return taskModalMode === "edit" && activeTaskId !== null;
+        case "queue-filter":
+        case "material-filter":
+        case "purchase-sort":
+          return Boolean(target.querySelector(".toolbar-filter-dropdown.is-active"));
+        case "part-search":
+        case "milestone-search":
+        case "manufacturing-search": {
+          const input =
+            target.querySelector<HTMLInputElement>("input[type='text']") ??
+            target.querySelector<HTMLInputElement>("input");
+          return Boolean(input?.value.trim());
+        }
+        case "milestone-edit":
+          return Boolean(document.querySelector('[data-tutorial-target="milestone-edit-modal"]'));
+        case "material-edit":
+          return materialModalMode === "edit" && activeMaterialId !== null;
+        case "edit-subsystem":
+          return subsystemModalMode === "edit" && activeSubsystemId !== null;
+        case "edit-mechanism":
+          return mechanismModalMode === "edit" && activeMechanismId !== null;
+        case "inspect-cnc-job":
+        case "inspect-fabrication-job":
+          return manufacturingModalMode === "edit" && activeManufacturingId !== null;
+        case "workflow-edit":
+          return workstreamModalMode === "edit" && activeWorkstreamId !== null;
         default:
           return target.getAttribute("data-active") === "true";
       }
     },
     [
+      activeManufacturingId,
+      activeMechanismId,
+      activeMaterialId,
+      activeSubsystemId,
+      activeTaskId,
+      activeTimelineTaskDetailId,
       bootstrap,
       getInteractiveTutorialCreationCounts,
       interactiveTutorialBaselineCounts,
       interactiveTutorialProjectId,
       interactiveTutorialSeasonId,
       isInteractiveTutorialCreationStep,
+      manufacturingModalMode,
+      materialModalMode,
+      mechanismModalMode,
+      subsystemModalMode,
+      taskModalMode,
+      workstreamModalMode,
+      activeWorkstreamId,
     ],
   );
   const getInteractiveTutorialStepError = useCallback(
@@ -887,23 +1297,78 @@ export default function App() {
             return "Tutorial season is unavailable. End tutorial and reload the page.";
           }
           return `Select ${interactiveTutorialSeasonName ?? "Tutorial season"} to complete this step.`;
-        case "project":
+        case "project-robot":
+        case "project-outreach":
           if (!interactiveTutorialProjectId) {
             return "Tutorial project is unavailable. End tutorial and reload the page.";
           }
-          return `Select ${interactiveTutorialProjectName ?? "the tutorial robot project"} to complete this step.`;
+          return `Select ${interactiveTutorialProjectName ?? "the tutorial project"} to continue.`;
+        case "timeline-week-view":
+          return "Switch the timeline interval to Week.";
+        case "timeline-shift-period":
+          return "Use next or previous period to move the timeline.";
+        case "timeline-open-task":
+          return "Click a timeline task bar to open task details.";
+        case "timeline-edit-task":
+          return "Click Edit task from the timeline task details popup.";
         case "create-task":
           return "Create and save one new task to continue.";
+        case "queue-filter":
+          return "Apply at least one Queue filter to continue.";
+        case "queue-edit-task":
+          return "Open any queue task row in edit mode to continue.";
+        case "create-milestone":
+          return "Create and save one milestone to continue.";
+        case "milestone-search":
+          return "Type in the milestone search input to continue.";
+        case "milestone-edit":
+          return "Open a milestone row in edit mode to continue.";
         case "create-worklog":
           return "Create and save one new work log to continue.";
+        case "create-material":
+          return "Create and save one material to continue.";
+        case "material-filter":
+          return "Apply a material filter to continue.";
+        case "material-edit":
+          return "Open a material row in edit mode to continue.";
         case "create-part":
           return "Create and save one new part definition to continue.";
+        case "part-search":
+          return "Type in the parts search input to continue.";
+        case "create-purchase":
+          return "Create and save one purchase request to continue.";
+        case "purchase-sort":
+          return "Use the Purchases status control to continue.";
         case "create-subsystem":
           return "Create and save one new subsystem to continue.";
+        case "edit-subsystem":
+          return "Open subsystem edit mode to continue.";
         case "create-mechanism":
           return "Create and save one new mechanism to continue.";
+        case "edit-mechanism":
+          return "Open mechanism edit mode to continue.";
+        case "add-part-to-mechanism":
+          return "Add and save a part instance on a mechanism to continue.";
         case "create-student":
           return "Create and save one new student to continue.";
+        case "create-cnc-job":
+          return "Create and save one CNC job to continue.";
+        case "inspect-cnc-job":
+          return "Open a CNC row in edit mode to continue.";
+        case "create-print-job":
+          return "Create and save one 3D print job to continue.";
+        case "complete-print-job":
+          return "Mark a 3D print job as complete and save it to continue.";
+        case "manufacturing-search":
+          return "Type in the manufacturing search input to continue.";
+        case "create-fabrication-job":
+          return "Create and save one fabrication job to continue.";
+        case "inspect-fabrication-job":
+          return "Open a fabrication row in edit mode to continue.";
+        case "workflow-edit":
+          return "Open a workflow row in edit mode to continue.";
+        case "create-document":
+          return "Create and save one document to continue.";
         default:
           return "Complete the highlighted interaction to continue.";
       }
@@ -1727,6 +2192,71 @@ export default function App() {
     }
   };
 
+  const normalizeRiskPayload = useCallback((payload: RiskPayload): RiskPayload => {
+    const mitigationTaskId =
+      typeof payload.mitigationTaskId === "string" &&
+      payload.mitigationTaskId.trim().length > 0
+        ? payload.mitigationTaskId.trim()
+        : null;
+
+    return {
+      ...payload,
+      title: payload.title.trim(),
+      detail: payload.detail.trim(),
+      sourceId: payload.sourceId.trim(),
+      attachmentId: payload.attachmentId.trim(),
+      mitigationTaskId,
+    };
+  }, []);
+
+  const handleCreateRisk = useCallback(
+    async (payload: RiskPayload) => {
+      setDataMessage(null);
+
+      try {
+        await createRiskRecord(normalizeRiskPayload(payload), handleUnauthorized);
+        await loadWorkspace();
+      } catch (error) {
+        const message = toErrorMessage(error);
+        setDataMessage(message);
+        throw error;
+      }
+    },
+    [handleUnauthorized, loadWorkspace, normalizeRiskPayload],
+  );
+
+  const handleUpdateRisk = useCallback(
+    async (riskId: string, payload: RiskPayload) => {
+      setDataMessage(null);
+
+      try {
+        await updateRiskRecord(riskId, normalizeRiskPayload(payload), handleUnauthorized);
+        await loadWorkspace();
+      } catch (error) {
+        const message = toErrorMessage(error);
+        setDataMessage(message);
+        throw error;
+      }
+    },
+    [handleUnauthorized, loadWorkspace, normalizeRiskPayload],
+  );
+
+  const handleDeleteRisk = useCallback(
+    async (riskId: string) => {
+      setDataMessage(null);
+
+      try {
+        await deleteRiskRecord(riskId, handleUnauthorized);
+        await loadWorkspace();
+      } catch (error) {
+        const message = toErrorMessage(error);
+        setDataMessage(message);
+        throw error;
+      }
+    },
+    [handleUnauthorized, loadWorkspace],
+  );
+
   const handlePurchaseSubmit = async (
     event: React.FormEvent<HTMLFormElement>,
   ) => {
@@ -2534,6 +3064,9 @@ export default function App() {
     }
 
     setInteractiveTutorialStepIndex(null);
+    setInteractiveTutorialChapterId(null);
+    setInteractiveTutorialCompletedChapterId(null);
+    setInteractiveTutorialCompletedChapters([]);
     setIsInteractiveTutorialTargetReady(false);
     setInteractiveTutorialSpotlightRect(null);
     setInteractiveTutorialSeasonName(null);
@@ -2543,6 +3076,7 @@ export default function App() {
     setInteractiveTutorialBootstrapSnapshot(null);
     setInteractiveTutorialBaselineCounts(null);
     setInteractiveTutorialStepError(null);
+    interactiveTutorialStepBaselineRef.current = null;
 
     if (bootstrapSnapshot) {
       startTransition(() => {
@@ -2553,6 +3087,7 @@ export default function App() {
     if (returnState) {
       setActiveTab(returnState.activeTab);
       setTaskView(returnState.taskView);
+      setWorklogsView(returnState.worklogsView);
       setManufacturingView(returnState.manufacturingView);
       setInventoryView(returnState.inventoryView);
       setSelectedSeasonId(returnState.selectedSeasonId);
@@ -2577,76 +3112,131 @@ export default function App() {
     }
 
     if (interactiveTutorialStepIndex >= interactiveTutorialSteps.length - 1) {
-      void closeInteractiveTutorial();
+      if (interactiveTutorialChapterId) {
+        setInteractiveTutorialCompletedChapterId(interactiveTutorialChapterId);
+        setInteractiveTutorialCompletedChapters((current) =>
+          current.includes(interactiveTutorialChapterId)
+            ? current
+            : [...current, interactiveTutorialChapterId],
+        );
+      }
+      setInteractiveTutorialStepIndex(null);
+      setInteractiveTutorialStepError(null);
+      setInteractiveTutorialSpotlightRect(null);
+      setIsInteractiveTutorialTargetReady(false);
       return;
     }
 
     setInteractiveTutorialStepIndex(interactiveTutorialStepIndex + 1);
   }, [
-    closeInteractiveTutorial,
+    interactiveTutorialChapterId,
     interactiveTutorialStepIndex,
     interactiveTutorialSteps.length,
   ]);
 
-  const startInteractiveTutorial = useCallback(async () => {
+  const startInteractiveTutorial = useCallback(async (chapterId: InteractiveTutorialChapterId = "planning") => {
     if (interactiveTutorialStepIndex !== null) {
       return;
     }
 
+    const chapter =
+      interactiveTutorialChapters.find((candidate) => candidate.id === chapterId) ??
+      interactiveTutorialChapters[0] ??
+      null;
+    if (!chapter || chapter.steps.length === 0) {
+      setDataMessage("Interactive tutorial chapter is unavailable right now.");
+      return;
+    }
+
+    if (!interactiveTutorialReturnState) {
+      setInteractiveTutorialReturnState({
+        activeTab,
+        taskView,
+        worklogsView,
+        manufacturingView,
+        inventoryView,
+        selectedSeasonId,
+        selectedProjectId,
+      });
+    }
+    if (!interactiveTutorialBootstrapSnapshot) {
+      setInteractiveTutorialBootstrapSnapshot(structuredClone(bootstrap));
+    }
+
     setDataMessage(null);
     try {
-      await startInteractiveTutorialSession(handleUnauthorized);
+      if (!interactiveTutorialReturnState) {
+        await startInteractiveTutorialSession(handleUnauthorized);
+      }
+      await resetInteractiveTutorialSession(handleUnauthorized, "baseline");
     } catch (error) {
       setDataMessage(toErrorMessage(error));
       return;
     }
 
-    setInteractiveTutorialReturnState({
-      activeTab,
-      taskView,
-      manufacturingView,
-      inventoryView,
-      selectedSeasonId,
-      selectedProjectId,
+    let tutorialBootstrap: BootstrapPayload;
+    try {
+      tutorialBootstrap = await fetchBootstrap(undefined, handleUnauthorized);
+    } catch (error) {
+      setDataMessage(toErrorMessage(error));
+      return;
+    }
+
+    startTransition(() => {
+      setBootstrap(tutorialBootstrap);
     });
-    setInteractiveTutorialBootstrapSnapshot(structuredClone(bootstrap));
+    setActivePersonFilter([]);
 
     const tutorialSeason =
-      bootstrap.seasons.find((season) => season.name.toLowerCase() === "tutorial season") ??
-      bootstrap.seasons.find((season) => season.id === "default-season") ??
-      bootstrap.seasons[0] ??
+      tutorialBootstrap.seasons.find((season) => season.name.toLowerCase() === "tutorial season") ??
+      tutorialBootstrap.seasons.find((season) => season.id === "default-season") ??
+      tutorialBootstrap.seasons[0] ??
       null;
     const projectsInTutorialSeason = tutorialSeason
-      ? bootstrap.projects.filter((project) => project.seasonId === tutorialSeason.id)
+      ? tutorialBootstrap.projects.filter((project) => project.seasonId === tutorialSeason.id)
       : [];
     const tutorialProject =
+      projectsInTutorialSeason.find((project) => project.projectType === chapter.preferredProjectType) ??
       projectsInTutorialSeason.find((project) => project.projectType === "robot") ??
       projectsInTutorialSeason[0] ??
-      bootstrap.projects.find((project) => project.projectType === "robot") ??
-      bootstrap.projects[0] ??
+      tutorialBootstrap.projects.find((project) => project.projectType === chapter.preferredProjectType) ??
+      tutorialBootstrap.projects.find((project) => project.projectType === "robot") ??
+      tutorialBootstrap.projects[0] ??
       null;
     const tutorialSeasonId = tutorialSeason?.id ?? null;
     const tutorialProjectId = tutorialProject?.id ?? null;
 
-    if (tutorialSeason) {
-      const nonTutorialSeasonId =
-        bootstrap.seasons.find((season) => season.id !== tutorialSeason.id)?.id ??
-        tutorialSeason.id;
-      const seasonSelectionForTutorialStart =
-        selectedSeasonId && selectedSeasonId !== tutorialSeason.id
-          ? selectedSeasonId
-          : nonTutorialSeasonId;
+    const nonTutorialSeasonId =
+      tutorialBootstrap.seasons.find((season) => season.id !== tutorialSeasonId)?.id ?? null;
+    const projectToForceOutreachSwitch =
+      projectsInTutorialSeason.find(
+        (project) => project.id !== tutorialProjectId && project.projectType === "robot",
+      ) ??
+      projectsInTutorialSeason.find((project) => project.id !== tutorialProjectId) ??
+      null;
 
-      setSelectedSeasonId(seasonSelectionForTutorialStart);
-      setInteractiveTutorialSeasonId(tutorialSeason.id);
-      setInteractiveTutorialSeasonName(`${tutorialSeason.name} (fake sandbox)`);
+    if (tutorialSeasonId) {
+      setSelectedSeasonId(
+        chapter.id === "planning"
+          ? nonTutorialSeasonId ?? tutorialSeasonId
+          : tutorialSeasonId,
+      );
+      setInteractiveTutorialSeasonId(tutorialSeasonId);
+      setInteractiveTutorialSeasonName(`${tutorialSeason?.name ?? "Tutorial season"} (fake sandbox)`);
     } else {
+      setSelectedSeasonId(null);
       setInteractiveTutorialSeasonId(null);
       setInteractiveTutorialSeasonName("Tutorial season (fake sandbox)");
     }
 
     if (tutorialProject) {
-      setSelectedProjectId(null);
+      if (chapter.id === "planning") {
+        setSelectedProjectId(null);
+      } else if (chapter.id === "outreach") {
+        setSelectedProjectId(projectToForceOutreachSwitch?.id ?? null);
+      } else {
+        setSelectedProjectId(tutorialProject.id);
+      }
       setInteractiveTutorialProjectId(tutorialProject.id);
       setInteractiveTutorialProjectName(tutorialProject.name);
     } else {
@@ -2656,16 +3246,24 @@ export default function App() {
     }
 
     setInteractiveTutorialBaselineCounts(
-      getInteractiveTutorialCreationCounts(bootstrap, tutorialProjectId, tutorialSeasonId),
+      getInteractiveTutorialCreationCounts(
+        tutorialBootstrap,
+        tutorialProjectId,
+        tutorialSeasonId,
+      ),
     );
+    setInteractiveTutorialCompletedChapterId(null);
+    setInteractiveTutorialChapterId(chapter.id);
 
     setActiveTab("tasks");
     setTaskView("timeline");
+    setWorklogsView("logs");
     setManufacturingView("cnc");
     setInventoryView("materials");
     setIsInteractiveTutorialTargetReady(false);
     setInteractiveTutorialStepError(null);
     setInteractiveTutorialStepIndex(0);
+    interactiveTutorialStepBaselineRef.current = null;
 
     if (isSidebarCollapsed) {
       toggleSidebar();
@@ -2674,11 +3272,12 @@ export default function App() {
   }, [
     activeTab,
     bootstrap,
-    bootstrap.projects,
-    bootstrap.seasons,
     closeSidebarOverlay,
     getInteractiveTutorialCreationCounts,
     handleUnauthorized,
+    interactiveTutorialBootstrapSnapshot,
+    interactiveTutorialChapters,
+    interactiveTutorialReturnState,
     interactiveTutorialStepIndex,
     inventoryView,
     isSidebarCollapsed,
@@ -2686,8 +3285,18 @@ export default function App() {
     selectedProjectId,
     selectedSeasonId,
     taskView,
+    worklogsView,
     toggleSidebar,
   ]);
+
+  const continueInteractiveTutorialToNextChapter = useCallback(() => {
+    if (!interactiveTutorialNextChapterId) {
+      void closeInteractiveTutorial();
+      return;
+    }
+
+    void startInteractiveTutorial(interactiveTutorialNextChapterId);
+  }, [closeInteractiveTutorial, interactiveTutorialNextChapterId, startInteractiveTutorial]);
 
   useEffect(() => {
     if (interactiveTutorialStepIndex === null) {
@@ -2707,6 +3316,22 @@ export default function App() {
     interactiveTutorialStepIndex,
     interactiveTutorialSteps.length,
   ]);
+
+  useEffect(() => {
+    if (!currentInteractiveTutorialStep) {
+      interactiveTutorialStepBaselineRef.current = null;
+      return;
+    }
+
+    if (currentInteractiveTutorialStep.id === "timeline-shift-period") {
+      const baselineLabel =
+        document.querySelector<HTMLElement>(".timeline-period-label")?.textContent?.trim() ?? "";
+      interactiveTutorialStepBaselineRef.current = baselineLabel;
+      return;
+    }
+
+    interactiveTutorialStepBaselineRef.current = null;
+  }, [currentInteractiveTutorialStep]);
 
   useEffect(() => {
     if (interactiveTutorialTargetRef.current) {
@@ -2824,7 +3449,6 @@ export default function App() {
         const isDropdownSelectionComplete = isInteractiveTutorialStepComplete(activeStep);
         if (highlightedTarget instanceof HTMLSelectElement) {
           if (
-            activeStep.id !== "season" &&
             isDropdownSelectionComplete &&
             !hasInteractiveTutorialAlternativeOption(activeStep, highlightedTarget)
           ) {
@@ -2861,7 +3485,10 @@ export default function App() {
 
     const handleChangeCapture = (event: Event) => {
       const activeStep = currentInteractiveTutorialStep;
-      if (!isInteractiveTutorialDropdownStep(activeStep)) {
+      if (
+        !isInteractiveTutorialDropdownStep(activeStep) &&
+        activeStep.id !== "timeline-week-view"
+      ) {
         return;
       }
 
@@ -2886,6 +3513,33 @@ export default function App() {
         setInteractiveTutorialStepError(getInteractiveTutorialStepError(activeStep));
       }, 0);
     };
+    const handleInputCapture = (event: Event) => {
+      const activeStep = currentInteractiveTutorialStep;
+      if (!isInteractiveTutorialSearchStep(activeStep)) {
+        return;
+      }
+
+      const targetNode = event.target as Node | null;
+      if (!targetNode) {
+        return;
+      }
+
+      const highlightedTarget = interactiveTutorialTargetRef.current;
+      const isTargetInput = highlightedTarget?.contains(targetNode);
+      if (!isTargetInput) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        if (isInteractiveTutorialStepComplete(activeStep)) {
+          setInteractiveTutorialStepError(null);
+          advanceInteractiveTutorial();
+          return;
+        }
+
+        setInteractiveTutorialStepError(getInteractiveTutorialStepError(activeStep));
+      }, 0);
+    };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -2896,11 +3550,13 @@ export default function App() {
 
     document.addEventListener("click", handleClickCapture, true);
     document.addEventListener("change", handleChangeCapture, true);
+    document.addEventListener("input", handleInputCapture, true);
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.removeEventListener("click", handleClickCapture, true);
       document.removeEventListener("change", handleChangeCapture, true);
+      document.removeEventListener("input", handleInputCapture, true);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
@@ -2912,6 +3568,7 @@ export default function App() {
     isInteractiveTutorialCreateStepModalInteraction,
     isInteractiveTutorialCreationStep,
     isInteractiveTutorialDropdownStep,
+    isInteractiveTutorialSearchStep,
     isInteractiveTutorialStepComplete,
   ]);
 
@@ -3093,7 +3750,9 @@ export default function App() {
           setInventoryView={setInventoryView}
           setManufacturingView={setManufacturingView}
           setTaskView={setTaskView}
+          setWorklogsView={setWorklogsView}
           taskView={taskView}
+          worklogsView={worklogsView}
           projects={projectsInSelectedSeason}
           selectedProjectId={selectedProjectId}
           subsystemsLabel={subsystemsLabel}
@@ -3284,6 +3943,8 @@ export default function App() {
           openCreateEventReportModal={openCreateEventReportModal}
           openCreateWorkstreamModal={openCreateWorkstreamModal}
           openEditWorkstreamModal={openEditWorkstreamModal}
+          onCreateRisk={handleCreateRisk}
+          onDeleteRisk={handleDeleteRisk}
           onCncQuickStatusChange={handleCncQuickStatusChange}
           openEditManufacturingModal={openEditManufacturingModal}
           openEditArtifactModal={openEditArtifactModal}
@@ -3294,6 +3955,7 @@ export default function App() {
           openEditPartDefinitionModal={openEditPartDefinitionModal}
           openEditPurchaseModal={openEditPurchaseModal}
           openTimelineTaskDetailsModal={openTimelineTaskDetailsModal}
+          onUpdateRisk={handleUpdateRisk}
           printItems={printItems}
           rosterMentors={rosterMentors}
           showCncMentorQuickActions={
@@ -3304,6 +3966,7 @@ export default function App() {
           manufacturingView={manufacturingView}
           inventoryView={inventoryView}
           taskView={taskView}
+          worklogsView={worklogsView}
           selectMember={selectMember}
           selectedMemberId={selectedMemberId}
           setIsAddPersonOpen={setIsAddPersonOpen}
@@ -3322,11 +3985,15 @@ export default function App() {
           timelineMilestoneCreateSignal={timelineMilestoneCreateSignal}
           disablePanelAnimations={disablePanelAnimations}
           onDismissDataMessage={clearDataMessage}
-          onStartInteractiveTutorial={startInteractiveTutorial}
+          onStartInteractiveTutorial={() => void startInteractiveTutorial("planning")}
+          onStartInteractiveTutorialChapter={(chapterId) =>
+            void startInteractiveTutorial(chapterId as InteractiveTutorialChapterId)}
+          interactiveTutorialChapters={interactiveTutorialChapterStartOptions}
+          isInteractiveTutorialActive={isInteractiveTutorialActive}
         />
       </Suspense>
 
-      {currentInteractiveTutorialStep ? (
+      {currentInteractiveTutorialStep || interactiveTutorialCompletedChapterId ? (
         <aside
           aria-label="Interactive tutorial"
           className="interactive-tutorial-overlay"
@@ -3384,41 +4051,74 @@ export default function App() {
             <div className="interactive-tutorial-dim" style={{ inset: 0 }} />
           )}
           <section className="interactive-tutorial-card" ref={interactiveTutorialCardRef}>
-            <div className="interactive-tutorial-header">
-              <p className="eyebrow">Interactive tutorial</p>
-              <p className="interactive-tutorial-progress">
-                Step {interactiveTutorialStepNumber} of {interactiveTutorialSteps.length}
-              </p>
-            </div>
-            <h3>{currentInteractiveTutorialStep.title}</h3>
-            <p>{currentInteractiveTutorialStep.instruction}</p>
-            <p className="interactive-tutorial-context">
-              Fake tutorial season: {interactiveTutorialSeasonName ?? "Tutorial season"}
-            </p>
-            {interactiveTutorialProjectName ? (
-              <p className="interactive-tutorial-context">
-                Tutorial project: {interactiveTutorialProjectName}
-              </p>
-            ) : null}
-            <p className="interactive-tutorial-hint">
-              {isInteractiveTutorialTargetReady
-                ? isInteractiveTutorialCreationStep(currentInteractiveTutorialStep)
-                  ? "Use Add, complete the modal, and save to continue."
-                  : "Use the highlighted control to continue."
-                : "Waiting for the next highlighted control to appear..."}
-            </p>
-            {interactiveTutorialStepError ? (
-              <p className="interactive-tutorial-error">{interactiveTutorialStepError}</p>
-            ) : null}
-            <div className="interactive-tutorial-actions">
-              <button
-                className="secondary-action"
-                onClick={closeInteractiveTutorial}
-                type="button"
-              >
-                End tutorial
-              </button>
-            </div>
+            {currentInteractiveTutorialStep ? (
+              <>
+                <div className="interactive-tutorial-header">
+                  <p className="eyebrow">Interactive tutorial</p>
+                  <p className="interactive-tutorial-progress">
+                    {activeInteractiveTutorialChapter?.title ?? "Tutorial"}: Step {interactiveTutorialStepNumber} of{" "}
+                    {interactiveTutorialSteps.length}
+                  </p>
+                </div>
+                <h3>{currentInteractiveTutorialStep.title}</h3>
+                <p>{currentInteractiveTutorialStep.instruction}</p>
+                <p className="interactive-tutorial-context">
+                  Fake tutorial season: {interactiveTutorialSeasonName ?? "Tutorial season"}
+                </p>
+                {interactiveTutorialProjectName ? (
+                  <p className="interactive-tutorial-context">
+                    Tutorial project: {interactiveTutorialProjectName}
+                  </p>
+                ) : null}
+                <p className="interactive-tutorial-hint">
+                  {isInteractiveTutorialTargetReady
+                    ? isInteractiveTutorialCreationStep(currentInteractiveTutorialStep)
+                      ? "Use Add, complete the modal, and save to continue."
+                      : "Use the highlighted control to continue."
+                    : "Waiting for the next highlighted control to appear..."}
+                </p>
+                {interactiveTutorialStepError ? (
+                  <p className="interactive-tutorial-error">{interactiveTutorialStepError}</p>
+                ) : null}
+                <div className="interactive-tutorial-actions">
+                  <button className="secondary-action" onClick={closeInteractiveTutorial} type="button">
+                    End tutorial
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="interactive-tutorial-header">
+                  <p className="eyebrow">Chapter complete</p>
+                  <p className="interactive-tutorial-progress">
+                    {interactiveTutorialChapters.find((chapter) => chapter.id === interactiveTutorialCompletedChapterId)
+                      ?.title ?? "Tutorial chapter"}
+                  </p>
+                </div>
+                <h3>Continue to the next chapter?</h3>
+                <p>
+                  This chapter is complete. You can end the tutorial now or continue with the next chapter.
+                </p>
+                <div className="interactive-tutorial-actions">
+                  <button className="secondary-action" onClick={closeInteractiveTutorial} type="button">
+                    End tutorial
+                  </button>
+                  {interactiveTutorialNextChapterId ? (
+                    <button
+                      className="primary-action"
+                      onClick={continueInteractiveTutorialToNextChapter}
+                      type="button"
+                    >
+                      Continue to next chapter
+                    </button>
+                  ) : (
+                    <button className="primary-action" onClick={closeInteractiveTutorial} type="button">
+                      Finish tutorial
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </section>
         </aside>
       ) : null}

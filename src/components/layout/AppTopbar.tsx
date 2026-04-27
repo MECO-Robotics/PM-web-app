@@ -13,9 +13,11 @@ import {
   NON_ROBOT_INVENTORY_VIEW_OPTIONS,
   ROBOT_INVENTORY_VIEW_OPTIONS,
   TASK_VIEW_OPTIONS,
+  WORKLOG_VIEW_OPTIONS,
   type InventoryViewTab,
   type ManufacturingViewTab,
   type TaskViewTab,
+  type WorklogsViewTab,
   type ViewOption,
   type ViewTab,
 } from "@/lib/workspaceNavigation";
@@ -68,8 +70,10 @@ function TopbarNavigation({
   inventoryView,
   isNonRobotProject,
   manufacturingView,
+  worklogsView,
   setInventoryView,
   setManufacturingView,
+  setWorklogsView,
   setTaskView,
   subsystemsLabel,
   taskView,
@@ -78,8 +82,10 @@ function TopbarNavigation({
   inventoryView: InventoryViewTab;
   isNonRobotProject: boolean;
   manufacturingView: ManufacturingViewTab;
+  worklogsView: WorklogsViewTab;
   setInventoryView: Dispatch<SetStateAction<InventoryViewTab>>;
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
+  setWorklogsView: Dispatch<SetStateAction<WorklogsViewTab>>;
   setTaskView: Dispatch<SetStateAction<TaskViewTab>>;
   subsystemsLabel: string;
   taskView: TaskViewTab;
@@ -98,6 +104,19 @@ function TopbarNavigation({
             onChange={setTaskView}
             options={TASK_VIEW_OPTIONS}
             tutorialPrefix="task-view"
+          />
+        </>
+      );
+    case "worklogs":
+      return (
+        <>
+          <span className="app-topbar-page-label">{BASE_SECTION_LABELS.worklogs}</span>
+          <TopbarTabs
+            activeValue={worklogsView}
+            ariaLabel="Work log views"
+            onChange={setWorklogsView}
+            options={WORKLOG_VIEW_OPTIONS}
+            tutorialPrefix="worklogs-view"
           />
         </>
       );
@@ -156,7 +175,9 @@ interface AppTopbarProps {
   setInventoryView: Dispatch<SetStateAction<InventoryViewTab>>;
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
   setTaskView: Dispatch<SetStateAction<TaskViewTab>>;
+  setWorklogsView: Dispatch<SetStateAction<WorklogsViewTab>>;
   taskView: TaskViewTab;
+  worklogsView: WorklogsViewTab;
   projects: ProjectRecord[];
   selectedProjectId: string | null;
   subsystemsLabel: string;
@@ -184,7 +205,9 @@ export function AppTopbar({
   setInventoryView,
   setManufacturingView,
   setTaskView,
+  setWorklogsView,
   taskView,
+  worklogsView,
   projects,
   selectedProjectId,
   subsystemsLabel,
@@ -245,6 +268,7 @@ export function AppTopbar({
               ? "app-topbar-project-picker has-overlay-action"
               : "app-topbar-project-picker"
           }
+          data-tutorial-target="project-select-outreach"
         >
           <label className="app-topbar-project-label" htmlFor="app-topbar-project-select">
             Project
@@ -292,8 +316,10 @@ export function AppTopbar({
           inventoryView={inventoryView}
           isNonRobotProject={isNonRobotProject}
           manufacturingView={manufacturingView}
+          worklogsView={worklogsView}
           setInventoryView={setInventoryView}
           setManufacturingView={setManufacturingView}
+          setWorklogsView={setWorklogsView}
           setTaskView={setTaskView}
           subsystemsLabel={subsystemsLabel}
           taskView={taskView}

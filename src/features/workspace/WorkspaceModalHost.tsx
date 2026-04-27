@@ -2,12 +2,14 @@ import type { Dispatch, FormEvent, SetStateAction } from "react";
 
 import {
   ArtifactEditorModal,
+  EventReportEditorModal,
   ManufacturingEditorModal,
   MaterialEditorModal,
   MechanismEditorModal,
   PartDefinitionEditorModal,
   PartInstanceEditorModal,
   PurchaseEditorModal,
+  QaReportEditorModal,
   TaskDetailsModal,
   SubsystemEditorModal,
   TaskEditorModal,
@@ -16,12 +18,14 @@ import {
 } from "./WorkspaceModals";
 import type {
   ArtifactModalMode,
+  EventReportModalMode,
   ManufacturingModalMode,
   MaterialModalMode,
   MechanismModalMode,
   PartDefinitionModalMode,
   PartInstanceModalMode,
   PurchaseModalMode,
+  QaReportModalMode,
   SubsystemModalMode,
   TaskModalMode,
   WorkLogModalMode,
@@ -39,6 +43,8 @@ import type {
   SubsystemPayload,
   TaskPayload,
   TaskRecord,
+  TestResultPayload,
+  QaReportPayload,
   WorkLogPayload,
   WorkstreamPayload,
 } from "@/types";
@@ -60,6 +66,8 @@ interface WorkspaceModalHostProps {
   closePartInstanceModal: () => void;
   closePartDefinitionModal: () => void;
   closePurchaseModal: () => void;
+  closeQaReportModal: () => void;
+  closeEventReportModal: () => void;
   closeTimelineTaskDetailsModal: () => void;
   closeWorkLogModal: () => void;
   closeSubsystemModal: () => void;
@@ -84,6 +92,8 @@ interface WorkspaceModalHostProps {
   handlePartDefinitionSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleArtifactSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handlePurchaseSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleQaReportSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleEventReportSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleWorkLogSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleSubsystemSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   handleTaskSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -101,6 +111,8 @@ interface WorkspaceModalHostProps {
   isSavingPartInstance: boolean;
   isSavingMechanism: boolean;
   isSavingPurchase: boolean;
+  isSavingQaReport: boolean;
+  isSavingEventReport: boolean;
   isSavingWorkLog: boolean;
   isSavingSubsystem: boolean;
   isSavingTask: boolean;
@@ -124,6 +136,11 @@ interface WorkspaceModalHostProps {
   purchaseDraft: PurchaseItemPayload;
   purchaseFinalCost: string;
   purchaseModalMode: PurchaseModalMode;
+  qaReportDraft: QaReportPayload;
+  qaReportModalMode: QaReportModalMode;
+  eventReportDraft: TestResultPayload;
+  eventReportFindings: string;
+  eventReportModalMode: EventReportModalMode;
   workLogDraft: WorkLogPayload;
   workLogModalMode: WorkLogModalMode;
   workstreamDraft: WorkstreamPayload;
@@ -136,6 +153,9 @@ interface WorkspaceModalHostProps {
   setPartDefinitionDraft: Dispatch<SetStateAction<PartDefinitionPayload>>;
   setPurchaseDraft: Dispatch<SetStateAction<PurchaseItemPayload>>;
   setPurchaseFinalCost: (value: string) => void;
+  setQaReportDraft: Dispatch<SetStateAction<QaReportPayload>>;
+  setEventReportDraft: Dispatch<SetStateAction<TestResultPayload>>;
+  setEventReportFindings: (value: string) => void;
   setWorkLogDraft: Dispatch<SetStateAction<WorkLogPayload>>;
   setWorkstreamDraft: Dispatch<SetStateAction<WorkstreamPayload>>;
   setSubsystemDraft: Dispatch<SetStateAction<SubsystemPayload>>;
@@ -170,6 +190,8 @@ export function WorkspaceModalHost({
   closePartInstanceModal,
   closePartDefinitionModal,
   closePurchaseModal,
+  closeQaReportModal,
+  closeEventReportModal,
   closeTimelineTaskDetailsModal,
   closeWorkLogModal,
   closeSubsystemModal,
@@ -194,6 +216,8 @@ export function WorkspaceModalHost({
   handlePartDefinitionSubmit,
   handleArtifactSubmit,
   handlePurchaseSubmit,
+  handleQaReportSubmit,
+  handleEventReportSubmit,
   handleWorkLogSubmit,
   handleSubsystemSubmit,
   handleTaskSubmit,
@@ -211,6 +235,8 @@ export function WorkspaceModalHost({
   isSavingPartInstance,
   isSavingMechanism,
   isSavingPurchase,
+  isSavingQaReport,
+  isSavingEventReport,
   isSavingWorkLog,
   isSavingSubsystem,
   isSavingTask,
@@ -234,6 +260,11 @@ export function WorkspaceModalHost({
   purchaseDraft,
   purchaseFinalCost,
   purchaseModalMode,
+  qaReportDraft,
+  qaReportModalMode,
+  eventReportDraft,
+  eventReportFindings,
+  eventReportModalMode,
   workLogDraft,
   workLogModalMode,
   workstreamDraft,
@@ -246,6 +277,9 @@ export function WorkspaceModalHost({
   setPartDefinitionDraft,
   setPurchaseDraft,
   setPurchaseFinalCost,
+  setQaReportDraft,
+  setEventReportDraft,
+  setEventReportFindings,
   setWorkLogDraft,
   setWorkstreamDraft,
   setSubsystemDraft,
@@ -396,6 +430,30 @@ export function WorkspaceModalHost({
           isSavingWorkLog={isSavingWorkLog}
           setWorkLogDraft={setWorkLogDraft}
           workLogDraft={workLogDraft}
+        />
+      ) : null}
+
+      {qaReportModalMode ? (
+        <QaReportEditorModal
+          bootstrap={bootstrap}
+          closeQaReportModal={closeQaReportModal}
+          handleQaReportSubmit={handleQaReportSubmit}
+          isSavingQaReport={isSavingQaReport}
+          qaReportDraft={qaReportDraft}
+          setQaReportDraft={setQaReportDraft}
+        />
+      ) : null}
+
+      {eventReportModalMode ? (
+        <EventReportEditorModal
+          bootstrap={bootstrap}
+          closeEventReportModal={closeEventReportModal}
+          eventReportDraft={eventReportDraft}
+          eventReportFindings={eventReportFindings}
+          handleEventReportSubmit={handleEventReportSubmit}
+          isSavingEventReport={isSavingEventReport}
+          setEventReportDraft={setEventReportDraft}
+          setEventReportFindings={setEventReportFindings}
         />
       ) : null}
 

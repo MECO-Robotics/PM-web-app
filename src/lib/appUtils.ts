@@ -13,10 +13,12 @@ import type {
   PartInstanceRecord,
   PurchaseItemPayload,
   PurchaseItemRecord,
+  QaReportPayload,
   SubsystemPayload,
   SubsystemRecord,
   TaskPayload,
   TaskRecord,
+  TestResultPayload,
   WorkLogPayload,
   WorkstreamPayload,
   WorkstreamRecord,
@@ -93,6 +95,10 @@ function uniqueIds(values: Array<string | null | undefined>) {
 
 export function normalizeIteration(value: number | null | undefined) {
     return Number.isFinite(value) && value && value >= 1 ? Math.trunc(value) : 1;
+}
+
+export function formatIterationVersion(value: number | null | undefined) {
+    return `v${normalizeIteration(value)}`;
 }
 
 export function buildIterationOptions(
@@ -678,6 +684,35 @@ export function buildEmptyWorkLogPayload(
     hours: 1,
     participantIds: participantId ? [participantId] : [],
     notes: "",
+  };
+}
+
+export function buildEmptyQaReportPayload(
+  bootstrap: BootstrapPayload,
+  defaultParticipantId: string | null = null,
+): QaReportPayload {
+  const participantId =
+    defaultParticipantId &&
+    bootstrap.members.some((member) => member.id === defaultParticipantId)
+      ? defaultParticipantId
+      : bootstrap.members[0]?.id ?? null;
+
+  return {
+    taskId: bootstrap.tasks[0]?.id ?? "",
+    participantIds: participantId ? [participantId] : [],
+    result: "pass",
+    mentorApproved: false,
+    notes: "",
+    reviewedAt: new Date().toISOString().slice(0, 10),
+  };
+}
+
+export function buildEmptyTestResultPayload(bootstrap: BootstrapPayload): TestResultPayload {
+  return {
+    eventId: bootstrap.events[0]?.id ?? "",
+    title: "",
+    status: "pass",
+    findings: [],
   };
 }
 

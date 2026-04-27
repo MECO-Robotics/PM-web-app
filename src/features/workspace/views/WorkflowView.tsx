@@ -154,6 +154,7 @@ export function WorkflowView({
           {filteredRows.map((row) => (
             <div
               className="ops-table ops-row subsystem-manager-row editable-row-clickable editable-hover-target editable-hover-target-row"
+              data-tutorial-target="edit-workflow-row"
               key={row.workstream.id}
               onClick={() => openEditWorkstreamModal(row.workstream)}
               onKeyDown={(event) => {

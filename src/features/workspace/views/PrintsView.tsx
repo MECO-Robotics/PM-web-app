@@ -49,6 +49,7 @@ export function PrintsView({
       onEdit={onEdit}
       subsystemsById={subsystemsById}
       title="3D print queue"
+      tutorialTargetPrefix="prints"
     />
   );
 }

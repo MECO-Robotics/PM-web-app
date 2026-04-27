@@ -45,6 +45,7 @@ interface ManufacturingQueueViewProps {
   showInHouseColumn?: boolean;
   subsystemsById: SubsystemsById;
   title: string;
+  tutorialTargetPrefix?: string;
 }
 
 export function ManufacturingQueueView({
@@ -62,6 +63,7 @@ export function ManufacturingQueueView({
   showInHouseColumn = false,
   subsystemsById,
   title,
+  tutorialTargetPrefix,
 }: ManufacturingQueueViewProps) {
   const [search, setSearch] = useState("");
   const [subsystem, setSubsystem] = useState<FilterSelection>([]);
@@ -150,6 +152,9 @@ export function ManufacturingQueueView({
     }
   };
 
+  const tutorialTarget = (suffix: string) =>
+    tutorialTargetPrefix ? `${tutorialTargetPrefix}-${suffix}` : undefined;
+
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
       <div className="panel-header compact-header">
@@ -160,12 +165,14 @@ export function ManufacturingQueueView({
           </p>
         </div>
         <div className="panel-actions filter-toolbar queue-toolbar">
-          <SearchToolbarInput
-            ariaLabel={`Search ${title}`}
-            onChange={setSearch}
-            placeholder="Search parts..."
-            value={search}
-          />
+          <div data-tutorial-target={tutorialTarget("search-input")}>
+            <SearchToolbarInput
+              ariaLabel={`Search ${title}`}
+              onChange={setSearch}
+              placeholder="Search parts..."
+              value={search}
+            />
+          </div>
 
           <FilterDropdown
             allLabel="All subsystems"
@@ -210,6 +217,7 @@ export function ManufacturingQueueView({
           <button
             aria-label={addButtonAriaLabel}
             className="primary-action queue-toolbar-action"
+            data-tutorial-target={tutorialTarget("create-job-button")}
             onClick={onCreate}
             title="Add"
             type="button"
@@ -303,6 +311,7 @@ export function ManufacturingQueueView({
                     <span>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
                     <button
                       className="icon-button"
+                      data-tutorial-target={tutorialTarget("approve-job-button")}
                       disabled={isAnyActionPending || item.status !== "requested"}
                       onClick={(event) => handleQuickStatusChange(event, item, "approved")}
                       style={{ padding: "0.15rem 0.4rem" }}
@@ -312,6 +321,7 @@ export function ManufacturingQueueView({
                     </button>
                     <button
                       className="icon-button"
+                      data-tutorial-target={tutorialTarget("complete-job-button")}
                       disabled={isAnyActionPending || item.status === "complete"}
                       onClick={(event) => handleQuickStatusChange(event, item, "complete")}
                       style={{ padding: "0.15rem 0.4rem" }}
@@ -337,6 +347,7 @@ export function ManufacturingQueueView({
           return canShowMentorQuickActions ? (
             <div
               className={rowClassName}
+              data-tutorial-target={tutorialTarget("edit-job-row")}
               key={item.id}
               onClick={() => onEdit(item)}
               onKeyDown={(event) => handleRowKeyDown(event, item)}
@@ -349,6 +360,7 @@ export function ManufacturingQueueView({
           ) : (
             <button
               className={rowClassName}
+              data-tutorial-target={tutorialTarget("edit-job-row")}
               key={item.id}
               onClick={() => onEdit(item)}
               style={rowStyle}

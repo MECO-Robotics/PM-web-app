@@ -1620,6 +1620,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
               </span>
               <select
                 aria-label="Timeline interval"
+                data-tutorial-target="timeline-interval-select"
                 onChange={handleTimelineIntervalChange}
                 value={viewInterval}
               >
@@ -1633,6 +1634,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 <button
                   aria-label={`Previous ${viewInterval}`}
                   className="icon-button timeline-period-button"
+                  data-tutorial-target="timeline-period-prev-button"
                   onClick={() => shiftTimelinePeriod(-1)}
                   title={`Previous ${viewInterval}`}
                   type="button"
@@ -1643,6 +1645,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 <button
                   aria-label={`Next ${viewInterval}`}
                   className="icon-button timeline-period-button"
+                  data-tutorial-target="timeline-period-next-button"
                   onClick={() => shiftTimelinePeriod(1)}
                   title={`Next ${viewInterval}`}
                   type="button"
@@ -1654,6 +1657,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
           </div>
           <button
             className="primary-action queue-toolbar-action"
+            data-tutorial-target="timeline-create-task-button"
             onClick={openCreateTaskModal}
             title="Add to timeline"
             type="button"
@@ -2068,6 +2072,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         <button
                           key={task.id}
                           className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
+                          data-tutorial-target="timeline-task-bar"
                           onClick={() => openTaskDetailModal(task)}
                           onMouseEnter={clearHoveredMilestonePopup}
                           style={{
@@ -2233,6 +2238,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                 <button
                                   key={task.id}
                                   className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
+                                  data-tutorial-target="timeline-task-bar"
                                   onClick={() => openTaskDetailModal(task)}
                                   onMouseEnter={clearHoveredMilestonePopup}
                                   style={{
@@ -2272,6 +2278,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                     {showTaskCol ? (
                                       <button
                                         className="task-label timeline-column-motion timeline-row-motion-item"
+                                        data-tutorial-target="timeline-task-label"
                                         {...getTimelineColumnMotionProps("task", showTaskCol)}
                                         {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                                         onClick={() => openTaskDetailModal(task)}
@@ -2328,6 +2335,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                                       )}
                                         <button
                                           className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
+                                          data-tutorial-target="timeline-task-bar"
                                           onClick={() => openTaskDetailModal(task)}
                                           onMouseEnter={clearHoveredMilestonePopup}
                                       style={{
@@ -2543,6 +2551,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     <button
                       key={task.id}
                       className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
+                      data-tutorial-target="timeline-task-bar"
                       onClick={() => openTaskDetailModal(task)}
                       onMouseEnter={clearHoveredMilestonePopup}
                       style={{
@@ -2578,6 +2587,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         {showTaskCol ? (
                           <button
                             className="task-label timeline-column-motion timeline-row-motion-item"
+                            data-tutorial-target="timeline-task-label"
                             {...getTimelineColumnMotionProps("task", showTaskCol)}
                             {...getTimelineRowMotionProps("subsystem", subsystem.id, !collapsed)}
                             onClick={() => openTaskDetailModal(task)}
@@ -2634,6 +2644,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                         )}
                         <button
                           className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
+                          data-tutorial-target="timeline-task-bar"
                           onClick={() => openTaskDetailModal(task)}
                           onMouseEnter={clearHoveredMilestonePopup}
                           style={{

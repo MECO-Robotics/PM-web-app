@@ -219,8 +219,24 @@ export interface QaReportRecord {
   reviewedAt: string;
 }
 
+export interface QaReportPayload {
+  taskId: string;
+  participantIds: string[];
+  result: "pass" | "minor-fix" | "iteration-worthy";
+  mentorApproved: boolean;
+  notes: string;
+  reviewedAt: string;
+}
+
 export interface TestResultRecord {
   id: string;
+  eventId: string;
+  title: string;
+  status: TestResultStatus;
+  findings: string[];
+}
+
+export interface TestResultPayload {
   eventId: string;
   title: string;
   status: TestResultStatus;
@@ -470,6 +486,17 @@ export interface WorkstreamPayload {
   name: string;
   description: string;
   isArchived?: boolean;
+}
+
+export interface RiskPayload {
+  title: string;
+  detail: string;
+  severity: RiskSeverity;
+  sourceType: "qa-report" | "test-result";
+  sourceId: string;
+  attachmentType: RiskAttachmentType;
+  attachmentId: string;
+  mitigationTaskId: string | null;
 }
 
 export interface PartDefinitionPayload {

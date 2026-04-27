@@ -116,12 +116,14 @@ export function PurchasesView({
           </p>
         </div>
         <div className="panel-actions filter-toolbar queue-toolbar purchase-toolbar">
-          <SearchToolbarInput
-            ariaLabel="Search purchase items"
-            onChange={setSearch}
-            placeholder="Search items..."
-            value={search}
-          />
+          <div data-tutorial-target="purchases-search-input">
+            <SearchToolbarInput
+              ariaLabel="Search purchase items"
+              onChange={setSearch}
+              placeholder="Search items..."
+              value={search}
+            />
+          </div>
 
           <FilterDropdown
             allLabel="All subsystems"
@@ -143,15 +145,17 @@ export function PurchasesView({
             value={requester}
           />
 
-          <FilterDropdown
-            allLabel="All statuses"
-            ariaLabel="Filter purchases by status"
-            className="mobile-filter-control"
-            icon={<IconTasks />}
-            onChange={setStatus}
-            options={PURCHASE_STATUS_OPTIONS}
-            value={status}
-          />
+          <div data-tutorial-target="purchases-sort-control">
+            <FilterDropdown
+              allLabel="All statuses"
+              ariaLabel="Filter purchases by status"
+              className="mobile-filter-control"
+              icon={<IconTasks />}
+              onChange={setStatus}
+              options={PURCHASE_STATUS_OPTIONS}
+              value={status}
+            />
+          </div>
 
           <FilterDropdown
             allLabel="All vendors"
@@ -176,6 +180,7 @@ export function PurchasesView({
           <button
             aria-label="Add purchase"
             className="primary-action queue-toolbar-action"
+            data-tutorial-target="create-purchase-button"
             onClick={openCreatePurchaseModal}
             title="Add purchase"
             type="button"
@@ -245,6 +250,7 @@ export function PurchasesView({
         {purchasePagination.pageItems.map((item) => (
           <button
             className="ops-table ops-row purchase-table ops-button-row editable-hover-target editable-hover-target-row"
+            data-tutorial-target="edit-purchase-row"
             key={item.id}
             onClick={() => openEditPurchaseModal(item)}
             style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}

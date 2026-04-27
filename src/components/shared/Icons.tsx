@@ -77,6 +77,13 @@ export const IconHelp = () => (
         <circle cx="12" cy="17.2" r="0.6" fill="currentColor" stroke="none"></circle>
     </svg>
 );
+export const IconRisk = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}>
+        <path d="m12 3 9.5 17H2.5L12 3Z"></path>
+        <path d="M12 9v5"></path>
+        <circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none"></circle>
+    </svg>
+);
 export const IconPerson = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block" }}><path d="M20 21a8 8 0 1 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg>
 );

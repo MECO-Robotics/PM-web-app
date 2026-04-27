@@ -198,6 +198,7 @@ export function ArtifactInventoryView({
           <button
             aria-label={addLabel}
             className="primary-action queue-toolbar-action"
+            data-tutorial-target="create-document-button"
             onClick={() => openCreateArtifactModal(primaryKind)}
             title={addLabel}
             type="button"

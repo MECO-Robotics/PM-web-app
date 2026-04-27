@@ -18,16 +18,19 @@ import type {
   MemberPayload,
   PartDefinitionRecord,
   PurchaseItemRecord,
+  RiskPayload,
   TaskRecord,
 } from "@/types";
 import {
   INVENTORY_VIEW_ORDER,
   MANUFACTURING_VIEW_ORDER,
   TASK_VIEW_ORDER,
+  WORKLOG_VIEW_ORDER,
   type InventoryViewTab,
   type ManufacturingViewTab,
   type TaskViewTab,
   type ViewTab,
+  type WorklogsViewTab,
 } from "@/lib/workspaceNavigation";
 import {
   ArtifactInventoryView,
@@ -40,6 +43,7 @@ import {
   PrintsView,
   PurchasesView,
   RosterView,
+  RisksView,
   SubsystemsView,
   TaskQueueView,
   TimelineView,
@@ -50,12 +54,13 @@ import type { FilterSelection } from "@/features/workspace/shared";
 
 type WorkspaceSubviewTab =
   | TaskViewTab
+  | WorklogsViewTab
   | ManufacturingViewTab
   | InventoryViewTab
-  | "worklogs"
   | "documents"
   | "subsystems"
   | "workflow"
+  | "risk-management"
   | "roster"
   | "help";
 
@@ -69,8 +74,10 @@ const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> = {
     "Use search and filters to narrow milestones, click a row to edit details, and use Add to create new milestone events tied to relevant subsystems when needed.",
   queue:
     "Use search and filters to narrow the list, click a column header to sort, and hover any row to reveal the pencil cue before clicking the row to open its task details. Use Add to create a new task.",
-  worklogs:
+  logs:
     "Search the log entries, filter by subsystem, add new work logs from the toolbar, and click a row to open the linked task details. The selected roster person stays in sync with the global workspace filter.",
+  summary:
+    "Use this dashboard to review total work-log volume, compare planned hours versus logged hours, and spot top contributors and most active tasks at a glance.",
   cnc:
     "Search and filter CNC jobs by subsystem, requester, material, or status, then hover a row to reveal the pencil cue before clicking the row to update that job. Use Add to enter a new CNC request tied to a catalog part.",
   prints:
@@ -89,6 +96,8 @@ const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> = {
     "Search and filter subsystem ownership and mechanism coverage, click a subsystem row to expand its mechanisms underneath, hover the pencil on the right to edit the subsystem, and use the add controls to create or update subsystems, mechanisms, and mechanism-owned part instances.",
   workflow:
     "Search and filter workflow ownership, click a row to expand details, and use add or edit controls to keep non-technical workstreams current.",
+  "risk-management":
+    "Use search and quick filters to triage risk records, click a row to edit details or mitigation ownership, and use Add to log a new risk linked to a real source and attachment target.",
   roster:
     "Use the plus buttons to add people to each group, click a name to select them, and hover a member to reveal the pencil affordance for editing or deleting them from the popup.",
   help:
@@ -160,8 +169,12 @@ interface WorkspaceContentProps {
   openCreateTaskModal: () => void;
   openCreateTaskModalFromTimeline: () => void;
   openCreateWorkLogModal: () => void;
+  openCreateQaReportModal: () => void;
+  openCreateEventReportModal: () => void;
   openCreateWorkstreamModal: () => void;
   openEditWorkstreamModal: (workstream: BootstrapPayload["workstreams"][number]) => void;
+  onCreateRisk: (payload: RiskPayload) => Promise<void>;
+  onDeleteRisk: (riskId: string) => Promise<void>;
   onCncQuickStatusChange: (
     item: ManufacturingItemRecord,
     status: ManufacturingItemRecord["status"],
@@ -175,6 +188,7 @@ interface WorkspaceContentProps {
   openEditPartDefinitionModal: (item: PartDefinitionRecord) => void;
   openEditPurchaseModal: (item: PurchaseItemRecord) => void;
   openTimelineTaskDetailsModal: (task: TaskRecord) => void;
+  onUpdateRisk: (riskId: string, payload: RiskPayload) => Promise<void>;
   partDefinitionsById: Record<string, BootstrapPayload["partDefinitions"][number]>;
   partInstancesById: Record<string, BootstrapPayload["partInstances"][number]>;
   printItems: ManufacturingItemRecord[];
@@ -183,6 +197,7 @@ interface WorkspaceContentProps {
   manufacturingView: ManufacturingViewTab;
   inventoryView: InventoryViewTab;
   taskView: TaskViewTab;
+  worklogsView: WorklogsViewTab;
   selectMember: (id: string | null, payload: BootstrapPayload) => void;
   selectedMemberId: string | null;
   setActivePersonFilter: (value: FilterSelection) => void;
@@ -196,6 +211,14 @@ interface WorkspaceContentProps {
   disablePanelAnimations?: boolean;
   onDismissDataMessage: () => void;
   onStartInteractiveTutorial?: () => void;
+  onStartInteractiveTutorialChapter?: (chapterId: string) => void;
+  interactiveTutorialChapters?: Array<{
+    id: string;
+    title: string;
+    summary: string;
+    completed?: boolean;
+  }>;
+  isInteractiveTutorialActive?: boolean;
 }
 
 function WorkspaceSectionPanel({
@@ -367,8 +390,12 @@ export function WorkspaceContent({
   openCreateTaskModal,
   openCreateTaskModalFromTimeline,
   openCreateWorkLogModal,
+  openCreateQaReportModal,
+  openCreateEventReportModal,
   openCreateWorkstreamModal,
   openEditWorkstreamModal,
+  onCreateRisk,
+  onDeleteRisk,
   onCncQuickStatusChange,
   openEditManufacturingModal,
   openEditArtifactModal,
@@ -379,6 +406,7 @@ export function WorkspaceContent({
   openEditPartDefinitionModal,
   openEditPurchaseModal,
   openTimelineTaskDetailsModal,
+  onUpdateRisk,
   partDefinitionsById,
   partInstancesById,
   printItems,
@@ -387,6 +415,7 @@ export function WorkspaceContent({
   manufacturingView,
   inventoryView,
   taskView,
+  worklogsView,
   selectMember,
   selectedMemberId,
   setActivePersonFilter,
@@ -400,10 +429,14 @@ export function WorkspaceContent({
   disablePanelAnimations = false,
   onDismissDataMessage,
   onStartInteractiveTutorial,
+  onStartInteractiveTutorialChapter,
+  interactiveTutorialChapters,
+  isInteractiveTutorialActive = false,
 }: WorkspaceContentProps) {
   const effectiveInventoryView =
     isNonRobotProject && inventoryView === "parts" ? "materials" : inventoryView;
   const previousTaskViewRef = useRef(taskView);
+  const previousWorklogsViewRef = useRef(worklogsView);
   const previousManufacturingViewRef = useRef(manufacturingView);
   const previousInventoryViewRef = useRef(effectiveInventoryView);
 
@@ -417,6 +450,11 @@ export function WorkspaceContent({
     manufacturingView,
     MANUFACTURING_VIEW_ORDER,
   );
+  const worklogsSwipeDirection = getSwipeDirection(
+    previousWorklogsViewRef.current,
+    worklogsView,
+    WORKLOG_VIEW_ORDER,
+  );
   const inventorySwipeDirection = getSwipeDirection(
     previousInventoryViewRef.current,
     effectiveInventoryView,
@@ -426,6 +464,10 @@ export function WorkspaceContent({
   useEffect(() => {
     previousTaskViewRef.current = taskView;
   }, [taskView]);
+
+  useEffect(() => {
+    previousWorklogsViewRef.current = worklogsView;
+  }, [worklogsView]);
 
   useEffect(() => {
     previousManufacturingViewRef.current = manufacturingView;
@@ -516,7 +558,25 @@ export function WorkspaceContent({
             subsystemsById={subsystemsById}
           />
         </WorkspaceSubPanel>
+      </WorkspaceSectionPanel>
 
+      <WorkspaceSectionPanel
+        disableAnimations={disablePanelAnimations}
+        isActive={activeTab === "risk-management"}
+        tabSwitchDirection={tabSwitchDirection}
+      >
+        <WorkspaceSubPanel
+          disableAnimations={disablePanelAnimations}
+          description={SUBVIEW_INTERACTION_GUIDANCE["risk-management"]}
+          isActive
+        >
+          <RisksView
+            bootstrap={bootstrap}
+            onCreateRisk={onCreateRisk}
+            onDeleteRisk={onDeleteRisk}
+            onUpdateRisk={onUpdateRisk}
+          />
+        </WorkspaceSubPanel>
       </WorkspaceSectionPanel>
 
       <WorkspaceSectionPanel
@@ -525,17 +585,40 @@ export function WorkspaceContent({
         tabSwitchDirection={tabSwitchDirection}
       >
         <WorkspaceSubPanel
-          description={SUBVIEW_INTERACTION_GUIDANCE.worklogs}
+          description={SUBVIEW_INTERACTION_GUIDANCE.logs}
           disableAnimations={disablePanelAnimations}
-          isActive
+          isActive={worklogsView === "logs"}
+          swipeDirection={worklogsSwipeDirection}
         >
           <WorkLogsView
             activePersonFilter={activePersonFilter}
             bootstrap={bootstrap}
             membersById={membersById}
             openCreateWorkLogModal={openCreateWorkLogModal}
+            openCreateQaReportModal={openCreateQaReportModal}
+            openCreateEventReportModal={openCreateEventReportModal}
             openEditTaskModal={openTimelineTaskDetailsModal}
             subsystemsById={subsystemsById}
+            view="logs"
+          />
+        </WorkspaceSubPanel>
+
+        <WorkspaceSubPanel
+          description={SUBVIEW_INTERACTION_GUIDANCE.summary}
+          disableAnimations={disablePanelAnimations}
+          isActive={worklogsView === "summary"}
+          swipeDirection={worklogsSwipeDirection}
+        >
+          <WorkLogsView
+            activePersonFilter={activePersonFilter}
+            bootstrap={bootstrap}
+            membersById={membersById}
+            openCreateWorkLogModal={openCreateWorkLogModal}
+            openCreateQaReportModal={openCreateQaReportModal}
+            openCreateEventReportModal={openCreateEventReportModal}
+            openEditTaskModal={openTimelineTaskDetailsModal}
+            subsystemsById={subsystemsById}
+            view="summary"
           />
         </WorkspaceSubPanel>
       </WorkspaceSectionPanel>
@@ -747,7 +830,12 @@ export function WorkspaceContent({
           disableAnimations={disablePanelAnimations}
           isActive
         >
-          <HelpView onStartInteractiveTutorial={onStartInteractiveTutorial} />
+          <HelpView
+            onStartInteractiveTutorial={onStartInteractiveTutorial}
+            onStartInteractiveTutorialChapter={onStartInteractiveTutorialChapter}
+            interactiveTutorialChapters={interactiveTutorialChapters}
+            isInteractiveTutorialActive={isInteractiveTutorialActive}
+          />
         </WorkspaceSubPanel>
       </WorkspaceSectionPanel>
     </div>

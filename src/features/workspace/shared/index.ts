@@ -7,12 +7,14 @@ export {
 } from "./workspaceTypes";
 export {
   type ArtifactModalMode,
+  type EventReportModalMode,
   type ManufacturingModalMode,
   type MaterialModalMode,
   type MechanismModalMode,
   type PartDefinitionModalMode,
   type PartInstanceModalMode,
   type PurchaseModalMode,
+  type QaReportModalMode,
   type SubsystemModalMode,
   type TaskModalMode,
   type WorkLogModalMode,

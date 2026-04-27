@@ -519,12 +519,14 @@ export function MilestonesView({
           </p>
         </div>
         <div className="panel-actions filter-toolbar milestones-toolbar">
-          <SearchToolbarInput
-            ariaLabel="Search milestones"
-            onChange={setSearchFilter}
-            placeholder="Search milestones..."
-            value={searchFilter}
-          />
+          <div data-tutorial-target="milestone-search-input">
+            <SearchToolbarInput
+              ariaLabel="Search milestones"
+              onChange={setSearchFilter}
+              placeholder="Search milestones..."
+              value={searchFilter}
+            />
+          </div>
 
           {isAllProjectsView ? (
             <FilterDropdown
@@ -551,6 +553,7 @@ export function MilestonesView({
           <button
             aria-label="Add milestone"
             className="primary-action queue-toolbar-action"
+            data-tutorial-target="create-milestone-button"
             onClick={openCreateEventModal}
             title="Add milestone"
             type="button"
@@ -612,6 +615,7 @@ export function MilestonesView({
           return (
             <button
               className="queue-table queue-row editable-hover-target editable-hover-target-row"
+              data-tutorial-target="edit-milestone-row"
               key={event.id}
               onClick={() => openEditEventModal(event)}
               style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
@@ -672,6 +676,11 @@ export function MilestonesView({
               <section
                 aria-modal="true"
                 className="modal-card"
+                data-tutorial-target={
+                  eventModalMode === "create"
+                    ? "milestone-create-modal"
+                    : "milestone-edit-modal"
+                }
                 onClick={(event) => event.stopPropagation()}
                 role="dialog"
                 style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}
