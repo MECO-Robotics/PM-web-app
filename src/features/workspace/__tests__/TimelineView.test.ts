@@ -695,9 +695,9 @@ describe("TimelineView", () => {
       return css.slice(start, blockEnd + 1);
     };
 
-    expect(getRule(".timeline-ellipsis-reveal[data-full-text]::after", { pseudo: true })).toMatch(
-      /color:\s*var\(--timeline-reveal-color/,
-    );
+    const revealRule = getRule(".timeline-ellipsis-reveal[data-full-text]::after", { pseudo: true });
+    expect(revealRule).toMatch(/color:\s*var\(--timeline-reveal-color/);
+    expect(revealRule).toMatch(/background:\s*var\(--bg-panel\)/);
     expect(getRule(".timeline-ellipsis-reveal[data-full-text]:hover", { pseudo: false })).toMatch(
       /color:\s*transparent/,
     );
