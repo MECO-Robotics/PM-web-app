@@ -15,6 +15,10 @@ const MILESTONE_UNDERLAY_HORIZONTAL_GAP = 18;
 const WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat(undefined, { day: "numeric" });
 
+export function getTimelineMergedCellRotation(rowCount: number) {
+  return rowCount >= 4 ? "180deg" : "240deg";
+}
+
 export interface TimelineTaskSpan extends TaskRecord {
   offset: number;
   span: number;
