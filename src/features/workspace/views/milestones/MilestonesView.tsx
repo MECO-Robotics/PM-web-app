@@ -12,6 +12,7 @@ import {
   ColumnFilterDropdown,
   CompactFilterMenu,
   EditableHoverIndicator,
+  formatFilterSelectionLabel,
   type FilterSelection,
   FilterDropdown,
   SearchToolbarInput,
@@ -38,6 +39,7 @@ import { formatDate } from "@/lib/appUtils";
 import {
   DEFAULT_EVENT_TYPE,
   EVENT_TYPE_STYLES,
+  getEventTypeStyle,
 } from "@/features/workspace/shared/eventStyles";
 import {
   buildDateTime,
@@ -59,6 +61,7 @@ import {
 } from "./milestonesViewUtils";
 
 interface MilestonesViewProps {
+  activePersonFilter: FilterSelection;
   bootstrap: BootstrapPayload;
   isAllProjectsView: boolean;
   onDeleteTimelineEvent: (eventId: string) => Promise<void>;
@@ -91,6 +94,7 @@ const SORT_DIRECTION_OPTIONS: { id: "asc" | "desc"; name: string }[] = [
 ];
 
 export function MilestonesView({
+  activePersonFilter,
   bootstrap,
   isAllProjectsView,
   onDeleteTimelineEvent,
@@ -171,17 +175,21 @@ export function MilestonesView({
 
   const processedEvents = useMemo(() => {
     return filterAndSortMilestones({
+      activePersonFilter,
       events: bootstrap.events,
       isAllProjectsView,
       projectFilter,
       searchFilter,
       sortField,
       sortOrder,
+      tasks: bootstrap.tasks,
       subsystemsById,
       typeFilter,
     });
   }, [
+    activePersonFilter,
     bootstrap.events,
+    bootstrap.tasks,
     isAllProjectsView,
     projectFilter,
     searchFilter,
@@ -201,6 +209,7 @@ export function MilestonesView({
     [bootstrap.events, projectsById, scopedProjectIds, subsystemsById],
   );
   const milestoneFilterMotionClass = useFilterChangeMotionClass([
+    activePersonFilter,
     isAllProjectsView,
     projectFilter,
     searchFilter,
@@ -208,6 +217,11 @@ export function MilestonesView({
     sortOrder,
     typeFilter,
   ]);
+  const activePersonFilterLabel = formatFilterSelectionLabel(
+    "All roster",
+    bootstrap.members,
+    activePersonFilter,
+  );
   const milestoneSortIsDefault = sortField === "startDateTime" && sortOrder === "asc";
   const activeEvent = eventModalMode && activeEventId
     ? bootstrap.events.find((event) => event.id === activeEventId) ?? null
@@ -408,6 +422,9 @@ export function MilestonesView({
             {processedEvents.length === 1
               ? "1 milestone matches the current filters."
               : `${processedEvents.length} milestones match the current filters.`}
+            {activePersonFilter.length > 0
+              ? ` Only milestones linked to tasks assigned to or mentored by ${activePersonFilterLabel}.`
+              : ""}
           </p>
         </div>
         <div className="panel-actions filter-toolbar milestones-toolbar">
@@ -561,7 +578,7 @@ export function MilestonesView({
         </div>
 
         {processedEvents.map((event) => {
-          const eventStyle = EVENT_TYPE_STYLES[event.type];
+          const eventStyle = getEventTypeStyle(event.type);
           const relatedSubsystems = event.relatedSubsystemIds
             .map((subsystemId) => subsystemsById[subsystemId]?.name ?? "Unknown subsystem")
             .join(", ");

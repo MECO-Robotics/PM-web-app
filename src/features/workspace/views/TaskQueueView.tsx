@@ -62,6 +62,13 @@ const SORT_DIRECTION_OPTIONS: DropdownOption[] = [
   { id: "desc", name: "Descending" },
 ];
 
+const SUBSYSTEM_ITERATION_DISCIPLINE_CODES = new Set<string>([
+  "design",
+  "manufacturing",
+  "assembly",
+  "electrical",
+]);
+
 interface TaskQueueViewProps {
   activePersonFilter: FilterSelection;
   bootstrap: BootstrapPayload;
@@ -151,24 +158,26 @@ function TaskQueueCompactFilterMenu({
   setPriorityFilter,
   setProjectFilter,
   setStatusFilter,
+  setDisciplineFilter,
   setSubsystemFilter,
   setSubsystemIterationFilter,
   setOwnerFilter,
+  disciplineFilter,
+  disciplineOptions,
   showSubsystemIterationFilter,
   subsystemFilter,
   subsystemFilterOptions,
   subsystemIterationFilter,
-  setDisciplineFilter,
   subsystemIterationOptions,
   ownerFilter,
   priorityFilter,
-  disciplineFilter,
-  disciplineOptions,
   statusFilter,
   bootstrap,
 }: {
   activeFilterCount: number;
   bootstrap: BootstrapPayload;
+  disciplineFilter: FilterSelection;
+  disciplineOptions: DropdownOption[];
   isAllProjectsView: boolean;
   isOpen: boolean;
   onClose: () => void;
@@ -176,11 +185,10 @@ function TaskQueueCompactFilterMenu({
   ownerFilter: FilterSelection;
   priorityFilter: FilterSelection;
   projectFilter: FilterSelection;
-  disciplineFilter: FilterSelection;
-  disciplineOptions: DropdownOption[];
   setPriorityFilter: (value: FilterSelection) => void;
   setProjectFilter: (value: FilterSelection) => void;
   setStatusFilter: (value: FilterSelection) => void;
+  setDisciplineFilter: (value: FilterSelection) => void;
   setSubsystemFilter: (value: FilterSelection) => void;
   setSubsystemIterationFilter: (value: FilterSelection) => void;
   setOwnerFilter: (value: FilterSelection) => void;
@@ -188,7 +196,6 @@ function TaskQueueCompactFilterMenu({
   statusFilter: FilterSelection;
   subsystemFilter: FilterSelection;
   subsystemFilterOptions: DropdownOption[];
-  setDisciplineFilter: (value: FilterSelection) => void;
   subsystemIterationFilter: FilterSelection;
   subsystemIterationOptions: DropdownOption[];
 }) {
@@ -266,13 +273,6 @@ function TaskQueueCompactFilterMenu({
           ) : null}
 
           <div className="task-queue-filter-menu-item">
-            <span className="task-queue-filter-menu-label">Subsystem</span>
-            <FilterDropdown
-              allLabel="All subsystems"
-              ariaLabel="Filter tasks by subsystem"
-              className="task-queue-filter-menu-submenu"
-              icon={<IconManufacturing />}
-          <div className="task-queue-filter-menu-item">
             <span className="task-queue-filter-menu-label">Discipline</span>
             <FilterDropdown
               allLabel="All disciplines"
@@ -285,6 +285,13 @@ function TaskQueueCompactFilterMenu({
             />
           </div>
 
+          <div className="task-queue-filter-menu-item">
+            <span className="task-queue-filter-menu-label">Subsystem</span>
+            <FilterDropdown
+              allLabel="All subsystems"
+              ariaLabel="Filter tasks by subsystem"
+              className="task-queue-filter-menu-submenu"
+              icon={<IconManufacturing />}
               onChange={setSubsystemFilter}
               options={subsystemFilterOptions}
               value={subsystemFilter}
@@ -417,6 +424,7 @@ export function TaskQueueView({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [projectFilter, setProjectFilter] = useState<FilterSelection>([]);
   const [statusFilter, setStatusFilter] = useState<FilterSelection>([]);
+  const [disciplineFilter, setDisciplineFilter] = useState<FilterSelection>([]);
   const [subsystemFilter, setSubsystemFilter] = useState<FilterSelection>([]);
   const [subsystemIterationFilter, setSubsystemIterationFilter] =
     useState<FilterSelection>([]);
@@ -424,7 +432,6 @@ export function TaskQueueView({
   const [priorityFilter, setPriorityFilter] = useState<FilterSelection>([]);
   const [searchFilter, setSearchFilter] = useState("");
 
-  const [disciplineFilter, setDisciplineFilter] = useState<FilterSelection>([]);
   const projectsById = useMemo(
     () =>
       Object.fromEntries(
@@ -440,13 +447,6 @@ export function TaskQueueView({
       })),
     [bootstrap.subsystems],
   );
-  const subsystemIterationOptions = useMemo(() => {
-    const uniqueIterations = Array.from(
-      new Set(bootstrap.subsystems.map((subsystem) => subsystem.iteration)),
-    ).sort((left, right) => left - right);
-
-    return uniqueIterations.map((iteration) => ({
-      id: `${iteration}`,
   const disciplineOptions = useMemo(
     () =>
       bootstrap.disciplines.map((discipline) => ({
@@ -455,6 +455,13 @@ export function TaskQueueView({
       })),
     [bootstrap.disciplines],
   );
+  const subsystemIterationOptions = useMemo(() => {
+    const uniqueIterations = Array.from(
+      new Set(bootstrap.subsystems.map((subsystem) => subsystem.iteration)),
+    ).sort((left, right) => left - right);
+
+    return uniqueIterations.map((iteration) => ({
+      id: `${iteration}`,
       name: formatIterationVersion(iteration),
     }));
   }, [bootstrap.subsystems]);
@@ -464,18 +471,18 @@ export function TaskQueueView({
       return false;
     }
 
-    const hasMechanicalTask = bootstrap.tasks.some((task) => {
+    const hasIterationSensitiveTask = bootstrap.tasks.some((task) => {
       const disciplineCode = task.disciplineId
         ? disciplinesById[task.disciplineId]?.code
         : null;
 
       return (
-        disciplineCode === "mechanical" &&
+        Boolean(disciplineCode && SUBSYSTEM_ITERATION_DISCIPLINE_CODES.has(disciplineCode)) &&
         readTaskSubsystemIds(task).includes(selectedSubsystemId)
       );
     });
 
-    if (hasMechanicalTask) {
+    if (hasIterationSensitiveTask) {
       return true;
     }
 
@@ -517,6 +524,7 @@ export function TaskQueueView({
   }, [showSubsystemIterationFilter, subsystemIterationFilter]);
 
   const showProjectCol = isAllProjectsView;
+  const showDisciplineCol = true;
   const showSubsystemCol = true;
   const showOwnerCol = true;
   const showStatusCol = true;
@@ -524,13 +532,13 @@ export function TaskQueueView({
   const activePersonFilterLabel = formatFilterSelectionLabel(
     "All roster",
     bootstrap.members,
-  const showDisciplineCol = true;
     activePersonFilter,
   );
 
   const gridTemplate = [
     showProjectCol ? "1fr" : null,
     "minmax(200px, 2.5fr)",
+    showDisciplineCol ? "1fr" : null,
     showSubsystemCol ? "1fr" : null,
     showOwnerCol ? "1fr" : null,
     showStatusCol ? "1fr" : null,
@@ -538,7 +546,6 @@ export function TaskQueueView({
     showPriorityCol ? "1fr" : null,
   ]
     .filter(Boolean)
-    showDisciplineCol ? "1fr" : null,
     .join(" ");
 
   const processedTasks = useMemo(() => {
@@ -553,6 +560,11 @@ export function TaskQueueView({
     if (statusFilter.length > 0) {
       result = result.filter((task) => filterSelectionIncludes(statusFilter, task.status));
     }
+    if (disciplineFilter.length > 0) {
+      result = result.filter((task) =>
+        filterSelectionIncludes(disciplineFilter, task.disciplineId),
+      );
+    }
     if (subsystemFilter.length > 0) {
       result = result.filter((task) =>
         filterSelectionIntersects(
@@ -560,11 +572,6 @@ export function TaskQueueView({
           readTaskSubsystemIds(task),
         ),
       );
-    if (disciplineFilter.length > 0) {
-      result = result.filter((task) =>
-        filterSelectionIncludes(disciplineFilter, task.disciplineId),
-      );
-    }
     }
     if (showSubsystemIterationFilter && subsystemIterationFilter.length > 0) {
       result = result.filter((task) =>
@@ -618,6 +625,9 @@ export function TaskQueueView({
       if (sortField === "subsystemId") {
         return formatSubsystemNames(readTaskSubsystemIds(task), subsystemsById, "");
       }
+      if (sortField === "disciplineId") {
+        return task.disciplineId ? disciplinesById[task.disciplineId]?.name ?? "" : "";
+      }
       if (sortField === "projectId") {
         return projectsById[task.projectId]?.name ?? "";
       }
@@ -625,9 +635,6 @@ export function TaskQueueView({
         return formatTaskAssignees(task, membersById);
       }
       if (sortField === "title") {
-      if (sortField === "disciplineId") {
-        return task.disciplineId ? disciplinesById[task.disciplineId]?.name ?? "" : "";
-      }
         return task.title.toLowerCase();
       }
       return task.dueDate;
@@ -648,6 +655,8 @@ export function TaskQueueView({
   }, [
     activePersonFilter,
     bootstrap.tasks,
+    disciplineFilter,
+    disciplinesById,
     isAllProjectsView,
     membersById,
     ownerFilter,
@@ -655,8 +664,6 @@ export function TaskQueueView({
     projectFilter,
     projectsById,
     searchFilter,
-    disciplineFilter,
-    disciplinesById,
     sortField,
     sortOrder,
     statusFilter,
@@ -668,6 +675,7 @@ export function TaskQueueView({
   const taskPagination = useWorkspacePagination(processedTasks);
   const taskFilterMotionClass = useFilterChangeMotionClass([
     activePersonFilter,
+    disciplineFilter,
     isAllProjectsView,
     ownerFilter,
     priorityFilter,
@@ -675,7 +683,6 @@ export function TaskQueueView({
     searchFilter,
     sortField,
     sortOrder,
-    disciplineFilter,
     statusFilter,
     subsystemFilter,
     subsystemIterationFilter,
@@ -738,6 +745,7 @@ export function TaskQueueView({
             <TaskQueueCompactFilterMenu
               activeFilterCount={[
                 isAllProjectsView ? projectFilter : [],
+                disciplineFilter,
                 subsystemFilter,
                 showSubsystemIterationFilter ? subsystemIterationFilter : [],
                 ownerFilter,
@@ -745,7 +753,8 @@ export function TaskQueueView({
                 priorityFilter,
               ].filter((selection) => selection.length > 0).length}
               bootstrap={bootstrap}
-                disciplineFilter,
+              disciplineFilter={disciplineFilter}
+              disciplineOptions={disciplineOptions}
               isAllProjectsView={isAllProjectsView}
               isOpen={isTaskQueueMenuOpen}
               onClose={() => setIsTaskQueueMenuOpen(false)}
@@ -753,8 +762,7 @@ export function TaskQueueView({
               ownerFilter={ownerFilter}
               priorityFilter={priorityFilter}
               projectFilter={projectFilter}
-              disciplineFilter={disciplineFilter}
-              disciplineOptions={disciplineOptions}
+              setDisciplineFilter={setDisciplineFilter}
               setPriorityFilter={setPriorityFilter}
               setProjectFilter={setProjectFilter}
               setStatusFilter={setStatusFilter}
@@ -762,7 +770,6 @@ export function TaskQueueView({
               setSubsystemIterationFilter={setSubsystemIterationFilter}
               setOwnerFilter={setOwnerFilter}
               showSubsystemIterationFilter={showSubsystemIterationFilter}
-              setDisciplineFilter={setDisciplineFilter}
               statusFilter={statusFilter}
               subsystemFilter={subsystemFilter}
               subsystemFilterOptions={subsystemFilterOptions}
@@ -852,13 +859,6 @@ export function TaskQueueView({
           <button className="table-sort-button" onClick={() => toggleSort("title")} type="button">
             {renderSortLabel("title", "Task")}
           </button>
-          {showSubsystemCol ? (
-            <span className="table-column-header-cell">
-              <button className="table-sort-button" onClick={() => toggleSort("subsystemId")} type="button">
-                {renderSortLabel("subsystemId", "Subsystem")}
-              </button>
-              <ColumnFilterDropdown
-                allLabel="All subsystems"
           {showDisciplineCol ? (
             <span className="table-column-header-cell">
               <button className="table-sort-button" onClick={() => toggleSort("disciplineId")} type="button">
@@ -873,6 +873,13 @@ export function TaskQueueView({
               />
             </span>
           ) : null}
+          {showSubsystemCol ? (
+            <span className="table-column-header-cell">
+              <button className="table-sort-button" onClick={() => toggleSort("subsystemId")} type="button">
+                {renderSortLabel("subsystemId", "Subsystem")}
+              </button>
+              <ColumnFilterDropdown
+                allLabel="All subsystems"
                 ariaLabel="Filter tasks by subsystem"
                 onChange={setSubsystemFilter}
                 options={subsystemFilterOptions}
@@ -990,6 +997,11 @@ export function TaskQueueView({
                   </span>
                 </small>
               </span>
+              {showDisciplineCol ? (
+                <TableCell label="Discipline">
+                  {(task.disciplineId ? disciplinesById[task.disciplineId]?.name : null) ?? "No discipline"}
+                </TableCell>
+              ) : null}
               {showSubsystemCol ? (
                 <TableCell label="Subsystem">
                   {formatSubsystemNames(readTaskSubsystemIds(task), subsystemsById, "Unknown")}
@@ -997,11 +1009,6 @@ export function TaskQueueView({
               ) : null}
               {showOwnerCol ? (
                 <TableCell label="Assigned">
-              {showDisciplineCol ? (
-                <TableCell label="Discipline">
-                  {(task.disciplineId ? disciplinesById[task.disciplineId]?.name : null) ?? "No discipline"}
-                </TableCell>
-              ) : null}
                   {formatTaskAssignees(task, membersById)}
                 </TableCell>
               ) : null}

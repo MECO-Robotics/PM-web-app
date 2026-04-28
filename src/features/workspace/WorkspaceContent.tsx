@@ -513,6 +513,7 @@ export function WorkspaceContent({
           swipeDirection={taskSwipeDirection}
         >
           <MilestonesView
+            activePersonFilter={activePersonFilter}
             bootstrap={bootstrap}
             isAllProjectsView={isAllProjectsView}
             onDeleteTimelineEvent={handleTimelineEventDelete}

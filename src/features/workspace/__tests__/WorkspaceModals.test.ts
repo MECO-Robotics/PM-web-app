@@ -10,6 +10,7 @@ import {
   PartDefinitionEditorModal,
   SubsystemEditorModal,
   TaskEditorModal,
+  WorkstreamEditorModal,
 } from "@/features/workspace/WorkspaceModals";
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
 import { buildEmptyManufacturingPayload, buildEmptyTaskPayload } from "@/lib/appUtils";
@@ -26,6 +27,14 @@ function createBootstrap(): BootstrapPayload {
         seasonId: "season-1",
         name: "Robot",
         projectType: "robot",
+        description: "",
+        status: "active",
+      },
+      {
+        id: "project-2",
+        seasonId: "season-1",
+        name: "Media",
+        projectType: "other",
         description: "",
         status: "active",
       },
@@ -69,22 +78,53 @@ function createBootstrap(): BootstrapPayload {
         mentorIds: [],
         risks: [],
       },
+      {
+        id: "subsystem-2",
+        projectId: "project-2",
+        name: "Content",
+        description: "",
+        iteration: 1,
+        isCore: true,
+        parentSubsystemId: null,
+        responsibleEngineerId: null,
+        mentorIds: [],
+        risks: [],
+      },
     ],
     disciplines: [
       {
-        id: "discipline-1",
-        code: "mechanical",
-        name: "Mechanical",
+        id: "design",
+        code: "design",
+        name: "Design",
+      },
+      {
+        id: "manufacturing",
+        code: "manufacturing",
+        name: "Manufacturing",
+      },
+      {
+        id: "photography",
+        code: "photography",
+        name: "Photography",
+      },
+      {
+        id: "social_media",
+        code: "social_media",
+        name: "Social Media",
       },
     ],
   };
 }
 
-function renderTaskModal(taskModalMode: ComponentProps<typeof TaskEditorModal>["taskModalMode"]) {
+function renderTaskModal(
+  taskModalMode: ComponentProps<typeof TaskEditorModal>["taskModalMode"],
+  overrides?: Partial<ReturnType<typeof buildEmptyTaskPayload>>,
+) {
   const bootstrap = createBootstrap();
   const requestPhotoUpload = jest.fn(async () => "https://cdn.example.test/uploaded.png");
   const taskDraft = {
     ...buildEmptyTaskPayload(bootstrap),
+    ...overrides,
     actualHours: 2,
   };
   const activeTask: TaskRecord = {
@@ -166,6 +206,7 @@ function renderIterationEditors(mode: "create" | "edit") {
         subsystemDraft: {
           projectId: "project-1",
           name: "Drive",
+          color: "#4F86C6",
           description: "Drive subsystem",
           photoUrl: "",
           iteration: 1,
@@ -203,6 +244,31 @@ function renderIterationEditors(mode: "create" | "edit") {
       }),
     ),
   ].join("");
+}
+
+function renderWorkstreamModal(mode: "create" | "edit") {
+  const bootstrap = createBootstrap();
+  const noop = jest.fn();
+
+  return renderToStaticMarkup(
+    React.createElement(WorkstreamEditorModal, {
+      activeWorkstreamId: mode === "edit" ? "workstream-1" : null,
+      bootstrap,
+      closeWorkstreamModal: noop,
+      handleToggleWorkstreamArchived: noop,
+      handleWorkstreamSubmit: noop,
+      isSavingWorkstream: false,
+      setWorkstreamDraft: noop,
+      workstreamDraft: {
+        projectId: "project-1",
+        name: "Operations",
+        color: "#E76F51",
+        description: "Operations workflow",
+        isArchived: false,
+      },
+      workstreamModalMode: mode,
+    }),
+  );
 }
 
 function renderManufacturingModal(
@@ -338,6 +404,20 @@ describe("TaskEditorModal", () => {
     expect(renderTaskModal("create")).toContain("Taylor");
   });
 
+  it("limits task disciplines to media options for media projects", () => {
+    const markup = renderTaskModal("create", {
+      projectId: "project-2",
+      subsystemId: "subsystem-2",
+      subsystemIds: ["subsystem-2"],
+      disciplineId: "photography",
+    });
+
+    expect(markup).toContain("Photography");
+    expect(markup).toContain("Social Media");
+    expect(markup).not.toContain("Design");
+    expect(markup).not.toContain("Manufacturing");
+  });
+
   it("keeps task deletion inside the edit modal only", () => {
     expect(renderTaskModal("create")).not.toContain("Delete task");
     expect(renderTaskModal("edit")).toContain("Delete task");
@@ -367,6 +447,16 @@ describe("TaskEditorModal", () => {
 
     expect(markup).toContain(">Iteration</span>");
     expect(markup).toContain("v1");
+  });
+
+  it("renders color controls for workflow and subsystem editors", () => {
+    const workstreamMarkup = renderWorkstreamModal("edit");
+    const subsystemMarkup = renderIterationEditors("edit");
+
+    expect(workstreamMarkup).toContain('type="color"');
+    expect(workstreamMarkup).toContain("Suggested palette");
+    expect(subsystemMarkup).toContain('type="color"');
+    expect(subsystemMarkup).toContain("Suggested palette");
   });
 
   it("renders the in-house checkbox only for CNC manufacturing jobs", () => {

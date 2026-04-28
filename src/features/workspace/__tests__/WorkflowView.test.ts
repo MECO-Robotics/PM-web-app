@@ -27,6 +27,7 @@ function createBootstrap(): BootstrapPayload {
         id: "workflow-1",
         projectId: "project-1",
         name: "Media",
+        color: "#E76F51",
         description: "Media workflow",
       },
     ],
@@ -47,5 +48,19 @@ describe("WorkflowView", () => {
 
     expect(markup).toContain("Add workflow");
     expect(markup).toContain('aria-label="Add workflow"');
+  });
+
+  it("surfaces workflow color metadata in the rendered row", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(WorkflowView, {
+        artifacts: [],
+        bootstrap: createBootstrap(),
+        membersById: {},
+        openCreateWorkstreamModal: jest.fn(),
+        openEditWorkstreamModal: jest.fn(),
+      }),
+    );
+
+    expect(markup).toContain('data-workspace-color="#E76F51"');
   });
 });

@@ -160,7 +160,7 @@ function createBootstrap(overrides: Partial<BootstrapPayload> = {}): BootstrapPa
         risks: [],
       },
     ],
-    disciplines: [{ id: "discipline-mech", code: "mechanical", name: "Mechanical" }],
+    disciplines: [{ id: "discipline-design", code: "design", name: "Design" }],
     mechanisms: [
       {
         id: "mechanism-1",
@@ -193,7 +193,7 @@ function createBootstrap(overrides: Partial<BootstrapPayload> = {}): BootstrapPa
         summary: "",
         subsystemId: "subsystem-core",
         subsystemIds: ["subsystem-core"],
-        disciplineId: "discipline-mech",
+        disciplineId: "discipline-design",
         mechanismId: null,
         mechanismIds: [],
         partInstanceId: null,

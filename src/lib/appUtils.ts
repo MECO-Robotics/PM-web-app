@@ -26,6 +26,10 @@ import type {
   WorkstreamPayload,
   WorkstreamRecord,
 } from "@/types";
+import {
+    resolveWorkspaceColor,
+} from "@/features/workspace/shared/workspaceColors";
+import { getDefaultTaskDisciplineIdForProject } from "@/lib/taskDisciplines";
 
 export function toErrorMessage(error: unknown) {
     if (error instanceof Error) return error.message;
@@ -361,7 +365,7 @@ export function toggleTaskTargetSelection(
 export function buildEmptyTaskPayload(bootstrap: BootstrapPayload): TaskPayload {
     const firstProject = bootstrap.projects[0]?.id ?? "";
     const firstSubsystem = getDefaultSubsystemId(bootstrap);
-    const firstDiscipline = bootstrap.disciplines[0]?.id ?? "";
+    const firstDiscipline = getDefaultTaskDisciplineIdForProject(bootstrap.projects[0]);
     const firstEvent = bootstrap.events[0]?.id ?? null;
     const firstStudent =
         bootstrap.members.find((m) => m.role === "lead")?.id ??
@@ -909,6 +913,7 @@ export function buildEmptyWorkstreamPayload(
     return {
         projectId: resolvedProjectId,
         name: "",
+        color: resolveWorkspaceColor(null, `${resolvedProjectId}:workstream`, 0),
         description: "",
         isArchived: false,
     };
@@ -951,6 +956,7 @@ export function buildEmptySubsystemPayload(bootstrap: BootstrapPayload): Subsyst
     return {
         projectId: defaultProjectId,
         name: "",
+        color: resolveWorkspaceColor(null, `${defaultProjectId}:subsystem`, 1),
         description: "",
         photoUrl: "",
         iteration: 1,
@@ -1059,6 +1065,7 @@ export const partDefinitionToPayload = (item: PartDefinitionRecord): PartDefinit
 
 export const subsystemToPayload = (item: SubsystemRecord): SubsystemPayload => ({
     ...item,
+    color: resolveWorkspaceColor(item.color, `${item.projectId}:${item.id}:${item.name}`, item.iteration),
     isArchived: item.isArchived ?? false,
     iteration: normalizeIteration(item.iteration),
     photoUrl: item.photoUrl ?? "",
@@ -1080,6 +1087,7 @@ export const mechanismToPayload = (item: {
 
 export const workstreamToPayload = (item: WorkstreamRecord): WorkstreamPayload => ({
     ...item,
+    color: resolveWorkspaceColor(item.color, `${item.projectId}:${item.id}:${item.name}`),
     isArchived: item.isArchived ?? false,
 });
 

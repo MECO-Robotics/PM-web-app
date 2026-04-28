@@ -31,11 +31,35 @@ export type EventType =
   | "internal-review"
   | "demo";
 export type DisciplineCode =
-  | "mechanical"
+  | "design"
+  | "manufacturing"
+  | "assembly"
   | "electrical"
-  | "software"
-  | "integration"
-  | "qa-test";
+  | "programming"
+  | "testing"
+  | "planning"
+  | "communications"
+  | "finance"
+  | "research"
+  | "documentation"
+  | "engagement"
+  | "presentation"
+  | "media_production"
+  | "partnerships"
+  | "game_analysis"
+  | "scouting"
+  | "data_analysis"
+  | "risk_review"
+  | "curriculum"
+  | "instruction"
+  | "practice"
+  | "assessment"
+  | "photography"
+  | "video"
+  | "graphics"
+  | "writing"
+  | "web"
+  | "social_media";
 export type TaskPriority = "critical" | "high" | "medium" | "low";
 export type TaskStatus =
   | "not-started"
@@ -106,6 +130,7 @@ export interface SubsystemRecord {
   id: string;
   projectId: string;
   name: string;
+  color?: string;
   description: string;
   photoUrl?: string;
   iteration: number;
@@ -232,6 +257,7 @@ export interface WorkstreamRecord {
   id: string;
   projectId: string;
   name: string;
+  color?: string;
   description: string;
   isArchived?: boolean;
 }
@@ -604,6 +630,7 @@ export interface ArtifactPayload {
 export interface WorkstreamPayload {
   projectId: string;
   name: string;
+  color: string;
   description: string;
   isArchived?: boolean;
 }
@@ -637,6 +664,7 @@ export interface PartDefinitionPayload {
 export interface SubsystemPayload {
   projectId: string;
   name: string;
+  color: string;
   description: string;
   photoUrl: string;
   iteration: number;

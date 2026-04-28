@@ -154,7 +154,9 @@ describe("TimelineView interactions", () => {
 
     expect(capturedOpenTaskDetailModal).not.toBeNull();
 
-    capturedOpenTaskDetailModal?.(bootstrap.tasks[0]);
+    const forwardedTaskDetailOpener = capturedOpenTaskDetailModal!;
+
+    forwardedTaskDetailOpener(bootstrap.tasks[0]);
 
     expect(openTaskDetailModal).toHaveBeenCalledTimes(1);
     expect(openTaskDetailModal).toHaveBeenCalledWith(bootstrap.tasks[0]);

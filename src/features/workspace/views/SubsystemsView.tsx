@@ -312,11 +312,13 @@ export function SubsystemsView({
               .filter((mechanism) => mechanism.subsystemId === subsystem.id)
               .filter((mechanism) => (showArchivedMechanisms ? true : !mechanism.isArchived))
               .sort((left, right) => left.name.localeCompare(right.name));
+            const accentColor = subsystem.color ?? "var(--meco-blue)";
 
             return (
               <div
                 key={subsystem.id}
                 className={`subsystem-manager-item${isSelected ? " is-active" : ""}`}
+                data-workspace-color={subsystem.color}
               >
                 <div
                   className="ops-table ops-row subsystem-manager-row editable-row-clickable editable-action-host editable-hover-target-row"
@@ -341,27 +343,49 @@ export function SubsystemsView({
                     color: "var(--text-copy)",
                     background: isSelected ? "rgba(22, 71, 142, 0.08)" : "var(--row-bg, var(--bg-row-alt))",
                     textAlign: "left",
-                    boxShadow: isSelected ? "inset 0 0 0 1px rgba(22, 71, 142, 0.16)" : undefined,
+                    boxShadow: isSelected
+                      ? `inset 4px 0 0 ${accentColor}, inset 0 0 0 1px rgba(22, 71, 142, 0.16)`
+                      : `inset 4px 0 0 ${accentColor}`,
                   }}
                   tabIndex={0}
                   title={`Inspect ${subsystem.name}`}
                 >
                   <TableCell label="Subsystem">
-                    <span className="subsystem-cell-meta">
-                      <strong className="subsystem-cell-title">{subsystem.name}</strong>
-                      {subsystem.isArchived ? (
-                        <span className="subsystem-cell-description">Archived</span>
-                      ) : null}
-                      {subsystemDescription ? (
-                        <span className="subsystem-cell-description">{subsystemDescription}</span>
-                      ) : null}
-                      <span className="subsystem-cell-details" aria-label="Subsystem metadata">
-                        <small>{formatIterationVersion(subsystem.iteration)}</small>
-                        <small>
-                          {subsystem.parentSubsystemId
-                            ? `Parent: ${parentSubsystem?.name ?? "Unknown"}`
-                            : "Root subsystem"}
-                        </small>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "flex-start",
+                        gap: "0.65rem",
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: "0.75rem",
+                          height: "0.75rem",
+                          borderRadius: "999px",
+                          marginTop: "0.2rem",
+                          flexShrink: 0,
+                          background: accentColor,
+                          boxShadow: "0 0 0 1px rgba(15, 23, 42, 0.08)",
+                        }}
+                      />
+                      <span className="subsystem-cell-meta">
+                        <strong className="subsystem-cell-title">{subsystem.name}</strong>
+                        {subsystem.isArchived ? (
+                          <span className="subsystem-cell-description">Archived</span>
+                        ) : null}
+                        {subsystemDescription ? (
+                          <span className="subsystem-cell-description">{subsystemDescription}</span>
+                        ) : null}
+                        <span className="subsystem-cell-details" aria-label="Subsystem metadata">
+                          <small>{formatIterationVersion(subsystem.iteration)}</small>
+                          <small>
+                            {subsystem.parentSubsystemId
+                              ? `Parent: ${parentSubsystem?.name ?? "Unknown"}`
+                              : "Root subsystem"}
+                          </small>
+                        </span>
                       </span>
                     </span>
                   </TableCell>

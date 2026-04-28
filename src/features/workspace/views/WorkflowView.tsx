@@ -152,49 +152,79 @@ export function WorkflowView({
           </div>
 
           {filteredRows.map((row) => (
-            <div
-              className="ops-table ops-row subsystem-manager-row editable-row-clickable editable-hover-target editable-hover-target-row"
-              data-tutorial-target="edit-workflow-row"
-              key={row.workstream.id}
-              onClick={() => openEditWorkstreamModal(row.workstream)}
-              onKeyDown={(event) => {
-                if (event.target !== event.currentTarget) {
-                  return;
-                }
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  openEditWorkstreamModal(row.workstream);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              style={{
-                gridTemplateColumns: "minmax(220px, 2.2fr) 0.8fr 0.8fr 1.2fr",
-                padding: "12px 16px",
-                borderBottom: "1px solid var(--border-base)",
-                color: "var(--text-copy)",
-                background: "var(--row-bg, var(--bg-row-alt))",
-              }}
-            >
-              <TableCell label="Workflow">
-                <strong style={{ color: "var(--text-title)" }}>{row.workstream.name}</strong>
-                {row.workstream.isArchived ? (
-                  <small style={{ color: "var(--text-copy)" }}>Archived</small>
-                ) : null}
-                <small>{row.workstream.description || "No description yet."}</small>
-              </TableCell>
-              <TableCell label="Open tasks">
-                <strong style={{ color: "var(--text-title)" }}>{row.openTaskCount}</strong>
-                <small>{row.taskCount} total</small>
-              </TableCell>
-              <TableCell label="Artifacts">{row.artifactCount}</TableCell>
-              <TableCell label="Contributors">
-                {row.contributorNames.length > 0
-                  ? row.contributorNames.join(", ")
-                  : "Unassigned"}
-              </TableCell>
-              <EditableHoverIndicator />
-            </div>
+            (() => {
+              const accentColor = row.workstream.color ?? "var(--meco-blue)";
+
+              return (
+                <div
+                  className="ops-table ops-row subsystem-manager-row editable-row-clickable editable-hover-target editable-hover-target-row"
+                  data-tutorial-target="edit-workflow-row"
+                  data-workspace-color={row.workstream.color}
+                  key={row.workstream.id}
+                  onClick={() => openEditWorkstreamModal(row.workstream)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) {
+                      return;
+                    }
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openEditWorkstreamModal(row.workstream);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  style={{
+                    gridTemplateColumns: "minmax(220px, 2.2fr) 0.8fr 0.8fr 1.2fr",
+                    padding: "12px 16px",
+                    borderBottom: "1px solid var(--border-base)",
+                    color: "var(--text-copy)",
+                    background: "var(--row-bg, var(--bg-row-alt))",
+                    boxShadow: `inset 4px 0 0 ${accentColor}`,
+                  }}
+                >
+                  <TableCell label="Workflow">
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "flex-start",
+                        gap: "0.65rem",
+                      }}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: "0.75rem",
+                          height: "0.75rem",
+                          borderRadius: "999px",
+                          marginTop: "0.2rem",
+                          flexShrink: 0,
+                          background: accentColor,
+                          boxShadow: "0 0 0 1px rgba(15, 23, 42, 0.08)",
+                        }}
+                      />
+                      <span style={{ display: "grid", gap: "0.2rem" }}>
+                        <strong style={{ color: "var(--text-title)" }}>{row.workstream.name}</strong>
+                        {row.workstream.isArchived ? (
+                          <small style={{ color: "var(--text-copy)" }}>Archived</small>
+                        ) : null}
+                        <small>{row.workstream.description || "No description yet."}</small>
+                      </span>
+                    </span>
+                  </TableCell>
+                  <TableCell label="Open tasks">
+                    <strong style={{ color: "var(--text-title)" }}>{row.openTaskCount}</strong>
+                    <small>{row.taskCount} total</small>
+                  </TableCell>
+                  <TableCell label="Artifacts">{row.artifactCount}</TableCell>
+                  <TableCell label="Contributors">
+                    {row.contributorNames.length > 0
+                      ? row.contributorNames.join(", ")
+                      : "Unassigned"}
+                  </TableCell>
+                  <EditableHoverIndicator />
+                </div>
+              );
+            })()
           ))}
 
           {filteredRows.length === 0 ? (

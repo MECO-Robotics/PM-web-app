@@ -1,7 +1,12 @@
 import type { BootstrapPayload, EventRecord } from "@/types";
-import { filterSelectionIncludes, filterSelectionIntersects } from "@/features/workspace/shared";
+import {
+  filterSelectionIncludes,
+  filterSelectionIntersects,
+  filterSelectionMatchesTaskPeople,
+  type FilterSelection,
+} from "@/features/workspace/shared";
 import { getEventProjectIds } from "@/features/workspace/shared/eventProjectUtils";
-import { EVENT_TYPE_STYLES } from "@/features/workspace/shared/eventStyles";
+import { getEventTypeStyle } from "@/features/workspace/shared/eventStyles";
 
 export type MilestoneSortField = "startDateTime" | "title" | "type";
 
@@ -43,25 +48,40 @@ export function buildMilestoneProjectLabels(
 }
 
 export function filterAndSortMilestones({
+  activePersonFilter,
   events,
   isAllProjectsView,
   projectFilter,
   searchFilter,
   sortField,
   sortOrder,
+  tasks,
   subsystemsById,
   typeFilter,
 }: {
+  activePersonFilter: FilterSelection;
   events: BootstrapPayload["events"];
   isAllProjectsView: boolean;
   projectFilter: string[];
   searchFilter: string;
   sortField: MilestoneSortField;
   sortOrder: "asc" | "desc";
+  tasks: BootstrapPayload["tasks"];
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
   typeFilter: string[];
 }) {
   let result = [...events];
+
+  if (activePersonFilter.length > 0) {
+    const matchingEventIds = new Set(
+      tasks.flatMap((task) =>
+        task.targetEventId && filterSelectionMatchesTaskPeople(activePersonFilter, task)
+          ? [task.targetEventId]
+          : [],
+      ),
+    );
+    result = result.filter((event) => matchingEventIds.has(event.id));
+  }
 
   if (isAllProjectsView && projectFilter.length > 0) {
     result = result.filter((event) => {
@@ -102,7 +122,7 @@ export function filterAndSortMilestones({
     }
 
     if (sortField === "type") {
-      return EVENT_TYPE_STYLES[event.type].label;
+      return getEventTypeStyle(event.type).label;
     }
 
     return event.startDateTime;

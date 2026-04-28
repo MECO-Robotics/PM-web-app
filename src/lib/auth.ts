@@ -45,6 +45,7 @@ import type {
   WorkstreamPayload,
   WorkstreamRecord,
 } from "@/types";
+import { resolveWorkspaceColor } from "@/features/workspace/shared/workspaceColors";
 
 const DEFAULT_API_BASE_URL = "/api";
 const SESSION_STORAGE_KEY = "meco.session.token";
@@ -664,6 +665,11 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
       resolveProjectAlias(workstream.projectId, projectIds, projectIdAliases) ??
       defaultProjectId,
     name: workstream.name ?? `Workstream ${index + 1}`,
+    color: resolveWorkspaceColor(
+      workstream.color,
+      `${workstream.projectId ?? defaultProjectId}:${workstream.id ?? workstream.name ?? index}`,
+      index,
+    ),
     description: workstream.description ?? "",
     isArchived: workstream.isArchived ?? false,
   }));
@@ -689,6 +695,11 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
         id: workstreamId,
         projectId: defaultProjectId,
         name: subsystem?.name ?? `Workstream ${index + 1}`,
+        color: resolveWorkspaceColor(
+          subsystem?.color,
+          `${defaultProjectId}:${subsystemId}:${subsystem?.name ?? index}`,
+          index,
+        ),
         description: subsystem?.description ?? "",
         isArchived: false,
       };
@@ -862,6 +873,11 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
   });
   const subsystems: SubsystemRecord[] = (source.subsystems ?? []).map((subsystem) => ({
     ...subsystem,
+    color: resolveWorkspaceColor(
+      subsystem.color,
+      `${subsystem.projectId ?? defaultProjectId}:${subsystem.id}:${subsystem.name}`,
+      subsystem.iteration ?? 0,
+    ),
     isArchived: subsystem.isArchived ?? false,
     projectId:
       resolveProjectAlias(subsystem.projectId, projectIds, planning.projectIdAliases) ??
