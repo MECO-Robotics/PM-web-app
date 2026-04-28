@@ -33,9 +33,12 @@
   --shell-sidebar-width: var(--shell-sidebar-collapsed-width);
 }
 
-.page-shell.is-sidebar-overlay .sidebar {
+.page-shell.is-sidebar-overlay .sidebar-shell {
   width: var(--shell-sidebar-expanded-width);
   z-index: 1100;
+}
+
+.page-shell.is-sidebar-overlay .sidebar {
   box-shadow: 14px 0 28px rgba(9, 18, 34, 0.24);
 }
 
@@ -651,8 +654,8 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: var(--shell-sidebar-collapsed-width);
-  width: 0;
+  left: 0;
+  width: 100%;
   min-width: 0;
   padding-inline: 0;
   overflow: hidden;
@@ -662,16 +665,12 @@
   background: var(--bg-panel);
   box-sizing: border-box;
   transition:
-    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     padding-inline 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.18s ease;
 }
 
 .app-topbar[data-collapsed="false"] .app-topbar-brand {
-  width: calc(
-    var(--shell-sidebar-expanded-width) - var(--shell-sidebar-collapsed-width)
-  );
-  padding-inline: 0.35rem 0.5rem;
+  padding-inline: 0.5rem 0.7rem;
   opacity: 1;
   pointer-events: auto;
   border-right-color: var(--border-base);
@@ -824,7 +823,6 @@
   color-scheme: dark;
 }
 
-.app-topbar-toggle,
 .app-topbar-icon-button {
   display: inline-flex;
   align-items: center;
@@ -889,18 +887,6 @@
   color: var(--text-copy);
 }
 
-.app-topbar-toggle {
-  width: 3.5rem;
-  height: 100%;
-  border-top: 0;
-  border-bottom: 0;
-  border-left: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--text-copy);
-}
-
-.app-topbar-toggle:hover,
 .app-topbar-icon-button:hover {
   background: var(--bg-row-alt);
   color: var(--text-title);
@@ -1673,17 +1659,24 @@
   gap: 0.3rem;
 }
 
-.sidebar {
+.sidebar-shell {
   position: fixed;
   top: var(--shell-topbar-height);
   left: 0;
   bottom: 0;
   z-index: 900;
+  width: var(--shell-sidebar-width);
+  height: calc(100vh - var(--shell-topbar-height));
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  width: var(--shell-sidebar-width);
-  height: calc(100vh - var(--shell-topbar-height));
+  width: 100%;
+  height: 100%;
   padding: 0.45rem 0.1rem 0.45rem 0.42rem;
   border-right: 1px solid var(--border-base);
   background: linear-gradient(180deg, var(--bg-row-alt), var(--bg-panel));
@@ -1691,7 +1684,38 @@
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-edge-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 3rem;
+  padding: 0;
+  border: 1px solid var(--border-base);
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  background: var(--bg-panel);
+  color: var(--text-copy);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.sidebar-edge-toggle:hover,
+.sidebar-edge-toggle:focus-visible {
+  background: var(--bg-row-alt);
+  color: var(--text-title);
+  outline: none;
+}
+
+.sidebar-edge-toggle.is-collapsed {
+  background: color-mix(in srgb, var(--bg-panel) 84%, var(--meco-soft-blue) 16%);
 }
 
 .sidebar-context-picker {

@@ -206,7 +206,6 @@ interface AppTopbarProps {
   onSelectSeason: (seasonId: string | null) => void;
   onToggleMyView: () => void;
   toggleDarkMode: () => void;
-  toggleSidebar: () => void;
 }
 
 export function AppTopbar({
@@ -237,7 +236,6 @@ export function AppTopbar({
   onSelectSeason,
   onToggleMyView,
   toggleDarkMode,
-  toggleSidebar,
 }: AppTopbarProps) {
   const themeToggleMenuLabel = isDarkMode ? "Light mode" : "Dark mode";
   const themeToggleMenuTitle = isDarkMode ? "Switch to light mode" : "Switch to dark mode";
@@ -259,15 +257,6 @@ export function AppTopbar({
       data-collapsed={isSidebarCollapsed ? "true" : "false"}
     >
       <div className="app-topbar-left">
-        <button
-          aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="app-topbar-toggle"
-          onClick={toggleSidebar}
-          title="Toggle sidebar"
-          type="button"
-        >
-          <span aria-hidden="true">{"\u2630"}</span>
-        </button>
         <div className="app-topbar-brand" data-visible={isSidebarCollapsed ? "false" : "true"}>
           <img
             alt="MECO main logo"

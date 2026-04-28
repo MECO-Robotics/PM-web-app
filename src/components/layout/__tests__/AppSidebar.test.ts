@@ -20,6 +20,7 @@ function renderSidebar(items: NavigationItem[], activeTab: ViewTab = "reports") 
       onSelectTab: jest.fn(),
       projects: [],
       selectedProjectId: null,
+      toggleSidebar: jest.fn(),
     }),
   );
 }
@@ -37,5 +38,6 @@ describe("AppSidebar", () => {
 
     expect(markup).toContain("Reports");
     expect(markup).toContain('data-tutorial-target="sidebar-tab-reports"');
+    expect(markup).toContain('aria-label="Collapse sidebar"');
   });
 });

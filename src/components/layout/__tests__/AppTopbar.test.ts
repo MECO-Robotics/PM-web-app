@@ -75,7 +75,6 @@ function renderTopbar(
       taskView: "timeline",
       worklogsView: "logs",
       toggleDarkMode: jest.fn(),
-      toggleSidebar: jest.fn(),
     }),
   );
 }

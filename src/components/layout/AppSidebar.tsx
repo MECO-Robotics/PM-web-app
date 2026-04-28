@@ -9,6 +9,7 @@ interface AppSidebarProps {
   items: NavigationItem[];
   onSelectTab: (tab: ViewTab) => void;
   isCollapsed: boolean;
+  toggleSidebar: () => void;
   projects: ProjectRecord[];
   selectedProjectId: string | null;
   onSelectProject: (projectId: string | null) => void;
@@ -21,6 +22,7 @@ export function AppSidebar({
   items,
   onSelectTab,
   isCollapsed,
+  toggleSidebar,
   projects,
   selectedProjectId,
   onSelectProject,
@@ -41,80 +43,91 @@ export function AppSidebar({
   };
 
   return (
-    <nav
-      aria-label="Workspace views"
-      className="sidebar"
-      data-collapsed={isCollapsed ? "true" : "false"}
-    >
-      {items.map(({ value, label, icon }) => {
-        const isActive = activeTab === value;
+    <div className="sidebar-shell" data-collapsed={isCollapsed ? "true" : "false"}>
+      <nav
+        aria-label="Workspace views"
+        className="sidebar"
+        data-collapsed={isCollapsed ? "true" : "false"}
+      >
+        {items.map(({ value, label, icon }) => {
+          const isActive = activeTab === value;
 
-        return (
-          <button
-            key={value}
-            className="tab"
-            data-active={isActive ? "true" : "false"}
-            data-tutorial-target={`sidebar-tab-${value}`}
-            onClick={() => onSelectTab(value)}
-            type="button"
-          >
-            <span className="sidebar-tab-main">
-              <span
-                aria-hidden="true"
-                className="sidebar-tab-icon"
-              >
-                {icon}
-              </span>
-              {!isCollapsed ? (
-                <span className="sidebar-tab-label">{label}</span>
-              ) : null}
-            </span>
-          </button>
-        );
-      })}
-
-      {!isCollapsed ? (
-        <label className="sidebar-context-picker">
-          <span className="sidebar-context-label">Project</span>
-          <div className="sidebar-context-picker-row" data-tutorial-target="project-select-outreach">
-            <select
-              className="sidebar-context-select"
-              data-tutorial-target="project-select"
-              onChange={(event) => handleProjectChange(event.target.value)}
-              value={selectedProjectId ?? ""}
+          return (
+            <button
+              key={value}
+              className="tab"
+              data-active={isActive ? "true" : "false"}
+              data-tutorial-target={`sidebar-tab-${value}`}
+              onClick={() => onSelectTab(value)}
+              type="button"
             >
-              {projects.length === 0 ? (
-                <option value="" disabled>
-                  No projects
-                </option>
-              ) : (
-                <>
-                  <option value="">All projects</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </>
-              )}
-              <option value={ADD_ROBOT_PROJECT_VALUE}>Add robot</option>
-            </select>
-            {canEditSelectedRobot ? (
-              <button
-                aria-label="Edit robot name"
-                className="sidebar-context-action"
-                onClick={onEditSelectedRobot}
-                title="Edit robot name"
-                type="button"
+              <span className="sidebar-tab-main">
+                <span
+                  aria-hidden="true"
+                  className="sidebar-tab-icon"
+                >
+                  {icon}
+                </span>
+                {!isCollapsed ? (
+                  <span className="sidebar-tab-label">{label}</span>
+                ) : null}
+              </span>
+            </button>
+          );
+        })}
+
+        {!isCollapsed ? (
+          <label className="sidebar-context-picker">
+            <span className="sidebar-context-label">Project</span>
+            <div className="sidebar-context-picker-row" data-tutorial-target="project-select-outreach">
+              <select
+                className="sidebar-context-select"
+                data-tutorial-target="project-select"
+                onChange={(event) => handleProjectChange(event.target.value)}
+                value={selectedProjectId ?? ""}
               >
-                <IconEdit />
-              </button>
-            ) : (
-              null
-            )}
-          </div>
-        </label>
-      ) : null}
-    </nav>
+                {projects.length === 0 ? (
+                  <option value="" disabled>
+                    No projects
+                  </option>
+                ) : (
+                  <>
+                    <option value="">All projects</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </>
+                )}
+                <option value={ADD_ROBOT_PROJECT_VALUE}>Add robot</option>
+              </select>
+              {canEditSelectedRobot ? (
+                <button
+                  aria-label="Edit robot name"
+                  className="sidebar-context-action"
+                  onClick={onEditSelectedRobot}
+                  title="Edit robot name"
+                  type="button"
+                >
+                  <IconEdit />
+                </button>
+              ) : (
+                null
+              )}
+            </div>
+          </label>
+        ) : null}
+      </nav>
+      <button
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={`sidebar-edge-toggle${isCollapsed ? " is-collapsed" : ""}`}
+        onClick={toggleSidebar}
+        title="Toggle sidebar"
+        type="button"
+      >
+        <span aria-hidden="true">{isCollapsed ? ">" : "<"}</span>
+      </button>
+    </div>
   );
 }
