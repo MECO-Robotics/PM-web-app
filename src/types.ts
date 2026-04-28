@@ -25,7 +25,7 @@ export interface SubsystemCard {
 
 export type MemberRole = "student" | "lead" | "mentor" | "admin" | "external";
 export type EventType =
-  | "drive-practice"
+  | "practice"
   | "competition"
   | "deadline"
   | "internal-review"

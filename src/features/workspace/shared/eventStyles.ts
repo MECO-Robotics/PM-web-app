@@ -14,8 +14,8 @@ export interface WorkspaceEventStyle {
 export const DEFAULT_EVENT_TYPE: EventType = "internal-review";
 
 export const EVENT_TYPE_STYLES: Record<EventType, WorkspaceEventStyle> = {
-  "drive-practice": {
-    label: "Drive practice",
+  practice: {
+    label: "Practice",
     columnBackground: "rgba(22, 71, 142, 0.1)",
     columnBorder: "rgba(22, 71, 142, 0.32)",
     chipBackground: "rgba(22, 71, 142, 0.18)",
