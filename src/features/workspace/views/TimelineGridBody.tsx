@@ -12,6 +12,15 @@ import type {
 
 type TimelineGridMotion = "left" | "right" | "neutral";
 
+function renderTimelineCollapseArrow(isCollapsed: boolean) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`timeline-collapse-arrow${isCollapsed ? " is-collapsed" : ""}`}
+    />
+  );
+}
+
 interface TimelineGridBodyProps {
   bootstrap: BootstrapPayload;
   timelineDays: string[];
@@ -432,7 +441,10 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
                 >
                   <button
                     className="subsystem-toggle"
+                    aria-expanded={!projectCollapsed}
+                    aria-label={projectCollapsed ? "Expand project" : "Collapse project"}
                     onClick={() => toggleProject(project.id)}
+                    title={projectCollapsed ? "Expand project" : "Collapse project"}
                     type="button"
                     style={{
                       background: "none",
@@ -449,7 +461,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
                       flexShrink: 0,
                     }}
                   >
-                      {projectCollapsed ? ">" : "v"}
+                    {renderTimelineCollapseArrow(projectCollapsed)}
                   </button>
                   <div className={`timeline-merged-cell-text${projectCollapsed ? "" : " is-rotated"}`}>
                     <span
@@ -582,7 +594,10 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
                             {canToggleSubsystem ? (
                               <button
                                 className="subsystem-toggle"
+                                aria-expanded={!collapsed}
+                                aria-label={collapsed ? "Expand subsystem" : "Collapse subsystem"}
                                 onClick={() => toggleSubsystem(subsystem.id)}
+                                title={collapsed ? "Expand subsystem" : "Collapse subsystem"}
                                 type="button"
                                 style={{
                                   background: "none",
@@ -599,7 +614,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
                                   flexShrink: 0,
                                 }}
                               >
-                                {collapsed ? ">" : "v"}
+                                {renderTimelineCollapseArrow(collapsed)}
                               </button>
                             ) : null}
                             <div className={`timeline-merged-cell-text${collapsed ? "" : " is-rotated"}`}>
@@ -914,7 +929,10 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
                   {canToggleSubsystem ? (
                     <button
                       className="subsystem-toggle"
+                      aria-expanded={!collapsed}
+                      aria-label={collapsed ? "Expand subsystem" : "Collapse subsystem"}
                       onClick={() => toggleSubsystem(subsystem.id)}
+                      title={collapsed ? "Expand subsystem" : "Collapse subsystem"}
                       type="button"
                       style={{
                         background: "none",
@@ -931,7 +949,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
                         flexShrink: 0,
                       }}
                     >
-                      {collapsed ? ">" : "v"}
+                      {renderTimelineCollapseArrow(collapsed)}
                     </button>
                   ) : null}
                   <div className={`timeline-merged-cell-text${collapsed ? "" : " is-rotated"}`}>
