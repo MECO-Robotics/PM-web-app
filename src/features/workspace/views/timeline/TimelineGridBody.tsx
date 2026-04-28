@@ -22,12 +22,16 @@ interface TimelineGridBodyProps {
   handleTimelineDayMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
   handleTimelineZoomWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
   hasProjectColumn: boolean;
-  membersById: Record<string, BootstrapPayload["members"][number]>;
+  isWeekView: boolean;
   monthGroups: TimelineMonthGroup[];
-  openEventModalForDay: (day: string) => void;
+  handleTimelineHeaderDayClick: (day: string) => void;
   openTaskDetailModal: (task: TaskRecord) => void;
   projectColumnWidth: number;
   projectRows: TimelineProjectRow[];
+  hoveredSubsystemId: string | null;
+  hoveredTaskId: string | null;
+  selectedSubsystemId: string | null;
+  selectedTaskId: string | null;
   showProjectCol: boolean;
   showSubsystemCol: boolean;
   showTaskCol: boolean;
@@ -48,6 +52,11 @@ interface TimelineGridBodyProps {
   timelineGridRef: React.MutableRefObject<HTMLDivElement | null>;
   timelineGridTemplate: string;
   timelineShellRef: React.MutableRefObject<HTMLDivElement | null>;
+  clearHoveredSubsystemRow: () => void;
+  clearHoveredTaskRow: () => void;
+  hoverTaskRow: (id: string) => void;
+  hoverSubsystemRow: (id: string) => void;
+  selectSubsystemRow: (id: string) => void;
   toggleProject: (id: string) => void;
   toggleProjectColumn: () => void;
   toggleSubsystem: (id: string) => void;
@@ -65,12 +74,16 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
   handleTimelineDayMouseEnter,
   handleTimelineZoomWheel,
   hasProjectColumn,
-  membersById,
+  isWeekView,
   monthGroups,
-  openEventModalForDay,
+  handleTimelineHeaderDayClick,
   openTaskDetailModal,
   projectColumnWidth,
   projectRows,
+  hoveredSubsystemId,
+  hoveredTaskId,
+  selectedSubsystemId,
+  selectedTaskId,
   showProjectCol,
   showSubsystemCol,
   showTaskCol,
@@ -88,6 +101,11 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
   timelineGridRef,
   timelineGridTemplate,
   timelineShellRef,
+  clearHoveredSubsystemRow,
+  clearHoveredTaskRow,
+  hoverTaskRow,
+  hoverSubsystemRow,
+  selectSubsystemRow,
   toggleProject,
   toggleProjectColumn,
   toggleSubsystem,
@@ -105,10 +123,18 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
           gridMinWidth={gridMinWidth}
           handleTimelineDayMouseEnter={handleTimelineDayMouseEnter}
           key={project.id}
-          membersById={membersById}
           openTaskDetailModal={openTaskDetailModal}
           project={project}
           projectIndex={projectIndex}
+          hoveredSubsystemId={hoveredSubsystemId}
+          hoveredTaskId={hoveredTaskId}
+          selectedSubsystemId={selectedSubsystemId}
+          selectedTaskId={selectedTaskId}
+          clearHoveredSubsystemRow={clearHoveredSubsystemRow}
+          clearHoveredTaskRow={clearHoveredTaskRow}
+          hoverTaskRow={hoverTaskRow}
+          hoverSubsystemRow={hoverSubsystemRow}
+          selectSubsystemRow={selectSubsystemRow}
           showProjectCol={showProjectCol}
           showSubsystemCol={showSubsystemCol}
           showTaskCol={showTaskCol}
@@ -131,8 +157,16 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
           gridMinWidth={gridMinWidth}
           handleTimelineDayMouseEnter={handleTimelineDayMouseEnter}
           key={subsystem.id}
-          membersById={membersById}
           openTaskDetailModal={openTaskDetailModal}
+          hoveredSubsystemId={hoveredSubsystemId}
+          hoveredTaskId={hoveredTaskId}
+          selectedSubsystemId={selectedSubsystemId}
+          selectedTaskId={selectedTaskId}
+          clearHoveredSubsystemRow={clearHoveredSubsystemRow}
+          clearHoveredTaskRow={clearHoveredTaskRow}
+          hoverTaskRow={hoverTaskRow}
+          hoverSubsystemRow={hoverSubsystemRow}
+          selectSubsystemRow={selectSubsystemRow}
           showProjectCol={showProjectCol}
           showSubsystemCol={showSubsystemCol}
           showTaskCol={showTaskCol}
@@ -156,8 +190,9 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
       handleTimelineDayMouseEnter={handleTimelineDayMouseEnter}
       handleTimelineZoomWheel={handleTimelineZoomWheel}
       hasProjectColumn={hasProjectColumn}
+      isWeekView={isWeekView}
       monthGroups={monthGroups}
-      openEventModalForDay={openEventModalForDay}
+      handleTimelineHeaderDayClick={handleTimelineHeaderDayClick}
       projectColumnWidth={projectColumnWidth}
       showProjectCol={showProjectCol}
       showSubsystemCol={showSubsystemCol}

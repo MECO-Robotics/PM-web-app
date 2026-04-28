@@ -11,8 +11,9 @@ interface TimelineGridHeaderProps {
   handleTimelineDayMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
   handleTimelineZoomWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
   hasProjectColumn: boolean;
+  isWeekView: boolean;
   monthGroups: TimelineMonthGroup[];
-  openEventModalForDay: (day: string) => void;
+  handleTimelineHeaderDayClick: (day: string) => void;
   projectColumnWidth: number;
   showProjectCol: boolean;
   showSubsystemCol: boolean;
@@ -46,8 +47,9 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
   handleTimelineDayMouseEnter,
   handleTimelineZoomWheel,
   hasProjectColumn,
+  isWeekView,
   monthGroups,
-  openEventModalForDay,
+  handleTimelineHeaderDayClick,
   projectColumnWidth,
   showProjectCol,
   showSubsystemCol,
@@ -69,38 +71,67 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
   toggleSubsystemColumn,
   toggleTaskColumn,
   children,
-}) => (
-  <div
-    ref={timelineShellRef}
-    className={`timeline-shell ${timelineFilterMotionClass}`}
-    onWheel={handleTimelineZoomWheel}
-    style={{
-      overflowX: "auto",
-      padding: 0,
-      background: "var(--bg-panel)",
-      borderRadius: 0,
-      border: "1px solid var(--border-base)",
-      position: "relative",
-      width: "100%",
-      minWidth: 0,
-      boxSizing: "border-box",
-      justifySelf: "stretch",
-    }}
-  >
+}) => {
+  const hiddenColumnToggles = [
+    hasProjectColumn && !showProjectCol
+      ? {
+          id: "project",
+          label: "Show project column",
+          onClick: toggleProjectColumn,
+        }
+      : null,
+    !showSubsystemCol
+      ? {
+          id: "subsystem",
+          label: "Show subsystem column",
+          onClick: toggleSubsystemColumn,
+        }
+      : null,
+    !showTaskCol
+      ? {
+          id: "task",
+          label: "Show task column",
+          onClick: toggleTaskColumn,
+        }
+      : null,
+  ].filter((toggle): toggle is { id: string; label: string; onClick: () => void } => Boolean(toggle));
+  const visibleLabelWidth = projectColumnWidth + subsystemColumnWidth + taskColumnWidth;
+  const hiddenToggleWidth = hiddenColumnToggles.length * 28 + Math.max(0, hiddenColumnToggles.length - 1) * 6;
+  const hiddenToggleLeft = Math.max(6, visibleLabelWidth - hiddenToggleWidth - 6);
+
+  return (
     <div
-      className="timeline-grid-motion"
-      data-period-motion={timelineGridMotion.direction ?? undefined}
-      key={`timeline-grid-${timelineGridMotion.token}`}
-      ref={timelineGridRef}
+      ref={timelineShellRef}
+      className={`timeline-shell ${timelineFilterMotionClass}`}
+      onWheel={handleTimelineZoomWheel}
       style={{
-        display: "grid",
-        width: "100%",
-        minWidth: `${gridMinWidth}px`,
-        gridTemplateColumns: timelineGridTemplate,
+        overflowX: "auto",
+        padding: 0,
+        background: "var(--bg-panel)",
+        borderRadius: 0,
+        border: "1px solid var(--border-base)",
         position: "relative",
+        width: "100%",
+        minWidth: 0,
         boxSizing: "border-box",
+        justifySelf: "stretch",
       }}
     >
+      <div
+        className="timeline-grid-motion"
+        data-period-motion={timelineGridMotion.direction ?? undefined}
+        key={`timeline-grid-${timelineGridMotion.token}`}
+        ref={timelineGridRef}
+        style={{
+          display: "grid",
+          width: "100%",
+          minWidth: `${gridMinWidth}px`,
+          gridTemplateColumns: timelineGridTemplate,
+          position: "relative",
+          boxSizing: "border-box",
+        }}
+      >
+      {showSubsystemCol ? (
       <button
         aria-label={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
         aria-pressed={showSubsystemCol}
@@ -129,16 +160,18 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
           background: "var(--bg-panel)",
         }}
         type="button"
-      >
-        {showSubsystemCol ? <span className="timeline-column-header-label">Subsystem</span> : null}
-        <span
-          aria-hidden="true"
-          className={`timeline-column-visibility-icon${showSubsystemCol ? " is-active" : ""}`}
+        >
+          {showSubsystemCol ? <span className="timeline-column-header-label">Subsystem</span> : null}
+          <span
+            aria-hidden="true"
+            className={`timeline-column-visibility-icon${showSubsystemCol ? " is-active" : ""}`}
         >
           <IconEye />
-        </span>
-      </button>
+          </span>
+        </button>
+      ) : null}
 
+      {showTaskCol ? (
       <button
         aria-label={`${showTaskCol ? "Hide" : "Show"} task column`}
         aria-pressed={showTaskCol}
@@ -173,8 +206,9 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
           <IconEye />
         </span>
       </button>
+      ) : null}
 
-      {hasProjectColumn ? (
+      {hasProjectColumn && showProjectCol ? (
         <button
           aria-label={`${showProjectCol ? "Hide" : "Show"} project column`}
           aria-pressed={showProjectCol}
@@ -284,8 +318,14 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
           <span style={{ whiteSpace: "nowrap", fontSize: "8px" }}>{cell.weekdayLabel}</span>
           <button
             className={`timeline-day-number-button${cell.eventsOnDay.length ? " has-event" : ""}`}
-            onClick={() => openEventModalForDay(cell.day)}
-            title={cell.eventsOnDay.length ? `Edit milestone on ${cell.day}` : `Add milestone on ${cell.day}`}
+            onClick={() => handleTimelineHeaderDayClick(cell.day)}
+            title={
+              isWeekView
+                ? cell.eventsOnDay.length
+                  ? `Edit milestone on ${cell.day}`
+                  : `Add milestone on ${cell.day}`
+                : `Open week of ${cell.day}`
+            }
             type="button"
           >
             <strong
@@ -299,7 +339,31 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
           </button>
         </div>
       ))}
+      </div>
+      {hiddenColumnToggles.length > 0 ? (
+        <div
+          className="timeline-hidden-column-toggles"
+          style={{
+            left: `${hiddenToggleLeft}px`,
+          }}
+        >
+          {hiddenColumnToggles.map((toggle) => (
+            <button
+              key={toggle.id}
+              aria-label={toggle.label}
+              className="timeline-column-overlay-toggle"
+              onClick={toggle.onClick}
+              title={toggle.label}
+              type="button"
+            >
+              <span aria-hidden="true" className="timeline-column-visibility-icon">
+                <IconEye />
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {children}
     </div>
-    {children}
-  </div>
-);
+  );
+};

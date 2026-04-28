@@ -7,6 +7,9 @@ interface TimelineGridDaySlotsProps {
   gridRow: string | number;
   handleTimelineDayMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
   includeTopBorder?: boolean;
+  onRowClick?: () => void;
+  onRowMouseEnter?: () => void;
+  onRowMouseLeave?: () => void;
   rowKey: string;
   timelineDayHeaderCells: TimelineDayHeaderCell[];
 }
@@ -17,6 +20,9 @@ export const TimelineGridDaySlots: React.FC<TimelineGridDaySlotsProps> = ({
   gridRow,
   handleTimelineDayMouseEnter,
   includeTopBorder = false,
+  onRowClick,
+  onRowMouseEnter,
+  onRowMouseLeave,
   rowKey,
   timelineDayHeaderCells,
 }) =>
@@ -29,18 +35,26 @@ export const TimelineGridDaySlots: React.FC<TimelineGridDaySlotsProps> = ({
       data-timeline-day={cell.day}
       data-timeline-grid-cell="true"
       key={`${rowKey}-${cell.day}`}
-      onMouseEnter={handleTimelineDayMouseEnter}
-      onMouseLeave={clearHoveredMilestonePopup}
+      onClick={onRowClick}
+      onMouseEnter={(event) => {
+        handleTimelineDayMouseEnter(event);
+        onRowMouseEnter?.();
+      }}
+      onMouseLeave={() => {
+        clearHoveredMilestonePopup();
+        onRowMouseLeave?.();
+      }}
       style={{
         gridRow,
         gridColumn: dayIndex + firstDayGridColumn,
         borderRight: `1px solid ${cell.dayStyle?.columnBorder ?? "var(--border-base)"}`,
         borderTop: includeTopBorder ? "1px solid var(--border-base)" : "none",
         background: cell.dayStyle?.columnBackground,
-        minHeight: "44px",
+        minHeight: "38px",
         boxSizing: "border-box",
         position: "relative",
         zIndex: 0,
+        cursor: onRowClick ? "pointer" : undefined,
       }}
     />
   ));

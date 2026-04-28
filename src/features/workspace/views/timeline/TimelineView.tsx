@@ -46,6 +46,7 @@ import { TimelineGridBody } from "./TimelineGridBody";
 import { TimelineMilestoneHoverLayer } from "./TimelineMilestoneHoverLayer";
 import { TimelineMilestoneModal } from "./TimelineMilestoneModal";
 import { TimelineMilestoneUnderlaysPortal } from "./TimelineMilestoneUnderlaysPortal";
+import { TimelineRowHighlightsPortal } from "./TimelineRowHighlightsPortal";
 import { TimelineToolbar } from "./TimelineToolbar";
 import { useTimelineMilestoneOverlay } from "./useTimelineMilestoneOverlay";
 
@@ -70,15 +71,14 @@ type TimelineGridMotion = "left" | "right" | "neutral";
 const PROJECT_COLUMN_WIDTH = 112;
 const SUBSYSTEM_COLUMN_WIDTH = 128;
 const TASK_LABEL_COLUMN_WIDTH = 148;
-const HIDDEN_COLUMN_PEEK_WIDTH = 34;
 
 export const TimelineView: React.FC<TimelineViewProps> = ({
   bootstrap,
   isAllProjectsView,
   activePersonFilter,
   setActivePersonFilter,
-  membersById,
-  openTaskDetailModal,
+  membersById: _membersById,
+  openTaskDetailModal: _openTaskDetailModal,
   openCreateTaskModal,
   onDeleteTimelineEvent,
   onSaveTimelineEvent,
@@ -112,6 +112,10 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const [isProjectColumnVisible, setIsProjectColumnVisible] = useState(true);
   const [isSubsystemColumnVisible, setIsSubsystemColumnVisible] = useState(true);
   const [isTaskColumnVisible, setIsTaskColumnVisible] = useState(true);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [selectedSubsystemId, setSelectedSubsystemId] = useState<string | null>(null);
+  const [hoveredSubsystemId, setHoveredSubsystemId] = useState<string | null>(null);
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null);
 
   const projectsById = useMemo(
     () =>
@@ -185,15 +189,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const showProjectCol = hasProjectColumn && isProjectColumnVisible;
   const showSubsystemCol = isSubsystemColumnVisible;
   const showTaskCol = isTaskColumnVisible;
-  const projectColumnWidth = hasProjectColumn
-    ? showProjectCol
-      ? PROJECT_COLUMN_WIDTH
-      : HIDDEN_COLUMN_PEEK_WIDTH
-    : 0;
-  const subsystemColumnWidth = showSubsystemCol
-    ? SUBSYSTEM_COLUMN_WIDTH
-    : HIDDEN_COLUMN_PEEK_WIDTH;
-  const taskColumnWidth = showTaskCol ? TASK_LABEL_COLUMN_WIDTH : HIDDEN_COLUMN_PEEK_WIDTH;
+  const projectColumnWidth = hasProjectColumn && showProjectCol ? PROJECT_COLUMN_WIDTH : 0;
+  const subsystemColumnWidth = showSubsystemCol ? SUBSYSTEM_COLUMN_WIDTH : 0;
+  const taskColumnWidth = showTaskCol ? TASK_LABEL_COLUMN_WIDTH : 0;
   const subsystemColumnIndex = hasProjectColumn ? 2 : 1;
   const taskLabelColumnIndex = hasProjectColumn ? 3 : 2;
   const firstDayGridColumn = hasProjectColumn ? 4 : 3;
@@ -261,6 +259,37 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     setIsTaskColumnVisible((previous) => !previous);
   }, []);
 
+  const selectSubsystemRow = useCallback((id: string) => {
+    setSelectedTaskId(null);
+    setSelectedSubsystemId((previous) => (previous === id ? null : id));
+  }, []);
+
+  const hoverSubsystemRow = useCallback((id: string) => {
+    setHoveredTaskId(null);
+    setHoveredSubsystemId(id);
+  }, []);
+
+  const clearHoveredSubsystemRow = useCallback(() => {
+    setHoveredSubsystemId(null);
+  }, []);
+
+  const hoverTaskRow = useCallback((id: string) => {
+    setHoveredSubsystemId(null);
+    setHoveredTaskId(id);
+  }, []);
+
+  const clearHoveredTaskRow = useCallback(() => {
+    setHoveredTaskId(null);
+  }, []);
+
+  const selectTaskRow = useCallback(
+    (task: TaskRecord) => {
+      setSelectedSubsystemId(null);
+      setSelectedTaskId(task.id);
+    },
+    [],
+  );
+
   const adjustTimelineZoom = useCallback((direction: 1 | -1) => {
     setTimelineZoom((previous) => clampTimelineZoom(previous + direction * TIMELINE_ZOOM_STEP));
   }, []);
@@ -298,6 +327,36 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       window.clearTimeout(clearMotion);
     };
   }, [timelineGridMotion.direction]);
+
+  useEffect(() => {
+    if (selectedTaskId && !bootstrap.tasks.some((task) => task.id === selectedTaskId)) {
+      setSelectedTaskId(null);
+    }
+  }, [bootstrap.tasks, selectedTaskId]);
+
+  useEffect(() => {
+    if (
+      selectedSubsystemId &&
+      !bootstrap.subsystems.some((subsystem) => subsystem.id === selectedSubsystemId)
+    ) {
+      setSelectedSubsystemId(null);
+    }
+  }, [bootstrap.subsystems, selectedSubsystemId]);
+
+  useEffect(() => {
+    if (
+      hoveredSubsystemId &&
+      !bootstrap.subsystems.some((subsystem) => subsystem.id === hoveredSubsystemId)
+    ) {
+      setHoveredSubsystemId(null);
+    }
+  }, [bootstrap.subsystems, hoveredSubsystemId]);
+
+  useEffect(() => {
+    if (hoveredTaskId && !bootstrap.tasks.some((task) => task.id === hoveredTaskId)) {
+      setHoveredTaskId(null);
+    }
+  }, [bootstrap.tasks, hoveredTaskId]);
 
   const handleTimelineIntervalChange = useCallback(
     (candidate: React.ChangeEvent<HTMLSelectElement>) => {
@@ -396,6 +455,20 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     openEditEventModalForDay(day, eventsOnDay[0]);
   };
 
+  const handleTimelineHeaderDayClick = useCallback(
+    (day: string) => {
+      if (viewInterval !== "week") {
+        playTimelineGridAnimation("neutral");
+        setViewInterval("week");
+        setViewAnchorDate(day);
+        return;
+      }
+
+      openEventModalForDay(day);
+    },
+    [openEventModalForDay, playTimelineGridAnimation, viewInterval],
+  );
+
   const {
     clearHoveredMilestonePopup,
     handleTimelineDayMouseEnter,
@@ -412,6 +485,35 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     dayEventsByDate,
     events: bootstrap.events,
   });
+
+  const resolveRowHighlightGeometry = useCallback(
+    (
+      anchorKey: string,
+    ): { height: number; left: number; top: number; width: number } | null => {
+      const shell = timelineShellRef.current;
+      if (!shell) {
+        return null;
+      }
+
+      const anchor = shell.querySelector<HTMLElement>(
+        `[data-timeline-row-anchor="${anchorKey}"]`,
+      );
+      if (!anchor) {
+        return null;
+      }
+
+      const shellRect = shell.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+
+      return {
+        height: anchorRect.height,
+        left: anchorRect.left - shellRect.left + shell.scrollLeft,
+        top: anchorRect.top - shellRect.top + shell.scrollTop,
+        width: anchorRect.width,
+      };
+    },
+    [timelineShellRef],
+  );
 
   useEffect(() => {
     queueTimelineLayerUpdate();
@@ -567,12 +669,16 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         handleTimelineDayMouseEnter={handleTimelineDayMouseEnter}
         handleTimelineZoomWheel={handleTimelineZoomWheel}
         hasProjectColumn={hasProjectColumn}
-        membersById={membersById}
+        isWeekView={viewInterval === "week"}
         monthGroups={monthGroups}
-        openEventModalForDay={openEventModalForDay}
-        openTaskDetailModal={openTaskDetailModal}
+        handleTimelineHeaderDayClick={handleTimelineHeaderDayClick}
+        openTaskDetailModal={selectTaskRow}
         projectColumnWidth={projectColumnWidth}
         projectRows={projectRows}
+        hoveredSubsystemId={hoveredSubsystemId}
+        hoveredTaskId={hoveredTaskId}
+        selectedSubsystemId={selectedSubsystemId}
+        selectedTaskId={selectedTaskId}
         showProjectCol={showProjectCol}
         showSubsystemCol={showSubsystemCol}
         showTaskCol={showTaskCol}
@@ -590,6 +696,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         timelineGridRef={timelineGridRef}
         timelineGridTemplate={timelineGridTemplate}
         timelineShellRef={timelineShellRef}
+        clearHoveredSubsystemRow={clearHoveredSubsystemRow}
+        clearHoveredTaskRow={clearHoveredTaskRow}
+        hoverTaskRow={hoverTaskRow}
+        hoverSubsystemRow={hoverSubsystemRow}
+        selectSubsystemRow={selectSubsystemRow}
         toggleProject={toggleProject}
         toggleProjectColumn={toggleProjectColumn}
         toggleSubsystem={toggleSubsystem}
@@ -600,6 +711,15 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       <TimelineMilestoneUnderlaysPortal
         portalTarget={tooltipPortalTarget}
         underlays={timelineDayMilestoneUnderlays}
+      />
+
+      <TimelineRowHighlightsPortal
+        hoveredSubsystemId={hoveredSubsystemId}
+        hoveredTaskId={hoveredTaskId}
+        portalTarget={tooltipPortalTarget}
+        resolveRowHighlightGeometry={resolveRowHighlightGeometry}
+        selectedSubsystemId={selectedSubsystemId}
+        selectedTaskId={selectedTaskId}
       />
 
       <TimelineMilestoneHoverLayer
