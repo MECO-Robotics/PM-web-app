@@ -2351,7 +2351,21 @@ export default function App() {
 
     try {
       if (partDefinitionModalMode === "create") {
-        await createPartDefinitionRecord(partDefinitionDraft, handleUnauthorized);
+        await createPartDefinitionRecord(
+          {
+            ...partDefinitionDraft,
+            seasonId: selectedSeasonId ?? partDefinitionDraft.seasonId,
+            activeSeasonIds: selectedSeasonId
+              ? [selectedSeasonId]
+              : partDefinitionDraft.activeSeasonIds,
+          },
+          handleUnauthorized,
+        );
+    if (partDefinitionModalMode === "create" && !selectedSeasonId) {
+      setDataMessage("Pick a season before adding a part definition.");
+      return;
+    }
+
       } else if (partDefinitionModalMode === "edit" && activePartDefinitionId) {
         await updatePartDefinitionRecord(
           activePartDefinitionId,

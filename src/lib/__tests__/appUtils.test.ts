@@ -3,12 +3,14 @@
 import {
   buildEmptyArtifactPayload,
   buildEmptyManufacturingPayload,
+  getPartDefinitionActiveSeasonIds,
   buildEmptyTaskPayload,
   buildEmptyWorkLogPayload,
   findMemberForSessionUser,
   getDefaultSubsystemId,
   getManufacturingPartInstanceOptions,
   getProjectTaskTargetLabel,
+  isPartDefinitionActiveInSeason,
   inferManufacturingDraftFromPartSelection,
   joinList,
   setTaskPrimaryTargetSelection,
@@ -257,6 +259,33 @@ describe("appUtils", () => {
     });
 
     expect(getDefaultSubsystemId(bootstrap)).toBe("subsystem-a");
+  });
+
+  it("reads part definition active season membership like roster entities", () => {
+    const activeSeasonIds = getPartDefinitionActiveSeasonIds({
+      seasonId: "season-2026",
+      activeSeasonIds: ["season-2027"],
+    });
+
+    expect(activeSeasonIds.sort()).toEqual(["season-2026", "season-2027"].sort());
+    expect(
+      isPartDefinitionActiveInSeason(
+        {
+          seasonId: "season-2026",
+          activeSeasonIds: ["season-2027"],
+        },
+        "season-2027",
+      ),
+    ).toBe(true);
+    expect(
+      isPartDefinitionActiveInSeason(
+        {
+          seasonId: "season-2026",
+          activeSeasonIds: ["season-2027"],
+        },
+        "season-2028",
+      ),
+    ).toBe(false);
   });
 
   it("buildEmptyTaskPayload picks sensible defaults from bootstrap data", () => {

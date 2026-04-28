@@ -1,5 +1,5 @@
 import type { BootstrapPayload, MemberPayload } from "@/types";
-import { isMemberActiveInSeason } from "@/lib/appUtils";
+import { isMemberActiveInSeason, isPartDefinitionActiveInSeason } from "@/lib/appUtils";
 
 export function scopeBootstrapBySelection(
   payload: BootstrapPayload,
@@ -172,6 +172,11 @@ export function scopeBootstrapBySelection(
   const scopedMembers = selectedSeasonId
     ? payload.members.filter((member) => isMemberActiveInSeason(member, selectedSeasonId))
     : payload.members;
+  const scopedPartDefinitions = selectedSeasonId
+    ? payload.partDefinitions.filter((partDefinition) =>
+        isPartDefinitionActiveInSeason(partDefinition, selectedSeasonId),
+      )
+    : payload.partDefinitions;
 
   return {
     ...payload,
@@ -185,6 +190,7 @@ export function scopeBootstrapBySelection(
     manufacturingItems: scopedManufacturingItems,
     events: scopedEvents,
     members: scopedMembers,
+    partDefinitions: scopedPartDefinitions,
     tasks: scopedTasks,
     workLogs: scopedWorkLogs,
     reports: scopedReports,

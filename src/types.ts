@@ -160,6 +160,8 @@ export interface PartDefinitionRecord {
   id: string;
   name: string;
   partNumber: string;
+  seasonId: string;
+  activeSeasonIds?: string[];
   revision: string;
   iteration: number;
   isArchived?: boolean;
@@ -618,6 +620,8 @@ export interface PartDefinitionPayload {
   description: string;
 }
 
+  seasonId?: string;
+  activeSeasonIds?: string[];
 export interface SubsystemPayload {
   projectId: string;
   name: string;

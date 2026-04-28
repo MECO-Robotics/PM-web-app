@@ -110,6 +110,20 @@ export function isMemberActiveInSeason(
     return getMemberActiveSeasonIds(member).includes(seasonId);
 }
 
+export function getPartDefinitionActiveSeasonIds(
+    partDefinition: Pick<BootstrapPayload["partDefinitions"][number], "seasonId" | "activeSeasonIds">,
+) {
+    const seasonIds = uniqueIds([...(partDefinition.activeSeasonIds ?? []), partDefinition.seasonId]);
+    return seasonIds.length > 0 ? seasonIds : [partDefinition.seasonId];
+}
+
+export function isPartDefinitionActiveInSeason(
+    partDefinition: Pick<BootstrapPayload["partDefinitions"][number], "seasonId" | "activeSeasonIds">,
+    seasonId: string,
+) {
+    return getPartDefinitionActiveSeasonIds(partDefinition).includes(seasonId);
+}
+
 export function normalizeIteration(value: number | null | undefined) {
     return Number.isFinite(value) && value && value >= 1 ? Math.trunc(value) : 1;
 }
@@ -902,6 +916,8 @@ export function buildEmptyPartDefinitionPayload(bootstrap: BootstrapPayload): Pa
         iteration: 1,
         isArchived: false,
         type: "custom",
+        seasonId: bootstrap.seasons[0]?.id,
+        activeSeasonIds: bootstrap.seasons[0]?.id ? [bootstrap.seasons[0].id] : [],
         source: "",
         materialId: bootstrap.materials[0]?.id ?? null,
         description: "",
@@ -1033,6 +1049,8 @@ export const subsystemToPayload = (item: SubsystemRecord): SubsystemPayload => (
     iteration: normalizeIteration(item.iteration),
 });
 
+    seasonId: item.seasonId,
+    activeSeasonIds: item.activeSeasonIds ?? [item.seasonId],
 export const mechanismToPayload = (item: {
     subsystemId: string;
     name: string;
