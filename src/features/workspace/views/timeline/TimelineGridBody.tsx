@@ -23,6 +23,7 @@ interface TimelineGridBodyProps {
   handleTimelineDayMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
   handleTimelineZoomWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
   hasProjectColumn: boolean;
+  isScrolling: boolean;
   isWeekView: boolean;
   monthGroups: TimelineMonthGroup[];
   handleTimelineHeaderDayClick: (day: string) => void;
@@ -58,6 +59,7 @@ interface TimelineGridBodyProps {
   hoverTaskRow: (id: string) => void;
   hoverSubsystemRow: (id: string) => void;
   selectSubsystemRow: (id: string) => void;
+  selectTaskRow: (task: TaskRecord) => void;
   toggleProject: (id: string) => void;
   toggleProjectColumn: () => void;
   toggleSubsystem: (id: string) => void;
@@ -76,6 +78,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
   handleTimelineDayMouseEnter,
   handleTimelineZoomWheel,
   hasProjectColumn,
+  isScrolling,
   isWeekView,
   monthGroups,
   handleTimelineHeaderDayClick,
@@ -108,6 +111,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
   hoverTaskRow,
   hoverSubsystemRow,
   selectSubsystemRow,
+  selectTaskRow,
   toggleProject,
   toggleProjectColumn,
   toggleSubsystem,
@@ -138,6 +142,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
           hoverTaskRow={hoverTaskRow}
           hoverSubsystemRow={hoverSubsystemRow}
           selectSubsystemRow={selectSubsystemRow}
+          selectTaskRow={selectTaskRow}
           showProjectCol={showProjectCol}
           showSubsystemCol={showSubsystemCol}
           showTaskCol={showTaskCol}
@@ -171,6 +176,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
           hoverTaskRow={hoverTaskRow}
           hoverSubsystemRow={hoverSubsystemRow}
           selectSubsystemRow={selectSubsystemRow}
+          selectTaskRow={selectTaskRow}
           showProjectCol={showProjectCol}
           showSubsystemCol={showSubsystemCol}
           showTaskCol={showTaskCol}
@@ -194,6 +200,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
       handleTimelineDayMouseEnter={handleTimelineDayMouseEnter}
       handleTimelineZoomWheel={handleTimelineZoomWheel}
       hasProjectColumn={hasProjectColumn}
+      isScrolling={isScrolling}
       isWeekView={isWeekView}
       monthGroups={monthGroups}
       handleTimelineHeaderDayClick={handleTimelineHeaderDayClick}

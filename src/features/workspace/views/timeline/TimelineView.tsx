@@ -46,6 +46,7 @@ import { TimelineGridBody } from "./TimelineGridBody";
 import { TimelineMilestoneHoverLayer } from "./TimelineMilestoneHoverLayer";
 import { TimelineMilestoneModal } from "./TimelineMilestoneModal";
 import { TimelineMilestoneUnderlaysPortal } from "./TimelineMilestoneUnderlaysPortal";
+import { TimelineTodayMarkerPortal } from "./TimelineTodayMarkerPortal";
 import { TimelineRowHighlightsPortal } from "./TimelineRowHighlightsPortal";
 import { TimelineToolbar } from "./TimelineToolbar";
 import {
@@ -216,19 +217,20 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const subsystemStickyLeft = hasProjectColumn ? projectColumnWidth : 0;
   const taskLabelStickyLeft = subsystemStickyLeft + subsystemColumnWidth;
   const fixedTimelineColumnWidth = projectColumnWidth + subsystemColumnWidth + taskColumnWidth;
+  const dayTrackSize = useMemo(
+    () => getTimelineDayTrackSize(viewInterval, timelineZoom, fixedTimelineColumnWidth),
+    [fixedTimelineColumnWidth, timelineZoom, viewInterval],
+  );
 
   const timelineGridTemplate = useMemo(() => {
-    const dayWidth = getTimelineDayTrackSize(viewInterval, timelineZoom, fixedTimelineColumnWidth);
-    return `${hasProjectColumn ? `${projectColumnWidth}px ` : ""}${subsystemColumnWidth}px ${taskColumnWidth}px repeat(${timeline.days.length}, ${dayWidth})`;
+    return `${hasProjectColumn ? `${projectColumnWidth}px ` : ""}${subsystemColumnWidth}px ${taskColumnWidth}px repeat(${timeline.days.length}, ${dayTrackSize})`;
   }, [
-    fixedTimelineColumnWidth,
     hasProjectColumn,
+    dayTrackSize,
     projectColumnWidth,
     subsystemColumnWidth,
     taskColumnWidth,
     timeline.days.length,
-    timelineZoom,
-    viewInterval,
   ]);
 
   const gridMinWidth = useMemo(() => {
@@ -300,7 +302,12 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     setHoveredTaskId(null);
   }, []);
 
-  const selectTaskRow = useCallback(
+  const selectTaskRow = useCallback((task: TaskRecord) => {
+    setSelectedSubsystemId(null);
+    setSelectedTaskId((previous) => (previous === task.id ? null : task.id));
+  }, []);
+
+  const openTaskDetailAndSelectTask = useCallback(
     (task: TaskRecord) => {
       setSelectedSubsystemId(null);
       setSelectedTaskId(task.id);
@@ -498,6 +505,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     timelineDayMilestoneUnderlays,
     timelineGridRef,
     timelineShellRef,
+    timelineTodayMarkerLeft,
+    isTimelineShellScrolling,
     tooltipPortalTarget,
   } = useTimelineMilestoneOverlay({
     days: timeline.days,
@@ -709,7 +718,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         isWeekView={viewInterval === "week"}
         monthGroups={monthGroups}
         handleTimelineHeaderDayClick={handleTimelineHeaderDayClick}
-        openTaskDetailModal={selectTaskRow}
         projectColumnWidth={projectColumnWidth}
         projectRows={projectRows}
         hoveredSubsystemId={hoveredSubsystemId}
@@ -719,6 +727,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         showProjectCol={showProjectCol}
         showSubsystemCol={showSubsystemCol}
         showTaskCol={showTaskCol}
+        isScrolling={isTimelineShellScrolling}
         subsystemColumnIndex={subsystemColumnIndex}
         subsystemColumnWidth={subsystemColumnWidth}
         subsystemRows={subsystemRows}
@@ -733,11 +742,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         timelineGridRef={timelineGridRef}
         timelineGridTemplate={timelineGridTemplate}
         timelineShellRef={timelineShellRef}
+        openTaskDetailModal={openTaskDetailAndSelectTask}
         clearHoveredSubsystemRow={clearHoveredSubsystemRow}
         clearHoveredTaskRow={clearHoveredTaskRow}
         hoverTaskRow={hoverTaskRow}
         hoverSubsystemRow={hoverSubsystemRow}
         selectSubsystemRow={selectSubsystemRow}
+        selectTaskRow={selectTaskRow}
         toggleProject={toggleProject}
         toggleProjectColumn={toggleProjectColumn}
         toggleSubsystem={toggleSubsystem}
@@ -748,6 +759,11 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       <TimelineMilestoneUnderlaysPortal
         portalTarget={tooltipPortalTarget}
         underlays={timelineDayMilestoneUnderlays}
+      />
+
+      <TimelineTodayMarkerPortal
+        portalTarget={timelineShellRef.current}
+        todayMarkerLeft={timelineTodayMarkerLeft}
       />
 
       <TimelineRowHighlightsPortal

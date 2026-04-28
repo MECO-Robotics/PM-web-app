@@ -112,10 +112,11 @@ describe("TimelineView interactions", () => {
     jest.clearAllMocks();
   });
 
-  it("forwards timeline task clicks to the task details modal opener", () => {
+  it("separates timeline row selection from task detail opening", () => {
     const bootstrap = createBootstrap();
     const openTaskDetailModal = jest.fn();
     let capturedOpenTaskDetailModal: ((task: TaskRecord) => void) | null = null;
+    let capturedSelectTaskRow: ((task: TaskRecord) => void) | null = null;
 
     jest.isolateModules(() => {
       const React = require("react");
@@ -126,10 +127,13 @@ describe("TimelineView interactions", () => {
       jest.doMock("@/features/workspace/views/timeline/TimelineGridBody", () => ({
         TimelineGridBody: ({
           openTaskDetailModal: forwardedOpenTaskDetailModal,
+          selectTaskRow: forwardedSelectTaskRow,
         }: {
           openTaskDetailModal: (task: TaskRecord) => void;
+          selectTaskRow: (task: TaskRecord) => void;
         }) => {
           capturedOpenTaskDetailModal = forwardedOpenTaskDetailModal;
+          capturedSelectTaskRow = forwardedSelectTaskRow;
           return React.createElement("div");
         },
       }));
@@ -153,8 +157,14 @@ describe("TimelineView interactions", () => {
     });
 
     expect(capturedOpenTaskDetailModal).not.toBeNull();
+    expect(capturedSelectTaskRow).not.toBeNull();
 
     const forwardedTaskDetailOpener = capturedOpenTaskDetailModal!;
+    const forwardedTaskRowSelector = capturedSelectTaskRow!;
+
+    forwardedTaskRowSelector(bootstrap.tasks[0]);
+
+    expect(openTaskDetailModal).not.toHaveBeenCalled();
 
     forwardedTaskDetailOpener(bootstrap.tasks[0]);
 
@@ -172,10 +182,23 @@ describe("TimelineView interactions", () => {
       "utf8",
     );
 
-    expect(projectGroupSource).not.toContain("onRowClick={() => openTaskDetailModal(task)}");
-    expect(subsystemGroupSource).not.toContain("onRowClick={() => openTaskDetailModal(task)}");
+    expect(projectGroupSource).toContain("onRowClick={() => selectTaskRow(task)}");
+    expect(subsystemGroupSource).toContain("onRowClick={() => selectTaskRow(task)}");
 
     expect(projectGroupSource).toContain("onClick={() => openTaskDetailModal(task)}");
     expect(subsystemGroupSource).toContain("onClick={() => openTaskDetailModal(task)}");
+  });
+
+  it("updates timeline hover geometry on shell scroll", () => {
+    const overlayHookSource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/timeline/useTimelineMilestoneOverlay.ts"),
+      "utf8",
+    );
+
+    expect(overlayHookSource).toContain("const handleScroll = () =>");
+    expect(overlayHookSource).toContain('shell.addEventListener("scroll", handleScroll, { passive: true })');
+    expect(overlayHookSource).toContain('shell.removeEventListener("scroll", handleScroll)');
+    expect(overlayHookSource).toContain("setIsTimelineShellScrolling(true)");
+    expect(overlayHookSource).toContain("setIsTimelineShellScrolling(false)");
   });
 });

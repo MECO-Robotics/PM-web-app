@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
-import { monthEndFromDay } from "@/features/workspace/shared/timelineDateUtils";
+import { localTodayDate, monthEndFromDay } from "@/features/workspace/shared/timelineDateUtils";
 import {
   clampTimelineZoom,
   formatTimelineZoomLabel,
@@ -166,6 +166,20 @@ function createBootstrapWithDependency(): BootstrapPayload {
   };
 }
 
+function createBootstrapWithTaskRows(taskCount: number): BootstrapPayload {
+  const bootstrap = createBootstrap();
+  const baseTask = bootstrap.tasks[0];
+
+  return {
+    ...bootstrap,
+    tasks: Array.from({ length: taskCount }, (_, index) => ({
+      ...baseTask,
+      id: `task-${index + 1}`,
+      title: `Frame rail layout ${index + 1}`,
+    })),
+  };
+}
+
 const membersById = {
   "member-1": {
     id: "member-1",
@@ -272,7 +286,7 @@ describe("TimelineView", () => {
       });
       taskBarStyles.forEach((style) => {
         expect(style).toContain("position:relative");
-        expect(style).toContain("z-index:6");
+        expect(style).not.toContain("z-index:6");
       });
     },
   );
@@ -722,6 +736,9 @@ describe("TimelineView", () => {
     const rotatedRule = getRule(".timeline-merged-cell-text.is-rotated");
     expect(rotatedRule).toMatch(/writing-mode:\s*vertical-rl/);
     expect(rotatedRule).toMatch(/text-orientation:\s*mixed/);
+    expect(rotatedRule).toMatch(
+      /transform:\s*rotate\(var\(--timeline-merged-cell-rotation,\s*240deg\)\)/,
+    );
     expect(rotatedRule).toMatch(/max-height:\s*calc\(100% - 16px\)/);
     expect(rotatedRule).not.toMatch(/rotate\(-90deg\)/);
 
@@ -730,24 +747,10 @@ describe("TimelineView", () => {
     ).toMatch(/max-height:\s*100%/);
   });
 
-  it("keeps single-row subsystem and project labels horizontal while multi-row labels rotate", () => {
-    const singleRowMarkup = renderToStaticMarkup(
+  it("uses 180deg rotation for four-row labels", () => {
+    const fourRowMarkup = renderToStaticMarkup(
       React.createElement(TimelineView, {
-        bootstrap: createBootstrap(),
-        isAllProjectsView: true,
-        activePersonFilter: [],
-        setActivePersonFilter: jest.fn(),
-        membersById,
-        openTaskDetailModal: jest.fn(),
-        openCreateTaskModal: jest.fn(),
-        onDeleteTimelineEvent: jest.fn(),
-        onSaveTimelineEvent: jest.fn(),
-        triggerCreateMilestoneToken: 0,
-      }),
-    );
-    const multiRowMarkup = renderToStaticMarkup(
-      React.createElement(TimelineView, {
-        bootstrap: createBootstrapWithDependency(),
+        bootstrap: createBootstrapWithTaskRows(4),
         isAllProjectsView: true,
         activePersonFilter: [],
         setActivePersonFilter: jest.fn(),
@@ -760,8 +763,29 @@ describe("TimelineView", () => {
       }),
     );
 
-    expect(singleRowMarkup).not.toContain("timeline-merged-cell-text is-rotated");
-    expect(multiRowMarkup).toContain("timeline-merged-cell-text is-rotated");
+    expect(fourRowMarkup).toContain("timeline-merged-cell-text is-rotated");
+    expect(fourRowMarkup).toContain("--timeline-merged-cell-rotation:180deg");
+    expect(fourRowMarkup).not.toContain("--timeline-merged-cell-rotation:240deg");
+  });
+
+  it("keeps six-task subsystem labels on the 180deg branch in all-projects view", () => {
+    const sixRowMarkup = renderToStaticMarkup(
+      React.createElement(TimelineView, {
+        bootstrap: createBootstrapWithTaskRows(6),
+        isAllProjectsView: true,
+        activePersonFilter: [],
+        setActivePersonFilter: jest.fn(),
+        membersById,
+        openTaskDetailModal: jest.fn(),
+        openCreateTaskModal: jest.fn(),
+        onDeleteTimelineEvent: jest.fn(),
+        onSaveTimelineEvent: jest.fn(),
+        triggerCreateMilestoneToken: 0,
+      }),
+    );
+
+    expect(sixRowMarkup).toContain("--timeline-merged-cell-rotation:180deg");
+    expect(sixRowMarkup).not.toContain("--timeline-merged-cell-rotation:240deg");
   });
 
   it("uses discipline-led task styling, neutral left labels, and status logos on timeline bars", () => {
@@ -816,6 +840,81 @@ describe("TimelineView", () => {
     expect(helperSource).toContain('"--timeline-row-highlight-selected-fill"');
     expect(helperSource).toContain('"--timeline-row-highlight-hover-fill"');
     expect(helperSource).toContain("buildTimelineSubsystemHighlightStyle");
+  });
+
+  it("keeps sticky timeline label columns opaque while rows are hovered", () => {
+    const projectGroupSource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/timeline/TimelineProjectGroup.tsx"),
+      "utf8",
+    );
+    const subsystemGroupSource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/timeline/TimelineSubsystemGroup.tsx"),
+      "utf8",
+    );
+
+    expect(projectGroupSource).not.toContain('? "transparent"');
+    expect(subsystemGroupSource).not.toContain('? "transparent"');
+    expect(projectGroupSource).not.toContain("getTimelineRowHighlightHoverFill");
+    expect(projectGroupSource).not.toContain("getTimelineRowHighlightSelectedFill");
+    expect(subsystemGroupSource).not.toContain("getTimelineRowHighlightHoverFill");
+    expect(subsystemGroupSource).not.toContain("getTimelineRowHighlightSelectedFill");
+  });
+
+  it("suppresses sticky label hover reveal while the timeline shell is scrolling", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const headerSource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/timeline/TimelineGridHeader.tsx"),
+      "utf8",
+    );
+    const overlayHookSource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/timeline/useTimelineMilestoneOverlay.ts"),
+      "utf8",
+    );
+
+    expect(headerSource).toContain('data-is-scrolling={isScrolling ? "true" : undefined}');
+    expect(overlayHookSource).toContain('setIsTimelineShellScrolling(true)');
+    expect(overlayHookSource).toContain('setIsTimelineShellScrolling(false)');
+    expect(css).toContain('.timeline-shell[data-is-scrolling="true"] .timeline-ellipsis-reveal[data-full-text]:hover');
+    expect(css).toContain('.timeline-shell[data-is-scrolling="true"] .timeline-merged-cell-column:hover .timeline-ellipsis-reveal[data-full-text]');
+  });
+
+  it("marks the current day as a unique timeline column highlight", () => {
+    const todayDay = localTodayDate();
+    const markup = renderToStaticMarkup(
+      React.createElement(TimelineView, {
+        bootstrap: createBootstrap(),
+        isAllProjectsView: false,
+        activePersonFilter: [],
+        setActivePersonFilter: jest.fn(),
+        membersById,
+        openTaskDetailModal: jest.fn(),
+        openCreateTaskModal: jest.fn(),
+        onDeleteTimelineEvent: jest.fn(),
+        onSaveTimelineEvent: jest.fn(),
+        triggerCreateMilestoneToken: 0,
+      }),
+    );
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const portalSource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/timeline/TimelineTodayMarkerPortal.tsx"),
+      "utf8",
+    );
+    const overlaySource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/timeline/useTimelineMilestoneOverlay.ts"),
+      "utf8",
+    );
+
+    expect(markup).toContain(`data-timeline-day="${todayDay}"`);
+    expect(markup).not.toContain('class="timeline-day is-today"');
+    expect(markup).not.toContain('class="timeline-day-slot is-today"');
+    expect(portalSource).toContain("timeline-today-marker-column");
+    expect(portalSource).toContain("timeline-today-marker-line");
+    expect(portalSource).toContain("Today");
+    expect(overlaySource).toContain("offsetLeft");
+    expect(css).toMatch(/\.timeline-today-marker-line\s*\{[\s\S]*position:\s*absolute/);
+    expect(css).toMatch(/\.timeline-today-marker-column\s*\{[\s\S]*position:\s*absolute/);
+    expect(css).toMatch(/\.timeline-today-marker-line\s*\{[\s\S]*width:\s*2px/);
+    expect(css).toMatch(/\.timeline-today-marker-label\s*\{[\s\S]*font-weight:\s*800/);
   });
 
   it("keeps subsystem accent strips on every sticky timeline subsystem surface", () => {

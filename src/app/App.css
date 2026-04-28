@@ -2546,7 +2546,7 @@
   max-height: calc(100% - 16px);
   writing-mode: vertical-rl;
   text-orientation: mixed;
-  transform: rotate(180deg);
+  transform: rotate(var(--timeline-merged-cell-rotation, 240deg));
   transform-origin: center;
   white-space: nowrap;
 }
@@ -2650,6 +2650,7 @@
 .timeline-layout {
   --timeline-row-highlight-selected-fill: rgba(22, 71, 142, 0.08);
   --timeline-row-highlight-hover-fill: rgba(22, 71, 142, 0.16);
+  --timeline-today-ring: rgba(22, 71, 142, 0.34);
 }
 
 .page-shell.dark-mode .timeline-row-highlight {
@@ -2669,11 +2670,70 @@
 .page-shell.dark-mode .timeline-layout {
   --timeline-row-highlight-selected-fill: rgba(96, 165, 250, 0.14);
   --timeline-row-highlight-hover-fill: rgba(96, 165, 250, 0.2);
+  --timeline-today-ring: rgba(191, 219, 254, 0.44);
 }
 
 .timeline-row-highlight-anchor {
   pointer-events: none;
   min-height: 38px;
+}
+
+.timeline-today-marker-column {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 10014;
+  width: 0;
+  transform: translateX(-50%);
+}
+
+.timeline-today-marker-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+  width: 2px;
+  background: var(--official-blue);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.42),
+    0 0 18px color-mix(in srgb, var(--timeline-today-ring) 30%, transparent);
+  z-index: 10014;
+}
+
+.timeline-today-marker-label {
+  position: absolute;
+  top: 7px;
+  left: -6px;
+  pointer-events: none;
+  transform: none;
+  padding: 0.16rem 0.5rem 0.16rem 0.68rem;
+  border: 1px solid var(--timeline-today-ring);
+  border-radius: 999px;
+  background: var(--bg-panel);
+  color: var(--official-blue);
+  font-size: 0.64rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  z-index: 10014;
+}
+
+.page-shell.dark-mode .timeline-today-marker-line {
+  background: #93c5fd;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.45),
+    0 0 20px rgba(147, 197, 253, 0.3);
+}
+
+.page-shell.dark-mode .timeline-today-marker-label {
+  background: var(--bg-row-alt);
+  border-color: rgba(191, 219, 254, 0.44);
+  color: #bfdbfe;
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.36);
 }
 
 .timeline-ellipsis-reveal {
@@ -2736,6 +2796,21 @@
   overflow: visible;
   position: relative;
   color: transparent !important;
+}
+
+.timeline-shell[data-is-scrolling="true"] .timeline-ellipsis-reveal[data-full-text]:hover,
+.timeline-shell[data-is-scrolling="true"] .timeline-ellipsis-reveal[data-full-text]:focus-visible,
+.timeline-shell[data-is-scrolling="true"] .timeline-merged-cell-column:hover .timeline-ellipsis-reveal[data-full-text],
+.timeline-shell[data-is-scrolling="true"] .timeline-merged-cell-column:focus-within .timeline-ellipsis-reveal[data-full-text] {
+  overflow: hidden;
+  color: inherit !important;
+}
+
+.timeline-shell[data-is-scrolling="true"] .timeline-ellipsis-reveal[data-full-text]:hover::after,
+.timeline-shell[data-is-scrolling="true"] .timeline-ellipsis-reveal[data-full-text]:focus-visible::after,
+.timeline-shell[data-is-scrolling="true"] .timeline-merged-cell-column:hover .timeline-ellipsis-reveal[data-full-text]::after,
+.timeline-shell[data-is-scrolling="true"] .timeline-merged-cell-column:focus-within .timeline-ellipsis-reveal[data-full-text]::after {
+  opacity: 0;
 }
 
 .timeline-column-visibility-icon {
@@ -3381,16 +3456,15 @@
 
 .timeline-day-number-button {
   border: 0;
-  border-radius: 999px;
   background: transparent;
   color: inherit;
   cursor: pointer;
-  padding: 0.1rem 0.38rem;
+  padding: 0;
   line-height: 1;
 }
 
 .timeline-day-number-button.has-event {
-  box-shadow: inset 0 0 0 1px currentColor;
+  box-shadow: none;
 }
 
 .timeline-day-number-button:focus-visible {
@@ -3554,6 +3628,17 @@
   align-self: center;
   background: var(--timeline-task-discipline-accent);
   box-shadow: 0 8px 18px rgba(15, 28, 52, 0.18);
+  position: relative;
+  z-index: 10018;
+}
+
+.timeline-bar-content {
+  position: relative;
+  z-index: 10016;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .timeline-not-started {

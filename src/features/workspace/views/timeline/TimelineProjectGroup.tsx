@@ -8,11 +8,10 @@ import { TimelineTaskStatusLogo } from "./TimelineTaskStatusLogo";
 import {
   buildTimelineSubsystemHighlightStyle,
   buildTimelineTaskToneStyle,
-  getTimelineRowHighlightHoverFill,
-  getTimelineRowHighlightSelectedFill,
   getTimelineTaskDisciplineColor,
 } from "./timelineTaskColors";
 import { getTaskDependencyCounts } from "./timelineGridBodyUtils";
+import { getTimelineMergedCellRotation } from "./timelineViewModel";
 import type {
   TimelineDayHeaderCell,
   TimelineProjectRow,
@@ -36,6 +35,7 @@ interface TimelineProjectGroupProps {
   project: TimelineProjectRow;
   projectIndex: number;
   selectSubsystemRow: (id: string) => void;
+  selectTaskRow: (task: TaskRecord) => void;
   selectedSubsystemId: string | null;
   selectedTaskId: string | null;
   showProjectCol: boolean;
@@ -70,6 +70,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
   project,
   projectIndex,
   selectSubsystemRow,
+  selectTaskRow,
   selectedSubsystemId,
   selectedTaskId,
   showProjectCol,
@@ -85,6 +86,8 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
   toggleSubsystem,
   openTaskDetailModal,
 }) => {
+  const buildOpaqueSurfaceFill = (surfaceBase: string, accent: string) =>
+    `color-mix(in srgb, ${surfaceBase} 86%, ${accent} 14%)`;
   const projectCollapsed = collapsedProjects[project.id] ?? false;
   const projectRowCount = projectCollapsed
     ? 1
@@ -96,9 +99,8 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
   const collapsedSummaryStart = showSubsystemCol ? subsystemColumnIndex : taskLabelColumnIndex;
   const collapsedSummaryStickyLeft = showSubsystemCol ? subsystemStickyLeft : taskLabelStickyLeft;
   const projectBackground = projectIndex % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
-  const isCollapsedProjectTaskSelected = project.tasks.some((task) => task.id === selectedTaskId);
-  const isCollapsedProjectTaskHovered = project.tasks.some((task) => task.id === hoveredTaskId);
   const shouldRotateProjectLabel = !projectCollapsed && projectRowCount > 1;
+  const projectLabelRotation = getTimelineMergedCellRotation(projectRowCount);
 
   return (
     <div
@@ -162,7 +164,17 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
           >
             <TimelineCollapseArrow isCollapsed={projectCollapsed} />
           </button>
-          <div className={`timeline-merged-cell-text${shouldRotateProjectLabel ? " is-rotated" : ""}`}>
+          <div
+            className={`timeline-merged-cell-text${shouldRotateProjectLabel ? " is-rotated" : ""}`}
+            style={
+              shouldRotateProjectLabel
+                ? ({
+                    ["--timeline-merged-cell-rotation" as "--timeline-merged-cell-rotation"]:
+                      projectLabelRotation,
+                  } as React.CSSProperties)
+                : undefined
+            }
+          >
             <span className="timeline-merged-cell-title timeline-ellipsis-reveal" data-full-text={project.name}>
               {project.name}
             </span>
@@ -176,21 +188,18 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
       {projectCollapsed ? (
         <>
           {collapsedSummarySpan > 0 ? (
-            <div
-              style={{
-                gridRow: "1",
-                gridColumn: `${collapsedSummaryStart} / span ${collapsedSummarySpan}`,
-                position: "sticky",
-                left: `${collapsedSummaryStickyLeft}px`,
-                zIndex: 10021,
-                background:
-                  isCollapsedProjectTaskSelected || isCollapsedProjectTaskHovered
-                    ? "transparent"
-                    : projectBackground,
-                borderRight: "1px solid var(--border-base)",
-                boxSizing: "border-box",
-                display: "flex",
-                alignItems: "center",
+              <div
+                style={{
+                  gridRow: "1",
+                  gridColumn: `${collapsedSummaryStart} / span ${collapsedSummarySpan}`,
+                  position: "sticky",
+                  left: `${collapsedSummaryStickyLeft}px`,
+                  zIndex: 10021,
+                  background: projectBackground,
+                  borderRight: "1px solid var(--border-base)",
+                  boxSizing: "border-box",
+                  display: "flex",
+                  alignItems: "center",
                 padding: "0 12px",
                 minHeight: "38px",
                 color: "var(--text-copy)",
@@ -237,7 +246,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                   height: "8px",
                   margin: "0 2px",
                   position: "relative",
-                  zIndex: 6,
+                  zIndex: 10018,
                   borderRadius: "2px",
                   border: "none",
                   cursor: "pointer",
@@ -249,28 +258,30 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                 title={`${task.title} (${task.status})`}
                 type="button"
               >
-                <TimelineTaskStatusLogo compact status={task.status} />
-                {(() => {
-                  const dependencyCounts = getTaskDependencyCounts(task.id, bootstrap.taskDependencies);
-                  if (dependencyCounts.incoming === 0 && dependencyCounts.outgoing === 0) {
-                    return null;
-                  }
+                <span className="timeline-bar-content">
+                  <TimelineTaskStatusLogo compact status={task.status} />
+                  {(() => {
+                    const dependencyCounts = getTaskDependencyCounts(task.id, bootstrap.taskDependencies);
+                    if (dependencyCounts.incoming === 0 && dependencyCounts.outgoing === 0) {
+                      return null;
+                    }
 
-                  return (
-                    <span
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        border: "1px solid rgba(255, 255, 255, 0.3)",
-                        borderRadius: "inherit",
-                        pointerEvents: "none",
-                        opacity: 0.75,
-                      }}
-                      aria-hidden="true"
-                    />
-                  );
-                })()}
-                <EditableHoverIndicator className="editable-hover-indicator-compact" />
+                    return (
+                      <span
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          border: "1px solid rgba(255, 255, 255, 0.3)",
+                          borderRadius: "inherit",
+                          pointerEvents: "none",
+                          opacity: 0.75,
+                        }}
+                        aria-hidden="true"
+                      />
+                    );
+                  })()}
+                  <EditableHoverIndicator className="editable-hover-indicator-compact" />
+                </span>
               </button>
             </React.Fragment>
           ))}
@@ -289,22 +300,19 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
               subsystem.index % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
             const isSubsystemSelected = selectedSubsystemId === subsystem.id;
             const isSubsystemHovered = hoveredSubsystemId === subsystem.id;
-            const hasSelectedTask = subsystem.tasks.some((task) => task.id === selectedTaskId);
-            const hasHoveredTask = subsystem.tasks.some((task) => task.id === hoveredTaskId);
             const subsystemBandFill = isSubsystemHovered
-              ? getTimelineRowHighlightHoverFill(subsystem.color)
+              ? buildOpaqueSurfaceFill(groupBackground, subsystem.color)
               : isSubsystemSelected
-                ? getTimelineRowHighlightSelectedFill(subsystem.color)
+                ? buildOpaqueSurfaceFill(groupBackground, subsystem.color)
                 : null;
             const subsystemSurfaceBackground = subsystemBandFill
               ? subsystemBandFill
-              : hasSelectedTask || hasHoveredTask
-                ? "transparent"
-                : groupBackground;
+              : groupBackground;
             const subsystemSurfaceBorderRight = subsystemBandFill
               ? "1px solid transparent"
               : "1px solid var(--border-base)";
             const shouldRotateSubsystemLabel = !collapsed && taskCount > 1;
+            const subsystemLabelRotation = getTimelineMergedCellRotation(taskCount);
 
             return (
               <React.Fragment key={subsystem.id}>
@@ -381,7 +389,17 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                         <TimelineCollapseArrow isCollapsed={collapsed} />
                       </button>
                     ) : null}
-                    <div className={`timeline-merged-cell-text${shouldRotateSubsystemLabel ? " is-rotated" : ""}`}>
+                    <div
+                      className={`timeline-merged-cell-text${shouldRotateSubsystemLabel ? " is-rotated" : ""}`}
+                      style={
+                        shouldRotateSubsystemLabel
+                          ? ({
+                              ["--timeline-merged-cell-rotation" as "--timeline-merged-cell-rotation"]:
+                                subsystemLabelRotation,
+                            } as React.CSSProperties)
+                          : undefined
+                      }
+                    >
                       <span className="timeline-merged-cell-title timeline-ellipsis-reveal" data-full-text={subsystem.name}>
                         {subsystem.name}
                       </span>
@@ -486,7 +504,6 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                           height: "8px",
                           margin: "0 2px",
                           position: "relative",
-                          zIndex: 6,
                           borderRadius: "2px",
                           border: "none",
                           cursor: "pointer",
@@ -537,16 +554,16 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                             onClick={() => openTaskDetailModal(task)}
                             onMouseEnter={() => hoverTaskRow(task.id)}
                             onMouseLeave={clearHoveredTaskRow}
-                            style={(() => {
-                              const taskDisciplineColor = getTimelineTaskDisciplineColor(task.disciplineId, disciplinesById);
-                              const taskRowFill =
-                                hoveredTaskId === task.id
-                                  ? getTimelineRowHighlightHoverFill(taskDisciplineColor)
-                                  : selectedTaskId === task.id
-                                    ? getTimelineRowHighlightSelectedFill(taskDisciplineColor)
-                                    : subsystemBandFill;
-                              return buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
-                                "--timeline-task-row-fill": taskRowFill ?? groupBackground,
+                    style={(() => {
+                      const taskDisciplineColor = getTimelineTaskDisciplineColor(task.disciplineId, disciplinesById);
+                      const taskRowFill =
+                        hoveredTaskId === task.id
+                          ? buildOpaqueSurfaceFill(groupBackground, taskDisciplineColor)
+                          : selectedTaskId === task.id
+                            ? buildOpaqueSurfaceFill(groupBackground, taskDisciplineColor)
+                            : subsystemBandFill;
+                      return buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
+                        "--timeline-task-row-fill": taskRowFill ?? groupBackground,
                                 gridRow: subsystemRowStart + taskIndex,
                                 gridColumn: `${taskLabelColumnIndex}`,
                                 minHeight: "38px",
@@ -591,6 +608,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                           firstDayGridColumn={firstDayGridColumn}
                           gridRow={subsystemRowStart + taskIndex}
                           handleTimelineDayMouseEnter={handleTimelineDayMouseEnter}
+                          onRowClick={() => selectTaskRow(task)}
                           includeTopBorder={subsystemRowStart + taskIndex > 1}
                           onRowMouseEnter={() => {
                             clearHoveredTaskRow();
@@ -614,7 +632,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                             gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
                             margin: "4px 4px",
                             position: "relative",
-                            zIndex: 6,
+                            zIndex: 10018,
                             borderRadius: "4px",
                             border: "none",
                             color: "#fff",
@@ -631,33 +649,35 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                           })}
                           title={`View details for ${task.title}`}
                           type="button"
-                        >
-                          <TimelineTaskStatusLogo status={task.status} />
-                          {task.title}
-                          {(() => {
-                            const dependencyCounts = getTaskDependencyCounts(task.id, bootstrap.taskDependencies);
-                            if (dependencyCounts.incoming === 0 && dependencyCounts.outgoing === 0) {
-                              return null;
-                            }
+              >
+                <span className="timeline-bar-content">
+                  <TimelineTaskStatusLogo status={task.status} />
+                  <span className="timeline-bar-title">{task.title}</span>
+                  {(() => {
+                    const dependencyCounts = getTaskDependencyCounts(task.id, bootstrap.taskDependencies);
+                    if (dependencyCounts.incoming === 0 && dependencyCounts.outgoing === 0) {
+                      return null;
+                    }
 
-                            return (
-                              <span
-                                aria-hidden="true"
-                                style={{
-                                  marginLeft: "8px",
-                                  fontSize: "0.65rem",
-                                  opacity: 0.8,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {dependencyCounts.incoming > 0 ? `↙ ${dependencyCounts.incoming}` : ""}
-                                {dependencyCounts.incoming > 0 && dependencyCounts.outgoing > 0 ? " " : ""}
-                                {dependencyCounts.outgoing > 0 ? `↗ ${dependencyCounts.outgoing}` : ""}
-                              </span>
-                            );
-                          })()}
-                          <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                        </button>
+                    return (
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          marginLeft: "8px",
+                          fontSize: "0.65rem",
+                          opacity: 0.8,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {dependencyCounts.incoming > 0 ? `↙ ${dependencyCounts.incoming}` : ""}
+                        {dependencyCounts.incoming > 0 && dependencyCounts.outgoing > 0 ? " " : ""}
+                        {dependencyCounts.outgoing > 0 ? `↗ ${dependencyCounts.outgoing}` : ""}
+                      </span>
+                    );
+                  })()}
+                  <EditableHoverIndicator className="editable-hover-indicator-compact" />
+                </span>
+              </button>
                       </React.Fragment>
                     ))
                   : null}

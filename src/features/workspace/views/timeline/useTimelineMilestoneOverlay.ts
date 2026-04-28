@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type React from "react";
 import type { BootstrapPayload, EventRecord } from "@/types";
-import { datePortion } from "@/features/workspace/shared/timelineDateUtils";
+import { datePortion, localTodayDate } from "@/features/workspace/shared/timelineDateUtils";
 import { getEventTypeStyle } from "@/features/workspace/shared/eventStyles";
 import {
   isSameHoveredMilestonePopup,
@@ -27,10 +27,13 @@ export function useTimelineMilestoneOverlay({
   const [timelineDayCellLayouts, setTimelineDayCellLayouts] = useState<TimelineDayCellLayouts>({});
   const [timelineGridHeight, setTimelineGridHeight] = useState(0);
   const [timelineHeaderHeight, setTimelineHeaderHeight] = useState(0);
+  const [timelineTodayMarkerLeft, setTimelineTodayMarkerLeft] = useState<number | null>(null);
+  const [isTimelineShellScrolling, setIsTimelineShellScrolling] = useState(false);
   const timelineShellRef = useRef<HTMLDivElement | null>(null);
   const timelineGridRef = useRef<HTMLDivElement | null>(null);
   const timelineDayCellRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const timelineLayerGeometryFrameRef = useRef<number | null>(null);
+  const timelineScrollResetFrameRef = useRef<number | null>(null);
   const hoveredMilestonePopupRef = useRef<HoveredMilestonePopup | null>(null);
   const setHoveredMilestonePopupLayerRef = useRef<
     (popup: HoveredMilestonePopup | null) => void
@@ -55,6 +58,7 @@ export function useTimelineMilestoneOverlay({
         );
         setTimelineGridHeight((previous) => (previous === 0 ? previous : 0));
         setTimelineHeaderHeight((previous) => (previous === 0 ? previous : 0));
+        setTimelineTodayMarkerLeft((previous) => (previous === null ? previous : null));
         return;
       }
 
@@ -111,6 +115,12 @@ export function useTimelineMilestoneOverlay({
       setTimelineHeaderHeight((previous) =>
         previous === nextHeaderHeight ? previous : nextHeaderHeight,
       );
+
+      const todayCell = timelineDayCellRefs.current[localTodayDate()];
+      const nextTodayMarkerLeft = todayCell ? todayCell.offsetLeft : null;
+      setTimelineTodayMarkerLeft((previous) =>
+        previous === nextTodayMarkerLeft ? previous : nextTodayMarkerLeft,
+      );
     });
   }, [days]);
 
@@ -119,6 +129,10 @@ export function useTimelineMilestoneOverlay({
       if (timelineLayerGeometryFrameRef.current !== null) {
         window.cancelAnimationFrame(timelineLayerGeometryFrameRef.current);
         timelineLayerGeometryFrameRef.current = null;
+      }
+      if (timelineScrollResetFrameRef.current !== null) {
+        window.clearTimeout(timelineScrollResetFrameRef.current);
+        timelineScrollResetFrameRef.current = null;
       }
     },
     [],
@@ -312,6 +326,30 @@ export function useTimelineMilestoneOverlay({
     };
   }, [queueTimelineLayerUpdate]);
 
+  useEffect(() => {
+    const shell = timelineShellRef.current;
+    if (!shell) {
+      return undefined;
+    }
+
+    const handleScroll = () => {
+      queueTimelineLayerUpdate();
+      setIsTimelineShellScrolling(true);
+      if (timelineScrollResetFrameRef.current !== null) {
+        window.clearTimeout(timelineScrollResetFrameRef.current);
+      }
+      timelineScrollResetFrameRef.current = window.setTimeout(() => {
+        timelineScrollResetFrameRef.current = null;
+        setIsTimelineShellScrolling(false);
+      }, 120);
+    };
+
+    shell.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      shell.removeEventListener("scroll", handleScroll);
+    };
+  }, [queueTimelineLayerUpdate]);
+
   return {
     clearHoveredMilestonePopup,
     handleTimelineDayMouseEnter,
@@ -322,6 +360,8 @@ export function useTimelineMilestoneOverlay({
     timelineDayMilestoneUnderlays,
     timelineGridRef,
     timelineShellRef,
+    timelineTodayMarkerLeft,
     tooltipPortalTarget,
+    isTimelineShellScrolling,
   };
 }

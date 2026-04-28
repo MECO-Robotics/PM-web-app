@@ -11,6 +11,7 @@ interface TimelineGridHeaderProps {
   handleTimelineDayMouseEnter: (event: React.MouseEvent<HTMLElement>) => void;
   handleTimelineZoomWheel: (event: React.WheelEvent<HTMLDivElement>) => void;
   hasProjectColumn: boolean;
+  isScrolling: boolean;
   isWeekView: boolean;
   monthGroups: TimelineMonthGroup[];
   handleTimelineHeaderDayClick: (day: string) => void;
@@ -47,6 +48,7 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
   handleTimelineDayMouseEnter,
   handleTimelineZoomWheel,
   hasProjectColumn,
+  isScrolling,
   isWeekView,
   monthGroups,
   handleTimelineHeaderDayClick,
@@ -103,6 +105,7 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
     <div
       ref={timelineShellRef}
       className={`timeline-shell ${timelineFilterMotionClass}`}
+      data-is-scrolling={isScrolling ? "true" : undefined}
       onWheel={handleTimelineZoomWheel}
       style={{
         overflowX: "auto",
@@ -131,35 +134,35 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
           boxSizing: "border-box",
         }}
       >
-      {showSubsystemCol ? (
-      <button
-        aria-label={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
-        aria-pressed={showSubsystemCol}
-        className={`sticky-label timeline-column-header timeline-column-header-button timeline-column-motion${showSubsystemCol ? "" : " is-hidden"}`}
-        onClick={toggleSubsystemColumn}
-        title={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
-        style={{
-          gridRow: showSubsystemCol ? "1 / span 2" : "1",
-          gridColumn: `${subsystemColumnIndex}`,
-          width: `${subsystemColumnWidth}px`,
-          minWidth: `${subsystemColumnWidth}px`,
-          maxWidth: `${subsystemColumnWidth}px`,
-          padding: showSubsystemCol ? "10px 12px" : "4px",
-          fontWeight: "bold",
-          borderRight: "1px solid var(--border-base)",
-          borderBottom: "1px solid var(--border-base)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: showSubsystemCol ? "space-between" : "center",
-          gap: "0.3rem",
-          boxSizing: "border-box",
-          height: "100%",
-          position: "sticky",
-          left: `${subsystemStickyLeft}px`,
-          zIndex: 10030,
-          background: "var(--bg-panel)",
-        }}
-        type="button"
+        {showSubsystemCol ? (
+          <button
+            aria-label={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
+            aria-pressed={showSubsystemCol}
+            className={`sticky-label timeline-column-header timeline-column-header-button timeline-column-motion${showSubsystemCol ? "" : " is-hidden"}`}
+            onClick={toggleSubsystemColumn}
+            title={`${showSubsystemCol ? "Hide" : "Show"} subsystem column`}
+            style={{
+              gridRow: showSubsystemCol ? "1 / span 2" : "1",
+              gridColumn: `${subsystemColumnIndex}`,
+              width: `${subsystemColumnWidth}px`,
+              minWidth: `${subsystemColumnWidth}px`,
+              maxWidth: `${subsystemColumnWidth}px`,
+              padding: showSubsystemCol ? "10px 12px" : "4px",
+              fontWeight: "bold",
+              borderRight: "1px solid var(--border-base)",
+              borderBottom: "1px solid var(--border-base)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: showSubsystemCol ? "space-between" : "center",
+              gap: "0.3rem",
+              boxSizing: "border-box",
+              height: "100%",
+              position: "sticky",
+              left: `${subsystemStickyLeft}px`,
+              zIndex: 10030,
+              background: "var(--bg-panel)",
+            }}
+            type="button"
         >
           {showSubsystemCol ? <span className="timeline-column-header-label">Subsystem</span> : null}
           <span
@@ -168,8 +171,8 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
         >
           <IconEye />
           </span>
-        </button>
-      ) : null}
+          </button>
+        ) : null}
 
       {showTaskCol ? (
       <button
@@ -332,6 +335,7 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
               style={{
                 fontSize: "11px",
                 color: cell.dayStyle ? cell.dayStyle.chipText : "var(--text-title)",
+                fontWeight: 700,
               }}
             >
               {cell.dayNumberLabel}
