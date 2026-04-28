@@ -109,7 +109,7 @@ const planningSteps: InteractiveTutorialStep[] = [
   {
     id: "timeline-open-task",
     title: "Open a timeline task",
-    instruction: "Click a task bar on the timeline.",
+    instruction: "Click a task bar or task label on the timeline.",
     selector: '[data-tutorial-target="timeline-task-bar"]',
   },
   {

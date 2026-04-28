@@ -961,7 +961,7 @@ export default function App() {
         case "timeline-shift-period":
           return "Use next or previous period to move the timeline.";
         case "timeline-open-task":
-          return "Click a timeline task bar to open task details.";
+          return "Click a timeline task bar or label to open task details.";
         case "timeline-edit-task":
           return "Click Edit task from the timeline task details popup.";
         case "create-task":

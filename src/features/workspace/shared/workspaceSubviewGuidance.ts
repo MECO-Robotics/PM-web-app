@@ -20,7 +20,7 @@ export type WorkspaceSubviewTab =
 
 export const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> = {
   timeline:
-    "Use the person and date-range filters above to focus the schedule, click a date number to add or edit milestones for that day, collapse or expand subsystem rows with the arrows, and hover a task bar to reveal the pencil cue before clicking the task to open details.",
+    "Use the person and date-range filters above to focus the schedule, click a date number to add or edit milestones for that day, collapse or expand subsystem rows with the arrows, click a task row to highlight it, and click the task label or bar to open details.",
   milestones:
     "Use search and filters to narrow milestones, click a row to edit details, and use Add to create new milestone events tied to relevant subsystems when needed.",
   queue:
