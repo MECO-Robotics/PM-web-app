@@ -216,30 +216,29 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
-                  position: "sticky",
                 }}
               >
-              <span
-                className="timeline-merged-cell-title timeline-ellipsis-reveal"
-                data-full-text={project.name}
-                style={{
-                  minWidth: 0,
-                  flex: "1 1 auto",
-                }}
-              >
-                {project.name}
-              </span>
-              <span
-                aria-hidden="true"
-                className="timeline-subsystem-counter-corner"
-                style={{
-                  right: "12px",
-                  bottom: "11px",
-                }}
-              >
-                {project.subsystems.length} subsystems
-              </span>
-            </div>
+                <span
+                  className="timeline-merged-cell-title timeline-ellipsis-reveal"
+                  data-full-text={project.name}
+                  style={{
+                    minWidth: 0,
+                    flex: "1 1 auto",
+                  }}
+                >
+                  {project.name}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="timeline-subsystem-counter-corner"
+                  style={{
+                    right: "12px",
+                    bottom: "11px",
+                  }}
+                >
+                  {project.subsystems.length} subsystems
+                </span>
+              </div>
           ) : null}
           <TimelineGridDaySlots
             clearHoveredMilestonePopup={clearHoveredMilestonePopup}
