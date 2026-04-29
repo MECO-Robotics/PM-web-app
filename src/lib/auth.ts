@@ -977,12 +977,12 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
     Array.isArray(source.reportFindings) && source.reportFindings.length > 0
       ? source.reportFindings
       : [
-          ...((source.qaFindings ?? []) as Array<Record<string, unknown>>).map<ReportFindingRecord>((finding) => ({
+          ...(source.qaFindings ?? []).map<ReportFindingRecord>((finding) => ({
             ...finding,
             reportId: finding.qaReportId ?? "",
-            mechanismId: finding.mechanismId ?? null,
-            partInstanceId: finding.partInstanceId ?? null,
-            artifactInstanceId: finding.artifactId ?? null,
+            mechanismId: null,
+            partInstanceId: null,
+            artifactInstanceId: null,
             issueType: finding.title ?? "",
             severity: finding.severity ?? "low",
             notes: finding.detail ?? "",
@@ -990,12 +990,12 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
             spawnedIterationId: null,
             spawnedRiskId: null,
           })),
-          ...((source.testFindings ?? []) as Array<Record<string, unknown>>).map<ReportFindingRecord>((finding) => ({
+          ...(source.testFindings ?? []).map<ReportFindingRecord>((finding) => ({
             ...finding,
             reportId: finding.testResultId ?? "",
-            mechanismId: finding.mechanismId ?? null,
-            partInstanceId: finding.partInstanceId ?? null,
-            artifactInstanceId: finding.artifactId ?? null,
+            mechanismId: null,
+            partInstanceId: null,
+            artifactInstanceId: null,
             issueType: finding.title ?? "",
             severity: finding.severity ?? "low",
             notes: finding.detail ?? "",
