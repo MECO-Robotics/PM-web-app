@@ -485,7 +485,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                         onMouseLeave={clearHoveredTaskRow}
                         onOpenTask={openTaskDetailModal}
                         style={{
-                          gridRow: "1",
+                          gridRow: `${subsystemRowStart}`,
                           gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
                           height: "8px",
                           margin: "0 2px",

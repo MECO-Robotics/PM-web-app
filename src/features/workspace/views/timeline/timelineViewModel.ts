@@ -15,6 +15,22 @@ const MILESTONE_UNDERLAY_HORIZONTAL_GAP = 18;
 const WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat(undefined, { day: "numeric" });
 
+function compareTimelineEventsByStart(left: EventRecord, right: EventRecord) {
+  const startComparison = left.startDateTime.localeCompare(right.startDateTime);
+  if (startComparison !== 0) {
+    return startComparison;
+  }
+
+  const leftEnd = left.endDateTime ?? left.startDateTime;
+  const rightEnd = right.endDateTime ?? right.startDateTime;
+  const endComparison = leftEnd.localeCompare(rightEnd);
+  if (endComparison !== 0) {
+    return endComparison;
+  }
+
+  return left.id.localeCompare(right.id);
+}
+
 export function getTimelineMergedCellRotation(rowCount: number) {
   return rowCount >= 4 ? "180deg" : "240deg";
 }
@@ -86,6 +102,25 @@ export interface TimelineDayMilestoneUnderlay {
   geometry: MilestoneGeometry;
   horizontalOffset: number;
   stackOrder: number;
+}
+
+export interface TimelineMilestonePopupItem {
+  text: string;
+  horizontalOffset: number;
+}
+
+export function getTimelineMilestonePopupItems(
+  eventsOnDay: EventRecord[],
+  underlays: TimelineDayMilestoneUnderlay[],
+): TimelineMilestonePopupItem[] {
+  const underlayOffsetsByEventId = new Map(
+    underlays.map((underlay) => [underlay.id, underlay.horizontalOffset]),
+  );
+
+  return eventsOnDay.map((event) => ({
+    text: event.title,
+    horizontalOffset: underlayOffsetsByEventId.get(event.id) ?? 0,
+  }));
 }
 
 function buildTimelineDateRange({
@@ -189,9 +224,7 @@ function buildTimelineDayEvents(
   events: BootstrapPayload["events"],
 ) {
   const dayEvents: Record<string, EventRecord[]> = {};
-  const eventsSortedByStart = [...events].sort((left, right) =>
-    left.startDateTime.localeCompare(right.startDateTime),
-  );
+  const eventsSortedByStart = [...events].sort(compareTimelineEventsByStart);
 
   eventsSortedByStart.forEach((event) => {
     const eventStart = datePortion(event.startDateTime);
@@ -431,8 +464,9 @@ export function buildTimelineDayMilestoneUnderlays({
 
   const timelineStart = timelineDays[0];
   const timelineEnd = timelineDays[timelineDays.length - 1];
-  const underlayEntries = events
-    .map((event) => {
+  const underlayEntries = [...events]
+    .sort(compareTimelineEventsByStart)
+    .map((event, sourceOrder) => {
       const eventStartDay = datePortion(event.startDateTime);
       const eventEndDay = datePortion(event.endDateTime ?? event.startDateTime);
       const clampedStartDay = eventStartDay < timelineStart ? timelineStart : eventStartDay;
@@ -458,6 +492,7 @@ export function buildTimelineDayMilestoneUnderlays({
         geometry,
         startDay: clampedStartDay,
         endDay: clampedEndDay,
+        sourceOrder,
       };
     })
     .filter(
@@ -471,16 +506,12 @@ export function buildTimelineDayMilestoneUnderlays({
         geometry: MilestoneGeometry;
         startDay: string;
         endDay: string;
+        sourceOrder: number;
       } => entry !== null,
     )
     .sort((left, right) => {
-      if (left.startDay !== right.startDay) {
-        return left.startDay.localeCompare(right.startDay);
-      }
-      if (left.endDay !== right.endDay) {
-        return left.endDay.localeCompare(right.endDay);
-      }
-      return left.id.localeCompare(right.id);
+      const startComparison = left.startDay.localeCompare(right.startDay);
+      return startComparison !== 0 ? startComparison : left.sourceOrder - right.sourceOrder;
     });
 
   if (!underlayEntries.length) {

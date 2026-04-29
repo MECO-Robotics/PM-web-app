@@ -61,21 +61,29 @@ const TimelineMilestoneHoverLayerComponent: React.FC<TimelineMilestoneHoverLayer
           color: "#ffffff",
         }}
       >
-        <div
-          style={{
-            display: "grid",
-            gap: "0.28rem",
-            justifyItems: "center",
-            transform: `rotate(${popup.rotationDeg}deg)`,
-            transformOrigin: "center",
-          }}
-        >
-          {popup.lines.map((line, index) => (
-            <span className="timeline-day-event-overlay-tooltip-item" key={`${line}-${index}`}>
-              {line}
+        {popup.lines.map((line, index) => {
+          const horizontalOffset = popup.lineOffsets[index] ?? 0;
+
+          return (
+            <span
+              className="timeline-day-event-overlay-tooltip-lane"
+              key={`${line}-${index}`}
+              style={{
+                left: `calc(50% + ${horizontalOffset}px)`,
+              }}
+            >
+              <span
+                className="timeline-day-event-overlay-tooltip-item"
+                style={{
+                  transform: `rotate(${popup.rotationDeg}deg)`,
+                  transformOrigin: "center",
+                }}
+              >
+                {line}
+              </span>
             </span>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </>,
     portalTarget,

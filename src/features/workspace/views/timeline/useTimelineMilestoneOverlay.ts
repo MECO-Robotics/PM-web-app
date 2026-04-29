@@ -9,6 +9,7 @@ import {
 } from "@/features/workspace/shared/timelineEventHelpers";
 import {
   buildTimelineDayMilestoneUnderlays,
+  getTimelineMilestonePopupItems,
   type MilestoneGeometry,
   type TimelineDayCellLayouts,
 } from "./timelineViewModel";
@@ -196,8 +197,24 @@ export function useTimelineMilestoneOverlay({
     [timelineDayCellLayouts, timelineGridHeight, timelineHeaderHeight],
   );
 
+  const timelineDayMilestoneUnderlays = useMemo(
+    () =>
+      buildTimelineDayMilestoneUnderlays({
+        events,
+        resolveGeometry: resolveMilestonePopupGeometry,
+        timelineDays: days,
+      }),
+    [days, events, resolveMilestonePopupGeometry],
+  );
+
   const updateHoveredMilestonePopup = useCallback(
-    (target: HTMLElement, lines: string[], background: string, color: string) => {
+    (
+      target: HTMLElement,
+      lines: string[],
+      lineOffsets: number[],
+      background: string,
+      color: string,
+    ) => {
       if (typeof document === "undefined") {
         return;
       }
@@ -218,6 +235,7 @@ export function useTimelineMilestoneOverlay({
         anchorEndDay: normalizedPopupEndDay,
         rotationDeg: isMultiDayEvent ? 45 : 90,
         lines,
+        lineOffsets,
         background,
         color,
       };
@@ -243,14 +261,13 @@ export function useTimelineMilestoneOverlay({
         return;
       }
 
-      const lines =
-        eventsOnDay.length === 1 ? [primaryEvent.title] : eventsOnDay.map((event) => event.title);
       const timelineStart = days[0] ?? null;
       const timelineEnd = days[days.length - 1] ?? null;
       const eventStartDay = datePortion(primaryEvent.startDateTime);
       const eventEndDay = primaryEvent.endDateTime
         ? datePortion(primaryEvent.endDateTime)
         : eventStartDay;
+      const popupItems = getTimelineMilestonePopupItems(eventsOnDay, timelineDayMilestoneUnderlays);
       const anchorStartDay =
         timelineStart && eventStartDay < timelineStart ? timelineStart : eventStartDay;
       const anchorEndDay = timelineEnd && eventEndDay > timelineEnd ? timelineEnd : eventEndDay;
@@ -259,9 +276,15 @@ export function useTimelineMilestoneOverlay({
       anchor.dataset.popupEndDay = anchorEndDay;
 
       const dayStyle = getEventTypeStyle(primaryEvent.type);
-      updateHoveredMilestonePopup(anchor, lines, dayStyle.columnBackground, dayStyle.chipText);
+      updateHoveredMilestonePopup(
+        anchor,
+        popupItems.map((item) => item.text),
+        popupItems.map((item) => item.horizontalOffset),
+        dayStyle.columnBackground,
+        dayStyle.chipText,
+      );
     },
-    [dayEventsByDate, days, updateHoveredMilestonePopup],
+    [dayEventsByDate, days, timelineDayMilestoneUnderlays, updateHoveredMilestonePopup],
   );
 
   const clearHoveredMilestonePopup = useCallback(() => {
@@ -281,16 +304,6 @@ export function useTimelineMilestoneOverlay({
       showDateCellMilestonePopup(event.currentTarget, day);
     },
     [showDateCellMilestonePopup],
-  );
-
-  const timelineDayMilestoneUnderlays = useMemo(
-    () =>
-      buildTimelineDayMilestoneUnderlays({
-        events,
-        resolveGeometry: resolveMilestonePopupGeometry,
-        timelineDays: days,
-      }),
-    [days, events, resolveMilestonePopupGeometry],
   );
 
   const tooltipPortalTarget =

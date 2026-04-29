@@ -14,6 +14,7 @@ export interface HoveredMilestonePopup {
   anchorEndDay: string | null;
   rotationDeg: 45 | 90;
   lines: string[];
+  lineOffsets: number[];
   background: string;
   color: string;
 }
@@ -73,6 +74,20 @@ function areSameLines(left: string[], right: string[]) {
   return true;
 }
 
+function areSameOffsets(left: number[], right: number[]) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export function isSameHoveredMilestonePopup(
   left: HoveredMilestonePopup | null,
   right: HoveredMilestonePopup | null,
@@ -91,6 +106,7 @@ export function isSameHoveredMilestonePopup(
     left.rotationDeg === right.rotationDeg &&
     left.background === right.background &&
     left.color === right.color &&
-    areSameLines(left.lines, right.lines)
+    areSameLines(left.lines, right.lines) &&
+    areSameOffsets(left.lineOffsets, right.lineOffsets)
   );
 }

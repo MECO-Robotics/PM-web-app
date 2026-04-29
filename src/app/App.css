@@ -3559,6 +3559,12 @@
   font-weight: 800;
 }
 
+.timeline-day-event-overlay-tooltip-lane {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
 .timeline-day-event-overlay-tooltip-item {
   display: block;
   line-height: 1.3;
