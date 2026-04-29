@@ -30,7 +30,11 @@ import {
 } from "@/features/workspace/shared";
 import { getStatusPillClassName } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
-import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from "@/features/workspace/shared";
+import {
+  TASK_PRIORITY_OPTIONS,
+  TASK_STATUS_OPTIONS,
+  formatTaskStatusLabel,
+} from "@/features/workspace/shared";
 import {
   formatTaskPlanningState,
   getTaskPlanningState,
@@ -1014,7 +1018,7 @@ export function TaskQueueView({
               ) : null}
               {showStatusCol ? (
                 <TableCell label="Status" valueClassName="table-cell-pill">
-                  <span className={getStatusPillClassName(task.status)}>{task.status.replace("-", " ")}</span>
+                  <span className={getStatusPillClassName(task.status)}>{formatTaskStatusLabel(task.status)}</span>
                 </TableCell>
               ) : null}
               <TableCell label="Due">{formatDate(task.dueDate)}</TableCell>

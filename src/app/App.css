@@ -2610,7 +2610,7 @@
 }
 
 .task-label.timeline-task-label-in-progress {
-  --timeline-task-status-accent: #16478e;
+  --timeline-task-status-accent: #b77900;
 }
 
 .task-label.timeline-task-label-waiting-for-qa {
@@ -3514,7 +3514,7 @@
   box-shadow: none;
   text-transform: none;
   text-align: center;
-  z-index: 10000;
+  z-index: 10019;
   transform-origin: center;
   transition: transform 120ms ease, opacity 120ms ease;
   opacity: 1;
@@ -3533,7 +3533,7 @@
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.34),
     0 0 18px rgba(15, 28, 52, 0.18);
-  z-index: 9000;
+  z-index: 10019;
 }
 
 .timeline-day-event-underlay {
@@ -3617,10 +3617,15 @@
 .timeline-bar {
   --timeline-task-discipline-accent: #7a8799;
   --timeline-task-status-accent: #54627b;
+  --timeline-task-status-edge-padding: 0.05rem;
+  --timeline-task-status-track-height: 1.55rem;
+  --timeline-task-status-size: 0.95rem;
+  --timeline-bar-overflow-fade: 14px;
+  --timeline-bar-overflow-edge-mask: rgba(0, 0, 0, 0.42);
   min-height: 1.55rem;
   border: 0;
-  border-radius: 999px;
-  padding: 0 1.7rem 0 0.65rem;
+  border-radius: var(--timeline-task-bar-radius, 999px);
+  padding: 0 var(--timeline-task-status-edge-padding) 0 0.65rem;
   text-align: left;
   color: var(--official-white);
   font-weight: 700;
@@ -3632,6 +3637,57 @@
   z-index: 10018;
 }
 
+.timeline-bar[data-spill-left="true"] {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    var(--timeline-bar-overflow-edge-mask) 0,
+    #000 var(--timeline-bar-overflow-fade),
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    var(--timeline-bar-overflow-edge-mask) 0,
+    #000 var(--timeline-bar-overflow-fade),
+    #000 100%
+  );
+}
+
+.timeline-bar[data-spill-right="true"] {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - var(--timeline-bar-overflow-fade)),
+    var(--timeline-bar-overflow-edge-mask) 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    #000 0,
+    #000 calc(100% - var(--timeline-bar-overflow-fade)),
+    var(--timeline-bar-overflow-edge-mask) 100%
+  );
+}
+
+.timeline-bar[data-spill-left="true"][data-spill-right="true"] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    var(--timeline-bar-overflow-edge-mask) 0,
+    #000 var(--timeline-bar-overflow-fade),
+    #000 calc(100% - var(--timeline-bar-overflow-fade)),
+    var(--timeline-bar-overflow-edge-mask) 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    var(--timeline-bar-overflow-edge-mask) 0,
+    #000 var(--timeline-bar-overflow-fade),
+    #000 calc(100% - var(--timeline-bar-overflow-fade)),
+    var(--timeline-bar-overflow-edge-mask) 100%
+  );
+}
+
 .timeline-bar-content {
   position: relative;
   z-index: 10016;
@@ -3639,6 +3695,15 @@
   align-items: center;
   gap: 0.35rem;
   min-width: 0;
+  width: 100%;
+}
+
+.timeline-bar .editable-hover-indicator {
+  right: -0.08rem;
+}
+
+.timeline-bar .editable-hover-indicator.editable-hover-indicator-compact {
+  right: -0.04rem;
 }
 
 .timeline-not-started {
@@ -3646,7 +3711,7 @@
 }
 
 .timeline-in-progress {
-  --timeline-task-status-accent: #16478e;
+  --timeline-task-status-accent: #b77900;
 }
 
 .timeline-waiting-for-qa {
@@ -3658,16 +3723,20 @@
 }
 
 .timeline-task-status-logo {
+  --timeline-task-status-logo-background: rgba(255, 255, 255, 0.94);
   position: absolute;
   top: 50%;
-  right: 0.45rem;
-  width: 0.95rem;
-  height: 0.95rem;
+  right: calc(
+    (var(--timeline-task-status-track-height) - var(--timeline-task-status-size)) / 2 -
+      var(--timeline-task-status-edge-padding)
+  );
+  width: var(--timeline-task-status-size);
+  height: var(--timeline-task-status-size);
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--timeline-task-status-logo-background);
   box-shadow: 0 0 0 1px rgba(15, 28, 52, 0.14);
   color: #54627b;
   transform: translateY(-50%);
@@ -3681,10 +3750,10 @@
 }
 
 .timeline-task-status-logo.is-compact {
-  right: 0.05rem;
-  width: 0.45rem;
-  height: 0.45rem;
-  background: rgba(255, 255, 255, 0.9);
+  --timeline-task-status-logo-background: rgba(255, 255, 255, 0.9);
+  --timeline-task-status-track-height: 8px;
+  --timeline-task-status-size: 0.45rem;
+  background: var(--timeline-task-status-logo-background);
   box-shadow: 0 0 0 1px rgba(15, 28, 52, 0.12);
 }
 
@@ -3697,16 +3766,24 @@
   color: #54627b;
 }
 
-.timeline-task-status-logo-in-progress {
-  color: #16478e;
+.timeline-task-status-logo-signal-in-progress {
+  color: #b77900;
 }
 
-.timeline-task-status-logo-waiting-for-qa {
+.timeline-task-status-logo-signal-waiting-for-qa {
   color: #275098;
 }
 
-.timeline-task-status-logo-complete {
+.timeline-task-status-logo-signal-complete {
   color: #246847;
+}
+
+.timeline-task-status-logo-signal-blocked {
+  color: var(--official-red);
+}
+
+.timeline-task-status-logo-signal-waiting-on-dependency {
+  color: #c25a14;
 }
 
 .table-shell {
@@ -4250,16 +4327,24 @@
   color: var(--status-neutral-text);
 }
 
-.priority-critical,
-.status-waiting-for-qa {
+.priority-critical {
   background: rgba(234, 28, 45, 0.12);
   color: var(--official-red);
 }
 
-.priority-high,
-.status-in-progress {
+.status-waiting-for-qa {
+  background: rgba(39, 80, 152, 0.14);
+  color: #275098;
+}
+
+.priority-high {
   background: rgba(233, 131, 53, 0.14);
   color: #a84712;
+}
+
+.status-in-progress {
+  background: rgba(183, 121, 0, 0.16);
+  color: #8a5c00;
 }
 
 .priority-medium,

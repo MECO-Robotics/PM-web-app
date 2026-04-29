@@ -9,6 +9,10 @@ import type {
 import { TimelineGridHeader } from "./TimelineGridHeader";
 import { TimelineProjectGroup } from "./TimelineProjectGroup";
 import { TimelineSubsystemGroup } from "./TimelineSubsystemGroup";
+import {
+  buildTaskDependencyCountsByTaskId,
+  buildTimelineTaskStatusSignalByTaskId,
+} from "./timelineGridBodyUtils";
 
 type TimelineGridMotion = "left" | "right" | "neutral";
 
@@ -118,10 +122,18 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
   toggleSubsystemColumn,
   toggleTaskColumn,
 }) => {
+  const taskDependencyCountsById = React.useMemo(
+    () => buildTaskDependencyCountsByTaskId(bootstrap.taskDependencies),
+    [bootstrap.taskDependencies],
+  );
+  const taskStatusSignalsById = React.useMemo(
+    () => buildTimelineTaskStatusSignalByTaskId(bootstrap),
+    [bootstrap],
+  );
+
   const rowChildren = hasProjectColumn
     ? projectRows.map((project, projectIndex) => (
         <TimelineProjectGroup
-          bootstrap={bootstrap}
           clearHoveredMilestonePopup={clearHoveredMilestonePopup}
           collapsedProjects={collapsedProjects}
           collapsedSubsystems={collapsedSubsystems}
@@ -150,6 +162,8 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
           subsystemStickyLeft={subsystemStickyLeft}
           taskLabelColumnIndex={taskLabelColumnIndex}
           taskLabelStickyLeft={taskLabelStickyLeft}
+          taskDependencyCountsById={taskDependencyCountsById}
+          taskStatusSignalsById={taskStatusSignalsById}
           timelineDayHeaderCells={timelineDayHeaderCells}
           timelineGridTemplate={timelineGridTemplate}
           toggleProject={toggleProject}
@@ -158,7 +172,6 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
       ))
     : subsystemRows.map((subsystem, subsystemIndex) => (
         <TimelineSubsystemGroup
-          bootstrap={bootstrap}
           clearHoveredMilestonePopup={clearHoveredMilestonePopup}
           collapsedSubsystems={collapsedSubsystems}
           disciplinesById={disciplinesById}
@@ -186,6 +199,8 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
           subsystemStickyLeft={subsystemStickyLeft}
           taskLabelColumnIndex={taskLabelColumnIndex}
           taskLabelStickyLeft={taskLabelStickyLeft}
+          taskDependencyCountsById={taskDependencyCountsById}
+          taskStatusSignalsById={taskStatusSignalsById}
           timelineDayHeaderCells={timelineDayHeaderCells}
           timelineGridTemplate={timelineGridTemplate}
           toggleSubsystem={toggleSubsystem}

@@ -1,10 +1,22 @@
 import type { DropdownOption } from "./workspaceTypes";
+import type { TaskStatus } from "@/types";
+
+const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  "not-started": "Not started",
+  "in-progress": "In progress",
+  "waiting-for-qa": "QA",
+  complete: "Complete",
+};
+
+export function formatTaskStatusLabel(status: TaskStatus) {
+  return TASK_STATUS_LABELS[status];
+}
 
 export const TASK_STATUS_OPTIONS: DropdownOption[] = [
-  { id: "not-started", name: "Not started" },
-  { id: "in-progress", name: "In progress" },
-  { id: "waiting-for-qa", name: "Waiting for QA" },
-  { id: "complete", name: "Complete" },
+  { id: "not-started", name: formatTaskStatusLabel("not-started") },
+  { id: "in-progress", name: formatTaskStatusLabel("in-progress") },
+  { id: "waiting-for-qa", name: formatTaskStatusLabel("waiting-for-qa") },
+  { id: "complete", name: formatTaskStatusLabel("complete") },
 ];
 
 export const TASK_PRIORITY_OPTIONS: DropdownOption[] = [

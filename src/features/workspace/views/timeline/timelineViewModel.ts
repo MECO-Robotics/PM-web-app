@@ -22,6 +22,8 @@ export function getTimelineMergedCellRotation(rowCount: number) {
 export interface TimelineTaskSpan extends TaskRecord {
   offset: number;
   span: number;
+  spillsLeft: boolean;
+  spillsRight: boolean;
 }
 
 export interface TimelineSubsystemRow {
@@ -245,6 +247,8 @@ function buildTimelineSubsystemRows({
       ...task,
       offset: dateDiffInDays(startDate, clampedStart),
       span: Math.max(1, dateDiffInDays(clampedStart, clampedEnd) + 1),
+      spillsLeft: task.startDate < startDate,
+      spillsRight: task.dueDate > endDate,
     };
 
     const targetSubsystemIds =

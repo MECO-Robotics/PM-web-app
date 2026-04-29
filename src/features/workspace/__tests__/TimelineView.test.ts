@@ -180,6 +180,45 @@ function createBootstrapWithTaskRows(taskCount: number): BootstrapPayload {
   };
 }
 
+function createBootstrapWithScopedOverflowTasks(): BootstrapPayload {
+  const bootstrap = createBootstrap();
+  const baseTask = bootstrap.tasks[0];
+
+  return {
+    ...bootstrap,
+    tasks: [
+      {
+        ...baseTask,
+        id: "task-spills-left",
+        title: "March carry-in",
+        startDate: "2026-03-25",
+        dueDate: "2026-04-03",
+      },
+      {
+        ...baseTask,
+        id: "task-spills-right",
+        title: "May carry-out",
+        startDate: "2026-04-28",
+        dueDate: "2026-05-05",
+      },
+      {
+        ...baseTask,
+        id: "task-spills-both",
+        title: "Full scoped span",
+        startDate: "2026-03-25",
+        dueDate: "2026-05-05",
+      },
+      {
+        ...baseTask,
+        id: "task-contained",
+        title: "Contained scoped task",
+        startDate: "2026-04-12",
+        dueDate: "2026-04-14",
+      },
+    ],
+  };
+}
+
 const membersById = {
   "member-1": {
     id: "member-1",
@@ -325,6 +364,24 @@ describe("TimelineView", () => {
       expect(Math.min(...stickyLeftZIndexes)).toBeGreaterThan(Math.max(...eventLayerZIndexes));
     },
   );
+
+  it("layers hovered milestone overlays above timeline task bars while keeping underlays below them", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const getZIndex = (selector: string) => {
+      const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const match = css.match(new RegExp(`${escapedSelector}\\s*\\{[\\s\\S]*?z-index:\\s*(\\d+)`));
+
+      expect(match).not.toBeNull();
+
+      return Number(match?.[1] ?? 0);
+    };
+
+    const taskBarZIndex = getZIndex(".timeline-bar");
+
+    expect(getZIndex(".timeline-day-event-overlay-column")).toBeGreaterThan(taskBarZIndex);
+    expect(getZIndex(".timeline-day-event-overlay-tooltip")).toBeGreaterThan(taskBarZIndex);
+    expect(getZIndex(".timeline-day-event-underlay")).toBeLessThan(taskBarZIndex);
+  });
 
   it("keeps timeline row groups out of content-visibility stacking containment", () => {
     const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
@@ -809,16 +866,113 @@ describe("TimelineView", () => {
     expect(markup).toContain("--timeline-task-row-fill:var(--bg-panel)");
     expect(markup).toMatch(/class="[^"]*timeline-bar[^"]*timeline-in-progress[^"]*"/);
     expect(markup).toMatch(/class="[^"]*timeline-task-label[^"]*timeline-task-label-in-progress[^"]*"/);
-    expect(markup).toMatch(/class="timeline-task-status-logo timeline-task-status-logo-in-progress"/);
+    expect(markup).toMatch(
+      /class="timeline-task-status-logo timeline-task-status-logo-in-progress timeline-task-status-logo-signal-in-progress"/,
+    );
+    expect(markup).not.toContain("↙");
+    expect(markup).not.toContain("↗");
     expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*background:\s*var\(--timeline-task-discipline-accent\)/);
+    expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*--timeline-task-status-edge-padding:\s*0\.05rem/);
+    expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*--timeline-task-status-track-height:\s*1\.55rem/);
+    expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*--timeline-task-status-size:\s*0\.95rem/);
+    expect(css).toMatch(
+      /\.timeline-bar\s*\{[\s\S]*padding:\s*0\s+var\(--timeline-task-status-edge-padding\)\s+0\s+0\.65rem/,
+    );
     expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*box-shadow:\s*0 8px 18px rgba\(15, 28, 52, 0\.18\)/);
-    expect(css).toMatch(/\.timeline-task-status-logo\s*\{[\s\S]*position:\s*absolute/);
-    expect(css).toMatch(/\.timeline-task-status-logo-in-progress\s*\{[\s\S]*color:\s*#16478e/);
+    expect(css).toMatch(/\.timeline-bar-content\s*\{[\s\S]*width:\s*100%/);
+    expect(css).toMatch(/\.timeline-bar \.editable-hover-indicator\s*\{[\s\S]*right:\s*-\s*0\.08rem/);
+    expect(css).toMatch(
+      /\.timeline-task-status-logo\s*\{[\s\S]*right:\s*calc\([\s\S]*var\(--timeline-task-status-track-height\)[\s\S]*var\(--timeline-task-status-size\)[\s\S]*var\(--timeline-task-status-edge-padding\)[\s\S]*\)/,
+    );
+    expect(css).toMatch(
+      /\.timeline-task-status-logo\s*\{[\s\S]*--timeline-task-status-logo-background:\s*rgba\(255,\s*255,\s*255,\s*0\.94\)/,
+    );
+    expect(css).toMatch(
+      /\.timeline-task-status-logo\s*\{[\s\S]*background:\s*var\(--timeline-task-status-logo-background\)/,
+    );
+    expect(css).toMatch(/\.timeline-task-status-logo\s*\{[\s\S]*width:\s*var\(--timeline-task-status-size\)/);
+    expect(css).toMatch(/\.timeline-task-status-logo\.is-compact\s*\{[\s\S]*--timeline-task-status-track-height:\s*8px/);
+    expect(css).toMatch(/\.timeline-task-status-logo\.is-compact\s*\{[\s\S]*--timeline-task-status-size:\s*0\.45rem/);
+    expect(css).toMatch(/\.timeline-task-status-logo-signal-in-progress\s*\{[\s\S]*color:\s*#b77900/);
+    expect(css).toMatch(/\.timeline-task-status-logo-signal-waiting-for-qa\s*\{[\s\S]*color:\s*#275098/);
+    expect(css).toMatch(/\.timeline-task-status-logo-signal-blocked\s*\{[\s\S]*color:\s*var\(--official-red\)/);
+    expect(css).toMatch(/\.timeline-task-status-logo-signal-waiting-on-dependency\s*\{[\s\S]*color:\s*#c25a14/);
     expect(css).toMatch(/\.task-label\.timeline-task-label\s*\{[\s\S]*background:\s*var\(--timeline-task-row-fill\)/);
     expect(css).toMatch(/\.task-label\.timeline-task-label\s*\{[\s\S]*box-shadow:\s*inset 3px 0 0 var\(--timeline-task-discipline-accent\)/);
-    expect(css).toMatch(/\.timeline-in-progress\s*\{[\s\S]*--timeline-task-status-accent:\s*#16478e/);
-    expect(css).toMatch(/\.task-label\.timeline-task-label-in-progress\s*\{[\s\S]*--timeline-task-status-accent:\s*#16478e/);
+    expect(css).toMatch(/\.timeline-in-progress\s*\{[\s\S]*--timeline-task-status-accent:\s*#b77900/);
+    expect(css).toMatch(/\.task-label\.timeline-task-label-in-progress\s*\{[\s\S]*--timeline-task-status-accent:\s*#b77900/);
     expect(css).toMatch(/\.task-label\.timeline-task-label-complete\s*\{[\s\S]*--timeline-task-status-accent:\s*#246847/);
+  });
+
+  it("fades timeline task bars when tasks continue outside the scoped view", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(TimelineView, {
+        bootstrap: createBootstrapWithScopedOverflowTasks(),
+        isAllProjectsView: false,
+        activePersonFilter: [],
+        setActivePersonFilter: jest.fn(),
+        membersById,
+        openTaskDetailModal: jest.fn(),
+        openCreateTaskModal: jest.fn(),
+        onDeleteTimelineEvent: jest.fn(),
+        onSaveTimelineEvent: jest.fn(),
+        triggerCreateMilestoneToken: 0,
+      }),
+    );
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const getTaskBarStyle = (title: string) => {
+      const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const match = markup.match(new RegExp(`<button[^>]*style="([^"]*)"[^>]*title="${escapedTitle}"`));
+
+      expect(match).not.toBeNull();
+
+      return match?.[1] ?? "";
+    };
+
+    expect(markup).toContain('title="View details for March carry-in"');
+    expect(markup).toMatch(/<button[^>]*data-spill-left="true"[^>]*title="View details for March carry-in"/);
+    expect(markup).toMatch(/<button[^>]*data-spill-right="true"[^>]*title="View details for May carry-out"/);
+    expect(markup).toMatch(
+      /<button[^>]*data-spill-left="true"[^>]*data-spill-right="true"[^>]*title="View details for Full scoped span"/,
+    );
+    expect(css).toMatch(/\.timeline-bar\[data-spill-left="true"\]/);
+    expect(css).toMatch(/\.timeline-bar\[data-spill-right="true"\]/);
+    expect(css).toContain("--timeline-bar-overflow-fade");
+    expect(css).toContain("--timeline-bar-overflow-edge-mask: rgba(0, 0, 0, 0.42)");
+    expect(css).toContain("var(--timeline-bar-overflow-edge-mask) 0");
+    expect(css).toContain("var(--timeline-bar-overflow-edge-mask) 100%");
+    expect(css).toContain("-webkit-mask-image");
+    expect(css).toContain("mask-image");
+    expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*border-radius:\s*var\(--timeline-task-bar-radius,\s*999px\)/);
+    expect(css).toMatch(
+      /\.timeline-bar\[data-spill-left="true"\]\s*\{[\s\S]*border-top-left-radius:\s*0[\s\S]*border-bottom-left-radius:\s*0/,
+    );
+    expect(css).toMatch(
+      /\.timeline-bar\[data-spill-right="true"\]\s*\{[\s\S]*border-top-right-radius:\s*0[\s\S]*border-bottom-right-radius:\s*0/,
+    );
+    expect(getTaskBarStyle("View details for March carry-in")).toContain("margin-left:0");
+    expect(getTaskBarStyle("View details for March carry-in")).toContain("margin-right:24px");
+    expect(getTaskBarStyle("View details for March carry-in")).not.toContain("padding-right:24px");
+    expect(getTaskBarStyle("View details for March carry-in")).toContain("--timeline-task-bar-radius:4px");
+    expect(getTaskBarStyle("View details for March carry-in")).not.toContain("border-top-left-radius:0");
+    expect(getTaskBarStyle("View details for March carry-in")).not.toContain("border-bottom-left-radius:0");
+    expect(getTaskBarStyle("View details for May carry-out")).toContain("margin-right:0");
+    expect(getTaskBarStyle("View details for May carry-out")).toContain("margin-left:24px");
+    expect(getTaskBarStyle("View details for May carry-out")).not.toContain("padding-left:24px");
+    expect(getTaskBarStyle("View details for May carry-out")).toContain("--timeline-task-bar-radius:4px");
+    expect(getTaskBarStyle("View details for May carry-out")).not.toContain("border-top-right-radius:0");
+    expect(getTaskBarStyle("View details for May carry-out")).not.toContain("border-bottom-right-radius:0");
+    expect(getTaskBarStyle("View details for Full scoped span")).toContain("margin-left:0");
+    expect(getTaskBarStyle("View details for Full scoped span")).toContain("margin-right:0");
+    expect(getTaskBarStyle("View details for Full scoped span")).toContain("--timeline-task-bar-radius:4px");
+    expect(getTaskBarStyle("View details for Full scoped span")).not.toContain("border-top-left-radius:0");
+    expect(getTaskBarStyle("View details for Full scoped span")).not.toContain("border-top-right-radius:0");
+    expect(getTaskBarStyle("View details for Full scoped span")).not.toContain("border-bottom-left-radius:0");
+    expect(getTaskBarStyle("View details for Full scoped span")).not.toContain("border-bottom-right-radius:0");
+    expect(getTaskBarStyle("View details for Contained scoped task")).toContain("margin-left:24px");
+    expect(getTaskBarStyle("View details for Contained scoped task")).toContain("margin-right:24px");
+    expect(getTaskBarStyle("View details for Contained scoped task")).not.toContain("padding-left:24px");
+    expect(getTaskBarStyle("View details for Contained scoped task")).not.toContain("padding-right:24px");
   });
 
   it("uses task discipline and subsystem colors for timeline horizontal highlights", () => {

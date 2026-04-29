@@ -82,7 +82,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   isAllProjectsView,
   activePersonFilter,
   setActivePersonFilter,
-  membersById: _membersById,
   openTaskDetailModal,
   openCreateTaskModal,
   onDeleteTimelineEvent,
@@ -450,28 +449,31 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     openCreateEventModalForDay(localTodayDate());
   }, [openCreateEventModalForDay, triggerCreateMilestoneToken]);
 
-  const openEditEventModalForDay = (day: string, event: EventRecord) => {
-    const eventProjectIds = getEventProjectIds(event, subsystemsById);
-    setEventModalMode("edit");
-    setActiveEventId(event.id);
-    setActiveEventDay(day);
-    setEventDraft({
-      ...timelineEventDraftFromRecord(event),
-      projectIds: eventProjectIds.length > 0 ? eventProjectIds : scopedProjectIds,
-    });
-    setEventStartDate(datePortion(event.startDateTime));
-    setEventStartTime(timePortion(event.startDateTime));
-    setEventEndDate(event.endDateTime ? datePortion(event.endDateTime) : "");
-    setEventEndTime(event.endDateTime ? timePortion(event.endDateTime) : "");
-    setEventError(null);
-  };
+  const openEditEventModalForDay = useCallback(
+    (day: string, event: EventRecord) => {
+      const eventProjectIds = getEventProjectIds(event, subsystemsById);
+      setEventModalMode("edit");
+      setActiveEventId(event.id);
+      setActiveEventDay(day);
+      setEventDraft({
+        ...timelineEventDraftFromRecord(event),
+        projectIds: eventProjectIds.length > 0 ? eventProjectIds : scopedProjectIds,
+      });
+      setEventStartDate(datePortion(event.startDateTime));
+      setEventStartTime(timePortion(event.startDateTime));
+      setEventEndDate(event.endDateTime ? datePortion(event.endDateTime) : "");
+      setEventEndTime(event.endDateTime ? timePortion(event.endDateTime) : "");
+      setEventError(null);
+    },
+    [scopedProjectIds, subsystemsById],
+  );
 
   const switchMilestoneCreateToTask = useCallback(() => {
     closeEventModal();
     openCreateTaskModal();
   }, [closeEventModal, openCreateTaskModal]);
 
-  const openEventModalForDay = (day: string) => {
+  const openEventModalForDay = useCallback((day: string) => {
     const eventsOnDay = dayEventsByDate[day] ?? [];
     if (eventsOnDay.length === 0) {
       openCreateEventModalForDay(day);
@@ -479,7 +481,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     }
 
     openEditEventModalForDay(day, eventsOnDay[0]);
-  };
+  }, [dayEventsByDate, openCreateEventModalForDay, openEditEventModalForDay]);
 
   const handleTimelineHeaderDayClick = useCallback(
     (day: string) => {

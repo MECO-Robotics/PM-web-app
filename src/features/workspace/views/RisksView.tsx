@@ -966,7 +966,7 @@ export function RisksView({
             />
             <MetricStatCard
               note="Review gates still waiting on a decision"
-              title="Waiting for QA"
+              title="QA"
               value={waitingForQaCount}
             />
             <MetricStatCard

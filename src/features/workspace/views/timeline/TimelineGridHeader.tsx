@@ -100,6 +100,17 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
   const visibleLabelWidth = projectColumnWidth + subsystemColumnWidth + taskColumnWidth;
   const hiddenToggleWidth = hiddenColumnToggles.length * 28 + Math.max(0, hiddenColumnToggles.length - 1) * 6;
   const hiddenToggleLeft = Math.max(6, visibleLabelWidth - hiddenToggleWidth - 6);
+  const monthHeaderCells = React.useMemo(
+    () =>
+      monthGroups.reduce<Array<TimelineMonthGroup & { startColumn: number }>>((cells, group) => {
+        const previous = cells[cells.length - 1];
+        const startColumn = previous
+          ? previous.startColumn + previous.span
+          : firstDayGridColumn;
+        return [...cells, { ...group, startColumn }];
+      }, []),
+    [firstDayGridColumn, monthGroups],
+  );
 
   return (
     <div
@@ -251,17 +262,12 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
         </button>
       ) : null}
 
-      {(() => {
-        let currentColumn = firstDayGridColumn;
-        return monthGroups.map((group, index) => {
-          const start = currentColumn;
-          currentColumn += group.span;
-          return (
+      {monthHeaderCells.map((group, index) => (
             <div
               key={`month-${index}`}
               style={{
                 gridRow: "1",
-                gridColumn: `${start} / span ${group.span}`,
+                gridColumn: `${group.startColumn} / span ${group.span}`,
                 textAlign: "center",
                 fontSize: "10px",
                 fontWeight: "bold",
@@ -279,9 +285,7 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
             >
               {group.month}
             </div>
-          );
-        });
-      })()}
+      ))}
 
       {timelineDayHeaderCells.map((cell, dayIndex) => (
         <div

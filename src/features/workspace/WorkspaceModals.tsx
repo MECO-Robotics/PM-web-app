@@ -30,6 +30,7 @@ import {
   type TaskTargetKind,
 } from "@/lib/appUtils";
 import { PhotoUploadField } from "@/features/workspace/shared/PhotoUploadField";
+import { formatTaskStatusLabel } from "@/features/workspace/shared/workspaceOptions";
 import {
   formatTaskPlanningState,
   getTaskBlocksDependencies,
@@ -784,7 +785,7 @@ export function TaskEditorModal({
             >
               <option value="not-started">Not started</option>
               <option value="in-progress">In progress</option>
-              <option value="waiting-for-qa">Waiting for QA</option>
+              <option value="waiting-for-qa">{formatTaskStatusLabel("waiting-for-qa")}</option>
               <option value="complete">Complete</option>
             </select>
           </label>

@@ -1,16 +1,19 @@
 import React from "react";
-import { EditableHoverIndicator } from "@/features/workspace/shared";
 import type { BootstrapPayload } from "@/types";
 import type { TaskRecord } from "@/types";
 import { TimelineCollapseArrow } from "./TimelineCollapseArrow";
 import { TimelineGridDaySlots } from "./TimelineGridDaySlots";
-import { TimelineTaskStatusLogo } from "./TimelineTaskStatusLogo";
+import { TimelineTaskBar } from "./TimelineTaskBar";
 import {
   buildTimelineSubsystemHighlightStyle,
   buildTimelineTaskToneStyle,
   getTimelineTaskDisciplineColor,
 } from "./timelineTaskColors";
-import { getTaskDependencyCounts } from "./timelineGridBodyUtils";
+import {
+  getTaskDependencyCountsFromLookup,
+  type TimelineTaskDependencyCounts,
+  type TimelineTaskStatusSignal,
+} from "./timelineGridBodyUtils";
 import { getTimelineMergedCellRotation } from "./timelineViewModel";
 import type {
   TimelineDayHeaderCell,
@@ -18,7 +21,6 @@ import type {
 } from "./timelineViewModel";
 
 interface TimelineProjectGroupProps {
-  bootstrap: BootstrapPayload;
   clearHoveredSubsystemRow: () => void;
   clearHoveredTaskRow: () => void;
   clearHoveredMilestonePopup: () => void;
@@ -45,6 +47,8 @@ interface TimelineProjectGroupProps {
   subsystemStickyLeft: number;
   taskLabelColumnIndex: number;
   taskLabelStickyLeft: number;
+  taskDependencyCountsById: Record<string, TimelineTaskDependencyCounts>;
+  taskStatusSignalsById: Record<string, TimelineTaskStatusSignal>;
   timelineDayHeaderCells: TimelineDayHeaderCell[];
   timelineGridTemplate: string;
   toggleProject: (id: string) => void;
@@ -53,7 +57,6 @@ interface TimelineProjectGroupProps {
 }
 
 export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
-  bootstrap,
   clearHoveredSubsystemRow,
   clearHoveredTaskRow,
   clearHoveredMilestonePopup,
@@ -80,6 +83,8 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
   subsystemStickyLeft,
   taskLabelColumnIndex,
   taskLabelStickyLeft,
+  taskDependencyCountsById,
+  taskStatusSignalsById,
   timelineDayHeaderCells,
   timelineGridTemplate,
   toggleProject,
@@ -88,6 +93,8 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
 }) => {
   const buildOpaqueSurfaceFill = (surfaceBase: string, accent: string) =>
     `color-mix(in srgb, ${surfaceBase} 86%, ${accent} 14%)`;
+  const getTaskDependencyCounts = (taskId: string) =>
+    getTaskDependencyCountsFromLookup(taskDependencyCountsById, taskId);
   const projectCollapsed = collapsedProjects[project.id] ?? false;
   const projectRowCount = projectCollapsed
     ? 1
@@ -169,7 +176,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
             style={
               shouldRotateProjectLabel
                 ? ({
-                    ["--timeline-merged-cell-rotation" as "--timeline-merged-cell-rotation"]:
+                    ["--timeline-merged-cell-rotation" as const]:
                       projectLabelRotation,
                   } as React.CSSProperties)
                 : undefined
@@ -231,15 +238,16 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                   gridColumn: `${firstDayGridColumn} / -1`,
                 }}
               />
-              <button
-                className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                data-tutorial-target="timeline-task-bar"
-                onClick={() => openTaskDetailModal(task)}
+              <TimelineTaskBar
+                compact
+                dependencyCounts={getTaskDependencyCounts(task.id)}
+                dependencyPresentation="outline"
                 onMouseEnter={() => {
                   hoverTaskRow(task.id);
                   clearHoveredMilestonePopup();
                 }}
                 onMouseLeave={clearHoveredTaskRow}
+                onOpenTask={openTaskDetailModal}
                 style={buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
                   gridRow: "1",
                   gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
@@ -255,34 +263,12 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                   padding: 0,
                   opacity: 0.7,
                 })}
+                spillsLeft={task.spillsLeft}
+                spillsRight={task.spillsRight}
+                statusSignal={taskStatusSignalsById[task.id] ?? task.status}
+                task={task}
                 title={`${task.title} (${task.status})`}
-                type="button"
-              >
-                <span className="timeline-bar-content">
-                  <TimelineTaskStatusLogo compact status={task.status} />
-                  {(() => {
-                    const dependencyCounts = getTaskDependencyCounts(task.id, bootstrap.taskDependencies);
-                    if (dependencyCounts.incoming === 0 && dependencyCounts.outgoing === 0) {
-                      return null;
-                    }
-
-                    return (
-                      <span
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          border: "1px solid rgba(255, 255, 255, 0.3)",
-                          borderRadius: "inherit",
-                          pointerEvents: "none",
-                          opacity: 0.75,
-                        }}
-                        aria-hidden="true"
-                      />
-                    );
-                  })()}
-                  <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                </span>
-              </button>
+              />
             </React.Fragment>
           ))}
         </>
@@ -394,7 +380,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                       style={
                         shouldRotateSubsystemLabel
                           ? ({
-                              ["--timeline-merged-cell-rotation" as "--timeline-merged-cell-rotation"]:
+                              ["--timeline-merged-cell-rotation" as const]:
                                 subsystemLabelRotation,
                             } as React.CSSProperties)
                           : undefined
@@ -489,15 +475,15 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                           gridColumn: `${firstDayGridColumn} / -1`,
                         }}
                       />
-                      <button
-                        className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                        data-tutorial-target="timeline-task-bar"
-                        onClick={() => openTaskDetailModal(task)}
+                      <TimelineTaskBar
+                        compact
+                        dependencyCounts={getTaskDependencyCounts(task.id)}
                         onMouseEnter={() => {
                           hoverTaskRow(task.id);
                           clearHoveredMilestonePopup();
                         }}
                         onMouseLeave={clearHoveredTaskRow}
+                        onOpenTask={openTaskDetailModal}
                         style={{
                           gridRow: "1",
                           gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
@@ -512,12 +498,12 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                           padding: 0,
                           opacity: 0.7,
                         }}
+                        spillsLeft={task.spillsLeft}
+                        spillsRight={task.spillsRight}
+                        statusSignal={taskStatusSignalsById[task.id] ?? task.status}
+                        task={task}
                         title={`${task.title} (${task.status})`}
-                        type="button"
-                      >
-                        <TimelineTaskStatusLogo compact status={task.status} />
-                        <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                      </button>
+                      />
                     </React.Fragment>
                   ))}
 
@@ -554,16 +540,16 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                             onClick={() => openTaskDetailModal(task)}
                             onMouseEnter={() => hoverTaskRow(task.id)}
                             onMouseLeave={clearHoveredTaskRow}
-                    style={(() => {
-                      const taskDisciplineColor = getTimelineTaskDisciplineColor(task.disciplineId, disciplinesById);
-                      const taskRowFill =
-                        hoveredTaskId === task.id
-                          ? buildOpaqueSurfaceFill(groupBackground, taskDisciplineColor)
-                          : selectedTaskId === task.id
-                            ? buildOpaqueSurfaceFill(groupBackground, taskDisciplineColor)
-                            : subsystemBandFill;
-                      return buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
-                        "--timeline-task-row-fill": taskRowFill ?? groupBackground,
+                            style={(() => {
+                              const taskDisciplineColor = getTimelineTaskDisciplineColor(task.disciplineId, disciplinesById);
+                              const taskRowFill =
+                                hoveredTaskId === task.id
+                                  ? buildOpaqueSurfaceFill(groupBackground, taskDisciplineColor)
+                                  : selectedTaskId === task.id
+                                    ? buildOpaqueSurfaceFill(groupBackground, taskDisciplineColor)
+                                    : subsystemBandFill;
+                              return buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
+                                "--timeline-task-row-fill": taskRowFill ?? groupBackground,
                                 gridRow: subsystemRowStart + taskIndex,
                                 gridColumn: `${taskLabelColumnIndex}`,
                                 minHeight: "38px",
@@ -618,15 +604,14 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                           rowKey={`subsystem-${subsystem.id}-task-${task.id}`}
                           timelineDayHeaderCells={timelineDayHeaderCells}
                         />
-                        <button
-                          className={`timeline-bar timeline-${task.status} editable-hover-target timeline-row-motion-item`}
-                          data-tutorial-target="timeline-task-bar"
-                          onClick={() => openTaskDetailModal(task)}
+                        <TimelineTaskBar
+                          dependencyCounts={getTaskDependencyCounts(task.id)}
                           onMouseEnter={() => {
                             hoverTaskRow(task.id);
                             clearHoveredMilestonePopup();
                           }}
                           onMouseLeave={clearHoveredTaskRow}
+                          onOpenTask={openTaskDetailModal}
                           style={buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
                             gridRow: subsystemRowStart + taskIndex,
                             gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
@@ -647,37 +632,12 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                             alignSelf: "center",
                             minWidth: 0,
                           })}
+                          spillsLeft={task.spillsLeft}
+                          spillsRight={task.spillsRight}
+                          statusSignal={taskStatusSignalsById[task.id] ?? task.status}
+                          task={task}
                           title={`View details for ${task.title}`}
-                          type="button"
-              >
-                <span className="timeline-bar-content">
-                  <TimelineTaskStatusLogo status={task.status} />
-                  <span className="timeline-bar-title">{task.title}</span>
-                  {(() => {
-                    const dependencyCounts = getTaskDependencyCounts(task.id, bootstrap.taskDependencies);
-                    if (dependencyCounts.incoming === 0 && dependencyCounts.outgoing === 0) {
-                      return null;
-                    }
-
-                    return (
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          marginLeft: "8px",
-                          fontSize: "0.65rem",
-                          opacity: 0.8,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {dependencyCounts.incoming > 0 ? `↙ ${dependencyCounts.incoming}` : ""}
-                        {dependencyCounts.incoming > 0 && dependencyCounts.outgoing > 0 ? " " : ""}
-                        {dependencyCounts.outgoing > 0 ? `↗ ${dependencyCounts.outgoing}` : ""}
-                      </span>
-                    );
-                  })()}
-                  <EditableHoverIndicator className="editable-hover-indicator-compact" />
-                </span>
-              </button>
+                        />
                       </React.Fragment>
                     ))
                   : null}

@@ -29,6 +29,7 @@ export {
   PURCHASE_STATUS_OPTIONS,
   TASK_PRIORITY_OPTIONS,
   TASK_STATUS_OPTIONS,
+  formatTaskStatusLabel,
 } from "./workspaceOptions";
 export { getStatusPillClassName } from "./workspaceUtils";
 export {
