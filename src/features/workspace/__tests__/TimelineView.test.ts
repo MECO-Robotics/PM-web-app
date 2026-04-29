@@ -757,10 +757,19 @@ describe("TimelineView", () => {
         triggerCreateMilestoneToken: 0,
       }),
     );
+    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
 
     expect(markup).toContain('aria-label="Timeline zoom"');
     expect(markup).toContain('aria-label="Zoom out timeline"');
     expect(markup).toContain('aria-label="Zoom in timeline"');
+    expect(markup).toContain("--timeline-zoom:1");
+    expect(markup).toContain("--timeline-task-bar-edge-gap:24px");
+    expect(css).toMatch(
+      /\.timeline-bar\s*\{[\s\S]*--timeline-task-bar-padding-start:\s*calc\(0\.65rem \* var\(--timeline-zoom,\s*1\)\)/,
+    );
+    expect(css).toMatch(
+      /\.timeline-bar\s*\{[\s\S]*padding:\s*0\s+var\(--timeline-task-status-edge-padding\)\s+0\s+var\(--timeline-task-bar-padding-start\)/,
+    );
     expect(formatTimelineZoomLabel(1.2)).toBe("120%");
     expect(clampTimelineZoom(0.2)).toBe(0.8);
     expect(getTimelineDayTrackSize("month", 1)).toBe("minmax(28px, 1fr)");
@@ -978,6 +987,12 @@ describe("TimelineView", () => {
         pseudo: false,
       }),
     ).toMatch(/color:\s*transparent/);
+    expect(css).toMatch(
+      /\.timeline-merged-cell-column:hover,\s*\.timeline-merged-cell-column:focus-within\s*\{[\s\S]*?z-index:\s*10045/,
+    );
+    expect(css).toMatch(
+      /\.task-label:hover,\s*\.task-label:focus-visible,\s*\.timeline-merged-cell-text:hover,\s*\.timeline-merged-cell-text:focus-within,\s*\.timeline-merged-cell-text:focus-visible\s*\{[\s\S]*?z-index:\s*10045/,
+    );
   });
 
   it("lets unfolded sideways timeline labels use the full row span before truncating", () => {
@@ -1073,11 +1088,13 @@ describe("TimelineView", () => {
     expect(markup).not.toContain("↙");
     expect(markup).not.toContain("↗");
     expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*background:\s*var\(--timeline-task-discipline-accent\)/);
-    expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*--timeline-task-status-edge-padding:\s*0\.05rem/);
+    expect(css).toMatch(
+      /\.timeline-bar\s*\{[\s\S]*--timeline-task-status-edge-padding:\s*calc\(0\.05rem \* var\(--timeline-zoom,\s*1\)\)/,
+    );
     expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*--timeline-task-status-track-height:\s*1\.55rem/);
     expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*--timeline-task-status-size:\s*0\.95rem/);
     expect(css).toMatch(
-      /\.timeline-bar\s*\{[\s\S]*padding:\s*0\s+var\(--timeline-task-status-edge-padding\)\s+0\s+0\.65rem/,
+      /\.timeline-bar\s*\{[\s\S]*padding:\s*0\s+var\(--timeline-task-status-edge-padding\)\s+0\s+var\(--timeline-task-bar-padding-start\)/,
     );
     expect(css).toMatch(/\.timeline-bar\s*\{[\s\S]*box-shadow:\s*0 8px 18px rgba\(15, 28, 52, 0\.18\)/);
     expect(css).toMatch(/\.timeline-bar-content\s*\{[\s\S]*width:\s*100%/);
@@ -1152,13 +1169,17 @@ describe("TimelineView", () => {
       /\.timeline-bar\[data-spill-right="true"\]\s*\{[\s\S]*border-top-right-radius:\s*0[\s\S]*border-bottom-right-radius:\s*0/,
     );
     expect(getTaskBarStyle("View details for March carry-in")).toContain("margin-left:0");
-    expect(getTaskBarStyle("View details for March carry-in")).toContain("margin-right:24px");
+    expect(getTaskBarStyle("View details for March carry-in")).toContain(
+      "margin-right:var(--timeline-task-bar-edge-gap, 24px)",
+    );
     expect(getTaskBarStyle("View details for March carry-in")).not.toContain("padding-right:24px");
     expect(getTaskBarStyle("View details for March carry-in")).toContain("--timeline-task-bar-radius:4px");
     expect(getTaskBarStyle("View details for March carry-in")).not.toContain("border-top-left-radius:0");
     expect(getTaskBarStyle("View details for March carry-in")).not.toContain("border-bottom-left-radius:0");
     expect(getTaskBarStyle("View details for May carry-out")).toContain("margin-right:0");
-    expect(getTaskBarStyle("View details for May carry-out")).toContain("margin-left:24px");
+    expect(getTaskBarStyle("View details for May carry-out")).toContain(
+      "margin-left:var(--timeline-task-bar-edge-gap, 24px)",
+    );
     expect(getTaskBarStyle("View details for May carry-out")).not.toContain("padding-left:24px");
     expect(getTaskBarStyle("View details for May carry-out")).toContain("--timeline-task-bar-radius:4px");
     expect(getTaskBarStyle("View details for May carry-out")).not.toContain("border-top-right-radius:0");
@@ -1170,8 +1191,12 @@ describe("TimelineView", () => {
     expect(getTaskBarStyle("View details for Full scoped span")).not.toContain("border-top-right-radius:0");
     expect(getTaskBarStyle("View details for Full scoped span")).not.toContain("border-bottom-left-radius:0");
     expect(getTaskBarStyle("View details for Full scoped span")).not.toContain("border-bottom-right-radius:0");
-    expect(getTaskBarStyle("View details for Contained scoped task")).toContain("margin-left:24px");
-    expect(getTaskBarStyle("View details for Contained scoped task")).toContain("margin-right:24px");
+    expect(getTaskBarStyle("View details for Contained scoped task")).toContain(
+      "margin-left:var(--timeline-task-bar-edge-gap, 24px)",
+    );
+    expect(getTaskBarStyle("View details for Contained scoped task")).toContain(
+      "margin-right:var(--timeline-task-bar-edge-gap, 24px)",
+    );
     expect(getTaskBarStyle("View details for Contained scoped task")).not.toContain("padding-left:24px");
     expect(getTaskBarStyle("View details for Contained scoped task")).not.toContain("padding-right:24px");
   });

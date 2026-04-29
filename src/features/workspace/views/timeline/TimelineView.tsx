@@ -743,6 +743,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         timelineGridMotion={timelineGridMotion}
         timelineGridRef={timelineGridRef}
         timelineGridTemplate={timelineGridTemplate}
+        timelineZoom={timelineZoom}
         timelineShellRef={timelineShellRef}
         openTaskDetailModal={openTaskDetailAndSelectTask}
         clearHoveredSubsystemRow={clearHoveredSubsystemRow}

@@ -8,7 +8,7 @@ import type {
 } from "./timelineGridBodyUtils";
 
 type TimelineTaskDependencyPresentation = "none" | "outline" | "text";
-const TIMELINE_TASK_BAR_EDGE_GAP = "24px";
+const TIMELINE_TASK_BAR_EDGE_GAP = "var(--timeline-task-bar-edge-gap, 24px)";
 
 interface TimelineTaskBarProps {
   compact?: boolean;

@@ -34,6 +34,7 @@ interface TimelineGridHeaderProps {
   };
   timelineGridRef: React.MutableRefObject<HTMLDivElement | null>;
   timelineGridTemplate: string;
+  timelineZoom: number;
   timelineShellRef: React.MutableRefObject<HTMLDivElement | null>;
   toggleProjectColumn: () => void;
   toggleSubsystemColumn: () => void;
@@ -68,6 +69,7 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
   timelineGridMotion,
   timelineGridRef,
   timelineGridTemplate,
+  timelineZoom,
   timelineShellRef,
   toggleProjectColumn,
   toggleSubsystemColumn,
@@ -137,13 +139,15 @@ export const TimelineGridHeader: React.FC<TimelineGridHeaderProps> = ({
         key={`timeline-grid-${timelineGridMotion.token}`}
         ref={timelineGridRef}
         style={{
+          "--timeline-task-bar-edge-gap": `${Math.round(24 * timelineZoom)}px`,
+          "--timeline-zoom": timelineZoom,
           display: "grid",
           width: "100%",
           minWidth: `${gridMinWidth}px`,
           gridTemplateColumns: timelineGridTemplate,
           position: "relative",
           boxSizing: "border-box",
-        }}
+        } as React.CSSProperties}
       >
         {showSubsystemCol ? (
           <button

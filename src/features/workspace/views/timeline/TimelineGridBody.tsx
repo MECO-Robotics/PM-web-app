@@ -57,6 +57,7 @@ interface TimelineGridBodyProps {
   };
   timelineGridRef: React.MutableRefObject<HTMLDivElement | null>;
   timelineGridTemplate: string;
+  timelineZoom: number;
   timelineShellRef: React.MutableRefObject<HTMLDivElement | null>;
   clearHoveredSubsystemRow: () => void;
   clearHoveredTaskRow: () => void;
@@ -109,6 +110,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
   timelineGridMotion,
   timelineGridRef,
   timelineGridTemplate,
+  timelineZoom,
   timelineShellRef,
   clearHoveredSubsystemRow,
   clearHoveredTaskRow,
@@ -235,6 +237,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
       timelineGridMotion={timelineGridMotion}
       timelineGridRef={timelineGridRef}
       timelineGridTemplate={timelineGridTemplate}
+      timelineZoom={timelineZoom}
       timelineShellRef={timelineShellRef}
       toggleProjectColumn={toggleProjectColumn}
       toggleSubsystemColumn={toggleSubsystemColumn}
