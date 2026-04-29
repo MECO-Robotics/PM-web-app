@@ -287,7 +287,7 @@ export const TimelineSubsystemGroup: React.FC<TimelineSubsystemGroupProps> = ({
             zIndex: 10020,
             background: subsystemSurfaceBackground,
             borderRight: subsystemSurfaceBorderRight,
-            boxShadow: `inset 3px 0 0 ${accentColor}`,
+            boxShadow: "none",
             boxSizing: "border-box",
             minHeight: "38px",
             display: "flex",

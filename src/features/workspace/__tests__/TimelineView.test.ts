@@ -19,6 +19,7 @@ import {
   buildTimelineDayMilestoneUnderlays,
   getTimelineMilestonePopupItems,
 } from "@/features/workspace/views/timeline/timelineViewModel";
+import { TimelineSubsystemGroup } from "@/features/workspace/views/timeline/TimelineSubsystemGroup";
 import type { BootstrapPayload } from "@/types";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -490,6 +491,96 @@ describe("TimelineView", () => {
     expect(markup.match(/data-timeline-grid-cell="true"/g)?.length).toBe(6);
     expect(secondTaskBar?.[1]).toContain("grid-row:3");
     expect(secondTaskBar?.[1]).not.toContain("grid-row:1");
+  });
+
+  it("removes the task-column accent stripe from collapsed subsystem summaries", () => {
+    const bootstrap = createBootstrap();
+    const baseTask = bootstrap.tasks[0] as BootstrapPayload["tasks"][number];
+    const makeTimelineTask = (id: string, title: string) => ({
+      ...baseTask,
+      id,
+      title,
+      offset: 0,
+      span: 1,
+      spillsLeft: false,
+      spillsRight: false,
+    });
+    const markup = renderToStaticMarkup(
+      React.createElement(TimelineSubsystemGroup, {
+        clearHoveredMilestonePopup: jest.fn(),
+        clearHoveredSubsystemRow: jest.fn(),
+        clearHoveredTaskRow: jest.fn(),
+        collapsedSubsystems: { "subsystem-2": true },
+        disciplinesById: {
+          "discipline-1": bootstrap.disciplines[0] as BootstrapPayload["disciplines"][number],
+        },
+        firstDayGridColumn: 4,
+        gridMinWidth: 420,
+        handleTimelineDayMouseEnter: jest.fn(),
+        hoveredSubsystemId: null,
+        hoveredTaskId: null,
+        hoverSubsystemRow: jest.fn(),
+        hoverTaskRow: jest.fn(),
+        openTaskDetailModal: jest.fn(),
+        selectSubsystemRow: jest.fn(),
+        selectTaskRow: jest.fn(),
+        selectedSubsystemId: null,
+        selectedTaskId: null,
+        showProjectCol: true,
+        showSubsystemCol: true,
+        showTaskCol: true,
+        subsystem: {
+          id: "subsystem-2",
+          name: "Controls",
+          color: "#246847",
+          projectId: "project-1",
+          projectName: "Robot",
+          index: 1,
+          completeCount: 0,
+          taskCount: 2,
+          tasks: [
+            makeTimelineTask("task-second", "Second task"),
+            makeTimelineTask("task-third", "Third task"),
+          ],
+        },
+        subsystemColumnIndex: 2,
+        subsystemIndex: 1,
+        subsystemStickyLeft: 112,
+        taskDependencyCountsById: {},
+        taskLabelColumnIndex: 3,
+        taskLabelStickyLeft: 240,
+        taskStatusSignalsById: {},
+        timelineDayHeaderCells: [
+          {
+            day: "2026-04-06",
+            weekdayLabel: "Mon",
+            dayNumberLabel: "6",
+            eventsOnDay: [],
+            dayStyle: null,
+            primaryEventStartDay: "",
+            primaryEventEndDay: "",
+          },
+          {
+            day: "2026-04-07",
+            weekdayLabel: "Tue",
+            dayNumberLabel: "7",
+            eventsOnDay: [],
+            dayStyle: null,
+            primaryEventStartDay: "",
+            primaryEventEndDay: "",
+          },
+        ],
+        timelineGridTemplate: "112px 128px 148px repeat(2, 24px)",
+        toggleSubsystem: jest.fn(),
+      }),
+    );
+
+    const summaryIndex = markup.indexOf('class="timeline-column-motion timeline-subsystem-summary"');
+    expect(summaryIndex).toBeGreaterThanOrEqual(0);
+
+    const summarySnippet = markup.slice(summaryIndex, summaryIndex + 420);
+    expect(summarySnippet).toContain("box-shadow:none");
+    expect(summarySnippet).not.toContain("box-shadow:inset 3px 0 0 #246847");
   });
 
   it("lets collapsed project labels overflow past the right-side summary columns", () => {
