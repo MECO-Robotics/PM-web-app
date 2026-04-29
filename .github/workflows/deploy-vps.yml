@@ -124,7 +124,9 @@ jobs:
           nginx -t
           systemctl reload nginx || systemctl restart nginx
           for attempt in $(seq 1 10); do
-            if curl --fail --silent http://127.0.0.1/ > /dev/null && curl --fail --silent http://127.0.0.1/health > /dev/null; then
+            if curl --fail --silent http://127.0.0.1/ > /dev/null \
+              && curl --fail --silent http://127.0.0.1/health > /dev/null \
+              && curl --fail --silent --insecure --resolve meco-pm.duckdns.org:443:127.0.0.1 https://meco-pm.duckdns.org/health > /dev/null; then
               echo "Web checks passed."
               exit 0
             fi
@@ -135,5 +137,11 @@ jobs:
           curl -i http://127.0.0.1/ || true
           echo "---"
           curl -i http://127.0.0.1/health || true
+          echo "---"
+          curl -ki --resolve meco-pm.duckdns.org:443:127.0.0.1 https://meco-pm.duckdns.org/health || true
+          echo "---"
+          nginx -T || true
+          echo "---"
+          tail -n 200 /var/log/nginx/error.log || true
           exit 1
           EOF
