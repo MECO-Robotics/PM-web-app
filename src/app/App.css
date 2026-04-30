@@ -4767,6 +4767,18 @@
   transform: none;
 }
 
+.task-details-edit-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.task-details-edit-button svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 auto;
+}
+
 .interactive-tutorial-overlay {
   position: fixed;
   inset: 0;
@@ -5242,8 +5254,8 @@
 
 .modal-card .icon-button.task-details-close-button {
   color: #fff !important;
-  border: 1px solid var(--official-red) !important;
-  background: var(--official-red) !important;
+  border: 1px solid color-mix(in srgb, var(--official-red) 72%, black) !important;
+  background: linear-gradient(135deg, #ea1c2d, #b81d2c) !important;
   font-weight: 900;
   border-radius: 999px;
   width: 2rem;
@@ -5258,9 +5270,9 @@
 
 .modal-card .icon-button.task-details-close-button:hover,
 .modal-card .icon-button.task-details-close-button:focus-visible {
-  background: color-mix(in srgb, var(--official-red) 88%, black) !important;
+  background: linear-gradient(135deg, #f02c3d, #8f1320) !important;
   color: #fff !important;
-  border-color: color-mix(in srgb, var(--official-red) 88%, black) !important;
+  border-color: color-mix(in srgb, var(--official-red) 85%, black) !important;
 }
 
 .task-details-header {

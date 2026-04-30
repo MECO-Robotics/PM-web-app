@@ -423,11 +423,17 @@ export function TaskDetailsModal({
 
           <div className="modal-actions modal-wide">
             <button
-              className="primary-action"
+              className="primary-action task-details-edit-button"
               data-tutorial-target="timeline-edit-task-button"
               onClick={() => onEditTask(activeTask)}
               type="button"
             >
+              <svg aria-hidden="true" viewBox="0 0 16 16">
+                <path
+                  d="M11.854 1.646a.5.5 0 0 1 .707 0l1.793 1.793a.5.5 0 0 1 0 .707l-8.52 8.52-3.183.71.71-3.183 8.493-8.547ZM3.74 10.995l1.265-.282 7.574-7.6-1.06-1.06-7.6 7.574-.179.81ZM2 13.5h12a.5.5 0 0 1 0 1H2a.5.5 0 0 1 0-1Z"
+                  fill="currentColor"
+                />
+              </svg>
               Edit task
             </button>
           </div>
