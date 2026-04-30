@@ -2,11 +2,7 @@
 import { formatIterationVersion } from "@/lib/appUtils";
 import { formatTaskStatusLabel } from "@/features/workspace/shared/workspaceOptions";
 import { getStatusPillClassName } from "@/features/workspace/shared";
-import {
-  getTaskBlocksDependencies,
-  getTaskOpenBlockersForTask,
-  getTaskWaitingOnDependencies,
-} from "@/features/workspace/shared/taskPlanning";
+import { getTaskOpenBlockersForTask } from "@/features/workspace/shared/taskPlanning";
 import { getTimelineTaskStatusSignal } from "@/features/workspace/views/timeline";
 import { TimelineTaskStatusLogo } from "@/features/workspace/views/timeline/TimelineTaskStatusLogo";
 import type { TimelineTaskStatusSignal } from "@/features/workspace/views/timeline/timelineGridBodyUtils";
@@ -67,14 +63,12 @@ function isTaskDetailDateToday(dateValue: string): boolean {
 function TaskDetailsStatusIcon({
   label,
   signal,
+  status,
 }: {
   label: string;
   signal: TimelineTaskStatusSignal;
+  status: TaskRecord["status"];
 }) {
-  const status =
-    signal === "complete" || signal === "in-progress" || signal === "waiting-for-qa" || signal === "not-started"
-      ? signal
-      : "blocked";
   return (
     <span aria-label={label} className={`task-detail-header-status task-detail-header-status-signal-${signal}`} title={label}>
       <span className="task-detail-header-status-icon">
@@ -176,7 +170,6 @@ export function TaskDetailsModal({
       ? eventsById[activeTask.targetEventId]
       : null;
   const openBlockers = getTaskOpenBlockersForTask(activeTask.id, bootstrap);
-  const waitingOnDependencies = getTaskWaitingOnDependencies(activeTask.id, bootstrap);
   const blockerTaskNamesById = new Map(
     bootstrap.tasks.map((task) => [task.id, task.title] as const),
   );
@@ -245,7 +238,7 @@ export function TaskDetailsModal({
                 </p>
               </div>
               <div className="task-detail-header-side-stack">
-                <TaskDetailsStatusIcon label={detailStatusLabel} signal={detailStatusSignal} />
+                <TaskDetailsStatusIcon label={detailStatusLabel} signal={detailStatusSignal} status={activeTask.status} />
                 <span className="task-detail-header-hours-inline task-detail-header-hours-right">
                   <span className="task-detail-header-hours-label">Logged:</span>
                   <span className={loggedHoursClassName}>{actualHours}h</span>
