@@ -24,6 +24,17 @@ import type { BootstrapPayload } from "@/types";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
+const appStylePaths = [
+  "src/app/styles/shell.css",
+  "src/app/styles/workspace.css",
+  "src/app/styles/views.css",
+  "src/app/styles/responsive.css",
+].map((relativePath) => join(process.cwd(), relativePath));
+
+function readAppCss() {
+  return appStylePaths.map((path) => readFileSync(path, "utf8")).join("\n");
+}
+
 function createBootstrap(): BootstrapPayload {
   return {
     ...EMPTY_BOOTSTRAP,
@@ -719,7 +730,7 @@ describe("TimelineView", () => {
           triggerCreateMilestoneToken: 0,
         }),
       );
-      const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+      const css = readAppCss();
       const eventUnderlayZIndexes = Array.from(
         css.matchAll(
           /\.timeline-day-event-underlay\s*\{[^}]*z-index:\s*(\d+)/g,
@@ -746,7 +757,7 @@ describe("TimelineView", () => {
   );
 
   it("layers hovered milestone overlays above timeline task bars while keeping underlays below them", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const getZIndex = (selector: string) => {
       const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const match = css.match(new RegExp(`${escapedSelector}\\s*\\{[\\s\\S]*?z-index:\\s*(\\d+)`));
@@ -764,7 +775,7 @@ describe("TimelineView", () => {
   });
 
   it("keeps timeline row groups out of content-visibility stacking containment", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
 
     expect(css).not.toMatch(
       /\.timeline-shell\s+\.subsystem-group[\s\S]{0,180}content-visibility:\s*auto/,
@@ -936,7 +947,7 @@ describe("TimelineView", () => {
         triggerCreateMilestoneToken: 0,
       }),
     );
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
 
     expect(markup).toContain('aria-label="Timeline zoom"');
     expect(markup).toContain('aria-label="Zoom out timeline"');
@@ -973,7 +984,7 @@ describe("TimelineView", () => {
   });
 
   it("defines timeline period animations for every timeline navigation direction", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
 
     expect(css).toMatch(
       /\.timeline-grid-motion\[data-period-motion="left"\]\s*\{[\s\S]*timeline-period-swipe-left-in/,
@@ -987,7 +998,7 @@ describe("TimelineView", () => {
   });
 
   it("keeps timeline period animations from adding horizontal scroll overflow", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const getKeyframesBlock = (name: string) => {
       const start = css.indexOf(`@keyframes ${name}`);
       expect(start).toBeGreaterThanOrEqual(0);
@@ -1034,7 +1045,7 @@ describe("TimelineView", () => {
   });
 
   it("only transitions timeline grid width during period motion", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
 
     expect(css).toMatch(
       /\.timeline-grid-motion\[data-period-motion\]\s*\{[\s\S]*transition:\s*min-width 180ms ease,\s*grid-template-columns 180ms ease;/,
@@ -1045,7 +1056,7 @@ describe("TimelineView", () => {
   });
 
   it("keeps timeline shells and rows stretched to the available page width", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
 
     expect(css).toMatch(/\.workspace-tab-panel\s*\{[\s\S]*width:\s*100%;/);
     expect(css).toMatch(/\.timeline-shell\s*\{[\s\S]*width:\s*100%;/);
@@ -1080,7 +1091,7 @@ describe("TimelineView", () => {
   });
 
   it("defines unfold animations for timeline columns and expanded rows", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const getKeyframesBlock = (name: string) => {
       const start = css.indexOf(`@keyframes ${name}`);
       expect(start).toBeGreaterThanOrEqual(0);
@@ -1115,7 +1126,7 @@ describe("TimelineView", () => {
   });
 
   it("keeps timeline period and filter motion subtle", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
 
     expect(css).toMatch(
       /\.timeline-grid-motion\[data-period-motion="left"\]\s*\{[\s\S]*timeline-period-swipe-left-in 180ms/,
@@ -1132,7 +1143,7 @@ describe("TimelineView", () => {
   });
 
   it("prevents timeline label reveal overlays from doubling visible source text", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const getRule = (selectorStart: string, options?: { pseudo?: boolean }) => {
       let start = css.indexOf(selectorStart);
       while (start >= 0) {
@@ -1177,7 +1188,7 @@ describe("TimelineView", () => {
   });
 
   it("lets unfolded sideways timeline labels use the full row span before truncating", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const getRule = (selectorStart: string) => {
       const start = css.indexOf(selectorStart);
       expect(start).toBeGreaterThanOrEqual(0);
@@ -1257,7 +1268,7 @@ describe("TimelineView", () => {
         triggerCreateMilestoneToken: 0,
       }),
     );
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
 
     expect(markup).toContain("--timeline-task-discipline-accent:#c67b1f");
     expect(markup).toMatch(/class="[^"]*timeline-bar[^"]*timeline-in-progress[^"]*"/);
@@ -1317,7 +1328,7 @@ describe("TimelineView", () => {
         triggerCreateMilestoneToken: 0,
       }),
     );
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const getTaskBarStyle = (title: string) => {
       const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const match = markup.match(new RegExp(`<button[^>]*style="([^"]*)"[^>]*title="${escapedTitle}"`));
@@ -1382,7 +1393,7 @@ describe("TimelineView", () => {
   });
 
   it("uses task discipline and subsystem colors for timeline horizontal highlights", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const portalSource = readFileSync(
       join(process.cwd(), "src/features/workspace/views/timeline/TimelineRowHighlightsPortal.tsx"),
       "utf8",
@@ -1421,7 +1432,7 @@ describe("TimelineView", () => {
   });
 
   it("suppresses sticky label hover reveal while the timeline shell is scrolling", () => {
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const headerSource = readFileSync(
       join(process.cwd(), "src/features/workspace/views/timeline/TimelineGridHeader.tsx"),
       "utf8",
@@ -1454,7 +1465,7 @@ describe("TimelineView", () => {
         triggerCreateMilestoneToken: 0,
       }),
     );
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const portalSource = readFileSync(
       join(process.cwd(), "src/features/workspace/views/timeline/TimelineTodayMarkerPortal.tsx"),
       "utf8",
@@ -1536,7 +1547,7 @@ describe("TimelineView", () => {
         triggerCreateMilestoneToken: 0,
       }),
     );
-    const css = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+    const css = readAppCss();
     const daySlotsSource = readFileSync(
       join(process.cwd(), "src/features/workspace/views/timeline/TimelineGridDaySlots.tsx"),
       "utf8",

@@ -4,7 +4,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const appCss = readFileSync(join(process.cwd(), "src/app/App.css"), "utf8");
+const appCss = [
+  "src/app/styles/shell.css",
+  "src/app/styles/workspace.css",
+  "src/app/styles/views.css",
+  "src/app/styles/responsive.css",
+]
+  .map((relativePath) => readFileSync(join(process.cwd(), relativePath), "utf8"))
+  .join("\n");
 
 function getCssBlock(selector: string) {
   const blockStart = appCss.indexOf(`${selector} {`);
