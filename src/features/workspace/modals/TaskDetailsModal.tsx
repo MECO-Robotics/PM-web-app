@@ -409,8 +409,6 @@ export function TaskDetailsModal({
                   </div>
                 </details>
               </div>
-
-
             </div>
           </details>
 
