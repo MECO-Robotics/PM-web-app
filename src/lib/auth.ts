@@ -1082,6 +1082,7 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
       return {
         ...member,
         email: typeof member.email === "string" ? member.email : "",
+        photoUrl: typeof member.photoUrl === "string" ? member.photoUrl : "",
         elevated:
           typeof member.elevated === "boolean"
             ? member.elevated

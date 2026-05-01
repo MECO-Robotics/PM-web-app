@@ -1,5 +1,6 @@
 import React from "react";
 import { IconEdit, IconPlus, IconTrash } from "@/components/shared";
+import { PhotoUploadField } from "@/features/workspace/shared";
 import type { BootstrapPayload, MemberPayload, MemberRecord } from "@/types";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import { isMemberActiveInSeason } from "@/lib/appUtils";
@@ -22,6 +23,7 @@ interface RosterViewProps {
     handleReactivateMemberForSeason: (memberId: string) => Promise<void>;
     handleUpdateMember: (e: React.FormEvent<HTMLFormElement>) => void;
     handleDeleteMember: (id: string) => void;
+    requestMemberPhotoUpload: (file: File) => Promise<string>;
     isSavingMember: boolean;
     isDeletingMember: boolean;
     students: MemberRecord[];
@@ -47,6 +49,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
     handleReactivateMemberForSeason,
     handleUpdateMember,
     handleDeleteMember,
+    requestMemberPhotoUpload,
     isSavingMember,
     isDeletingMember,
     students,
@@ -89,7 +92,7 @@ export const RosterView: React.FC<RosterViewProps> = ({
     }, [allMembers, selectedSeasonId]);
 
     const openAddPersonPanel = (role: MemberPayload["role"]) => {
-        setMemberForm({ name: "", email: "", role, elevated: isElevatedRole(role) });
+        setMemberForm({ name: "", email: "", photoUrl: "", role, elevated: isElevatedRole(role) });
         setReactivateExistingMember(false);
         setReactivateMemberId("");
         setIsAddPersonOpen(true);
@@ -127,11 +130,26 @@ export const RosterView: React.FC<RosterViewProps> = ({
 
     const renderMemberRow = (member: MemberRecord) => {
         const roleBadge = getRoleBadge(member);
+        const initials = member.name
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part.slice(0, 1).toUpperCase())
+            .join("");
         return (
             <div className={member.id === selectedMemberId ? "member-row active editable-action-host" : "member-row editable-action-host"} key={member.id}>
                 <button className="member-row-main" onClick={() => selectMember(member.id, bootstrap)} type="button">
-                    <strong>{member.name}</strong>
-                    {member.email ? <span className="member-row-email">{member.email}</span> : null}
+                    {member.photoUrl ? (
+                        <img alt={`${member.name} profile picture`} className="profile-avatar" loading="lazy" src={member.photoUrl} />
+                    ) : (
+                        <div aria-hidden="true" className="profile-avatar profile-avatar-fallback">
+                            {initials || member.name.slice(0, 1).toUpperCase()}
+                        </div>
+                    )}
+                    <span className="member-row-copy">
+                        <strong>{member.name}</strong>
+                        {member.email ? <span className="member-row-email">{member.email}</span> : null}
+                    </span>
                 </button>
                 <div className="member-row-trailing">
                     <div className="member-row-actions editable-action-reveal">
@@ -271,6 +289,12 @@ export const RosterView: React.FC<RosterViewProps> = ({
                                 </>
                             ) : (
                                 <>
+                                    <PhotoUploadField
+                                        currentUrl={memberForm.photoUrl}
+                                        label="Profile photo"
+                                        onChange={(value) => setMemberForm((curr) => ({ ...curr, photoUrl: value }))}
+                                        onUpload={requestMemberPhotoUpload}
+                                    />
                                     <label className="field">
                                         <span>Name</span>
                                         <input onChange={(e) => setMemberForm((curr) => ({ ...curr, name: e.target.value }))} required value={memberForm.name} />
@@ -327,6 +351,14 @@ export const RosterView: React.FC<RosterViewProps> = ({
                             </div>
                         </div>
                         <form className="compact-form roster-inline-form" onSubmit={handleUpdateMember}>
+                            <PhotoUploadField
+                                currentUrl={memberEditDraft.photoUrl ?? ""}
+                                label="Profile photo"
+                                onChange={(value) =>
+                                    setMemberEditDraft((curr) => (curr ? { ...curr, photoUrl: value } : null))
+                                }
+                                onUpload={requestMemberPhotoUpload}
+                            />
                             <label className="field">
                                 <span>Name</span>
                                 <input onChange={(e) => setMemberEditDraft(curr => curr ? { ...curr, name: e.target.value } : null)} value={memberEditDraft.name} />

@@ -17,6 +17,7 @@ const student: MemberRecord = {
   elevated: false,
   seasonId: "season-1",
   activeSeasonIds: ["season-1"],
+  photoUrl: "https://cdn.example.test/people/student-one.png",
 };
 
 const mentor: MemberRecord = {
@@ -27,6 +28,7 @@ const mentor: MemberRecord = {
   elevated: false,
   seasonId: "season-1",
   activeSeasonIds: ["season-1"],
+  photoUrl: "",
 };
 
 const external: MemberRecord = {
@@ -37,9 +39,10 @@ const external: MemberRecord = {
   elevated: false,
   seasonId: "season-1",
   activeSeasonIds: ["season-1"],
+  photoUrl: "",
 };
 
-function renderRosterView() {
+function renderRosterView(isAddPersonOpen = false) {
   const bootstrap: BootstrapPayload = {
     ...EMPTY_BOOTSTRAP,
     members: [student, mentor, external],
@@ -49,6 +52,7 @@ function renderRosterView() {
     email: "",
     role: "student",
     elevated: false,
+    photoUrl: "",
   };
 
   return renderToStaticMarkup(
@@ -58,7 +62,7 @@ function renderRosterView() {
       selectedMemberId: null,
       selectedSeasonId: "season-1",
       selectMember: jest.fn(),
-      isAddPersonOpen: false,
+      isAddPersonOpen,
       setIsAddPersonOpen: jest.fn(),
       isEditPersonOpen: false,
       setIsEditPersonOpen: jest.fn(),
@@ -70,6 +74,7 @@ function renderRosterView() {
       handleReactivateMemberForSeason: jest.fn().mockResolvedValue(undefined),
       handleUpdateMember: jest.fn(),
       handleDeleteMember: jest.fn(),
+      requestMemberPhotoUpload: jest.fn(async () => "https://cdn.example.test/uploaded.png"),
       isSavingMember: false,
       isDeletingMember: false,
       students: [student],
@@ -88,5 +93,13 @@ describe("RosterView", () => {
     expect(html).toContain("External access");
     expect(html).toContain("Sponsor Viewer");
     expect(html).toContain("viewer@sponsor.example");
+    expect(html).toContain("https://cdn.example.test/people/student-one.png");
+  });
+
+  it("renders a profile photo upload control in the add-person modal", () => {
+    const html = renderRosterView(true);
+
+    expect(html).toContain("Profile photo");
+    expect(html).toContain('type="file"');
   });
 });

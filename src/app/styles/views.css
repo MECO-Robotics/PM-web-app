@@ -1112,7 +1112,7 @@
 
 .task-details-section-summary::after {
   order: 0;
-  content: "▸";
+  content: "?";
   font-size: 0.82rem;
   color: var(--text-copy);
   line-height: 1;
@@ -1132,7 +1132,7 @@
 }
 
 .task-details-section-collapse[open] .task-details-section-summary::after {
-  content: "▾";
+  content: "?";
 }
 
 .task-details-section-summary::-webkit-details-marker,
@@ -1472,7 +1472,7 @@
 }
 
 .task-detail-collapsible-icon::before {
-  content: "▸";
+  content: "?";
 }
 
 .task-detail-collapsible[open] .task-detail-collapsible-icon {
@@ -1480,7 +1480,7 @@
 }
 
 .task-detail-collapsible[open] .task-detail-collapsible-icon::before {
-  content: "▾";
+  content: "?";
 }
 
 .task-detail-collapsible-body {

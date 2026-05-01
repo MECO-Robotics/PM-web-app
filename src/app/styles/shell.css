@@ -1482,8 +1482,15 @@
   justify-content: center;
   background: rgba(22, 71, 142, 0.14);
   color: var(--official-blue);
-  font-size: 0.74rem;
+  font-size: 1.1rem;
   font-weight: 700;
+}
+
+.page-shell.dark-mode .profile-avatar-fallback {
+  background: rgba(96, 165, 250, 0.2);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  color: #dbeafe;
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.28);
 }
 
 .profile-menu-popover {

@@ -2933,7 +2933,7 @@ export default function AppWorkspace() {
         },
         handleUnauthorized,
       );
-      setMemberForm({ name: "", email: "", role: "student", elevated: false });
+      setMemberForm({ name: "", email: "", photoUrl: "", role: "student", elevated: false });
       setIsAddPersonOpen(false);
       await loadWorkspace();
     } catch (error) {
@@ -2959,6 +2959,7 @@ export default function AppWorkspace() {
         {
           name: memberEditDraft.name.trim(),
           email: memberEditDraft.email.trim(),
+          photoUrl: memberEditDraft.photoUrl.trim(),
           role: normalizedRole,
           elevated: isElevatedMemberRole(normalizedRole),
         },
@@ -4035,6 +4036,7 @@ export default function AppWorkspace() {
           mechanismsById={mechanismsById}
           partDefinitionsById={partDefinitionsById}
           partInstancesById={partInstancesById}
+          requestMemberPhotoUpload={requestMemberPhotoUpload}
           subsystemsById={subsystemsById}
           timelineMilestoneCreateSignal={timelineMilestoneCreateSignal}
           disablePanelAnimations={disablePanelAnimations}
@@ -4308,3 +4310,22 @@ export default function AppWorkspace() {
     </main>
   );
 }
+  const requestMemberPhotoUpload = useCallback(
+    (file: File) => {
+      const projectId =
+        selectedProjectId ??
+        bootstrap.projects.find((project) => project.seasonId === selectedSeasonId)?.id ??
+        bootstrap.projects[0]?.id ??
+        null;
+
+      if (!projectId) {
+        return Promise.reject(new Error("No project is available for photo upload."));
+      }
+
+      return requestPhotoUpload(projectId, file);
+    },
+    [bootstrap.projects, requestPhotoUpload, selectedProjectId, selectedSeasonId],
+  );
+
+          photoUrl: member.photoUrl ?? "",
+          photoUrl: memberForm.photoUrl.trim(),

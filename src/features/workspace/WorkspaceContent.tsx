@@ -163,6 +163,7 @@ interface WorkspaceContentProps {
   setIsEditPersonOpen: (open: boolean) => void;
   setMemberEditDraft: Dispatch<SetStateAction<MemberPayload | null>>;
   setMemberForm: Dispatch<SetStateAction<MemberPayload>>;
+  requestMemberPhotoUpload: (file: File) => Promise<string>;
   students: BootstrapPayload["members"];
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
   timelineMilestoneCreateSignal: number;
@@ -383,6 +384,7 @@ export function WorkspaceContent({
   setIsEditPersonOpen,
   setMemberEditDraft,
   setMemberForm,
+  requestMemberPhotoUpload,
   students,
   subsystemsById,
   timelineMilestoneCreateSignal,
@@ -776,6 +778,7 @@ export function WorkspaceContent({
             handleReactivateMemberForSeason={handleReactivateMemberForSeason}
             handleDeleteMember={handleDeleteMember}
             handleUpdateMember={handleUpdateMember}
+            requestMemberPhotoUpload={requestMemberPhotoUpload}
             isAddPersonOpen={isAddPersonOpen}
             isDeletingMember={isDeletingMember}
             isEditPersonOpen={isEditPersonOpen}

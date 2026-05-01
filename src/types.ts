@@ -95,6 +95,7 @@ export interface MemberRecord {
   id: string;
   name: string;
   email: string;
+  photoUrl?: string;
   role: MemberRole;
   elevated: boolean;
   seasonId: string;
@@ -578,6 +579,7 @@ export interface ProjectCreatePayload extends ProjectPayload {
 export interface MemberPayload {
   name: string;
   email: string;
+  photoUrl: string;
   role: MemberRole;
   elevated: boolean;
   activeSeasonIds?: string[];
