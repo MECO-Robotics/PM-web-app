@@ -1035,6 +1035,12 @@
   will-change: opacity;
 }
 
+.task-queue-toolbar,
+.milestones-toolbar {
+  position: relative;
+  z-index: 6;
+}
+
 .task-queue-board-shell-frame {
   --task-queue-edge-pad: 1rem;
   position: relative;
