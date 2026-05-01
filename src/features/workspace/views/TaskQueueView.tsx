@@ -795,7 +795,6 @@ export function TaskQueueView({
     });
   }, [
     activePersonFilter,
-    bootstrap.tasks,
     disciplineFilter,
     disciplinesById,
     isAllProjectsView,
@@ -812,8 +811,6 @@ export function TaskQueueView({
     subsystemIterationFilter,
     showSubsystemIterationFilter,
     bootstrap,
-    bootstrap.taskBlockers,
-    bootstrap.taskDependencies,
     subsystemsById,
   ]);
   const [visibleTaskCount, setVisibleTaskCount] = useState(TASK_QUEUE_LAZY_LOAD_BATCH_SIZE);

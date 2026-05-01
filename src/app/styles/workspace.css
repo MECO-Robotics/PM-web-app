@@ -849,7 +849,7 @@
 }
 
 .timeline-task-status-logo {
-  --timeline-task-status-logo-background: rgba(255, 255, 255, 0.8);
+  --timeline-task-status-logo-background: rgba(255, 255, 255, 0.5);
   --timeline-task-status-track-height: 2.2rem;
   --timeline-task-status-size: 1.9rem;
   position: absolute;
@@ -878,7 +878,7 @@
 }
 
 .timeline-task-status-logo.is-compact {
-  --timeline-task-status-logo-background: rgba(255, 255, 255, 0.8);
+  --timeline-task-status-logo-background: rgba(255, 255, 255, 0.5);
   --timeline-task-status-track-height: 1rem;
   --timeline-task-status-size: 0.9rem;
   box-shadow: 0 0 0 1px rgba(15, 28, 52, 0.12);

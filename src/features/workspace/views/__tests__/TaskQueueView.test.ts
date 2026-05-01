@@ -232,8 +232,8 @@ describe("TaskQueueView", () => {
     expect(markup).toContain('src="https://example.com/alex.png"');
     expect(markup).toContain("profile-avatar-fallback");
     expect(markup).toContain(">Q<");
-    expect(markup).toContain("data-board-state=\"blocked\"");
-    expect(markup.match(/data-board-state=\"blocked\"/g)).toHaveLength(2);
+    expect(markup).toContain('data-board-state="blocked"');
+    expect(markup.match(/data-board-state="blocked"/g)).toHaveLength(2);
     expect(markup.match(/data-board-state=/g)).toHaveLength(TASK_QUEUE_LAZY_LOAD_BATCH_SIZE);
     expect(markup).not.toContain("Task 16");
   });
