@@ -54,6 +54,7 @@ import {
   type MilestoneSortField,
 } from "./milestonesViewUtils";
 import { MilestoneKanbanBoard } from "./MilestoneKanbanBoard";
+import { KanbanScrollFrame } from "@/features/workspace/views/kanban/KanbanScrollFrame";
 
 interface MilestonesViewProps {
   activePersonFilter: FilterSelection;
@@ -483,18 +484,18 @@ export function MilestonesView({
         </div>
       </div>
 
-      <div className={`table-shell ${milestoneFilterMotionClass}`}>
-        {processedEvents.length > 0 ? (
+      {processedEvents.length > 0 ? (
+        <KanbanScrollFrame motionClassName={milestoneFilterMotionClass}>
           <MilestoneKanbanBoard
             events={processedEvents}
             onOpenEvent={openEditEventModal}
             projectLabelByEventId={projectLabelByEventId}
             subsystemsById={subsystemsById}
           />
-        ) : (
-          <p className="empty-state">No milestones match the current filters.</p>
-        )}
-      </div>
+        </KanbanScrollFrame>
+      ) : (
+        <p className="empty-state">No milestones match the current filters.</p>
+      )}
 
       {eventModalMode && modalPortalTarget
         ? createPortal(
