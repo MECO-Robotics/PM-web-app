@@ -378,6 +378,10 @@
 
 .task-detail-inline-edit-shell {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   min-width: 0;
 }
@@ -506,30 +510,19 @@
   letter-spacing: 0.005em;
 }
 
-.task-details-overview-assigned-select {
+.task-detail-inline-edit-trigger-assigned {
   flex: 1 1 auto;
   min-height: 0;
-  align-self: stretch;
-  width: 100%;
-  box-sizing: border-box;
-  height: clamp(6.5rem, 18vh, 11rem);
-  max-height: clamp(6.5rem, 18vh, 11rem);
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  overscroll-behavior: contain;
-  padding: 0.6rem 0.8rem;
-  border-radius: 14px;
-  border: 1px solid var(--border-base);
-  background: var(--bg-row-alt);
-  font-family: "Space Grotesk", "Avenir Next", "Trebuchet MS", sans-serif;
-  font-size: 0.96rem;
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: 0.005em;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
-.task-detail-inline-edit-trigger-assigned {
-  align-items: flex-start;
+.task-detail-inline-edit-trigger-assigned.task-details-assigned-list {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border-base);
+  border-radius: 14px;
+  background: var(--bg-row-alt);
+  box-sizing: border-box;
 }
 
 .task-detail-inline-edit-textarea {
