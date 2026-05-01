@@ -125,6 +125,7 @@ export function TaskDetailsModal({
     | "owner"
     | "assigned"
     | "mentor"
+    | "startDate"
     | "dueDate"
     | "targetEvent"
     | "discipline"
@@ -267,6 +268,7 @@ export function TaskDetailsModal({
   const editableMemberOptions = editableStudentOptions;
   const estimatedHours = Number(activeTask.estimatedHours);
   const actualHours = Number(activeTask.actualHours);
+  const startDateText = formatTaskDetailDate(editableTask.startDate);
   const dueDateText = formatTaskDetailDate(editableTask.dueDate);
   const dueDatePillClassName = editableTask.dueDate
     ? statusText === "complete"
@@ -888,6 +890,163 @@ export function TaskDetailsModal({
             </label>
           </div>
 
+          <div className="field modal-wide task-detail-list-shell task-detail-collapsible-field">
+            <details className="task-detail-collapsible" open>
+              <summary className="task-detail-collapsible-summary">
+                <span className="task-detail-collapsible-icon" aria-hidden="true"></span>
+                <span className="task-detail-copy">Blockers</span>
+              </summary>
+              <div className="task-detail-collapsible-body">
+                {canInlineEdit ? (
+                  <div className="task-details-blocker-editor">
+                    {blockerDrafts.length > 0 ? (
+                      blockerDrafts.map((blocker, index) => (
+                        <div className="task-details-blocker-editor-row" key={blocker.id ?? `blocker-${index}`}>
+                          <FilterDropdown
+                            allLabel="Type"
+                            ariaLabel="Set blocker type"
+                            buttonInlineEditField={`blocker-type-${index}`}
+                            className="task-queue-filter-menu-submenu task-details-blocker-type-menu"
+                            menuClassName="task-details-blocker-menu-popup"
+                            icon={<IconTasks />}
+                            portalMenu
+                            onChange={(selection) => {
+                              const nextType = selection[0] as TaskBlockerType | undefined;
+                              if (!nextType) {
+                                return;
+                              }
+                              updateBlockerType(index, nextType);
+                            }}
+                            options={blockerTypeOptions}
+                            showAllOption={false}
+                            singleSelect
+                            value={[blocker.blockerType]}
+                          />
+                          {blocker.blockerType === "task" ? (
+                            <FilterDropdown
+                              allLabel="Select task"
+                              ariaLabel="Set blocker task"
+                              buttonInlineEditField={`blocker-target-${index}`}
+                              className="task-queue-filter-menu-submenu task-details-blocker-target-menu"
+                              menuClassName="task-details-blocker-menu-popup"
+                              icon={<IconTasks />}
+                              portalMenu
+                              onChange={(selection) => updateBlockerTarget(index, selection[0] ?? null)}
+                              options={blockerTaskOptions}
+                              singleSelect
+                              value={blocker.blockerId ? [blocker.blockerId] : []}
+                            />
+                          ) : blocker.blockerType === "part_instance" ? (
+                            <FilterDropdown
+                              allLabel="Select part"
+                              ariaLabel="Set blocker part"
+                              buttonInlineEditField={`blocker-target-${index}`}
+                              className="task-queue-filter-menu-submenu task-details-blocker-target-menu"
+                              menuClassName="task-details-blocker-menu-popup"
+                              icon={<IconParts />}
+                              portalMenu
+                              onChange={(selection) => updateBlockerTarget(index, selection[0] ?? null)}
+                              options={partOptions}
+                              singleSelect
+                              value={blocker.blockerId ? [blocker.blockerId] : []}
+                            />
+                          ) : blocker.blockerType === "event" ? (
+                            <FilterDropdown
+                              allLabel="Select milestone"
+                              ariaLabel="Set blocker milestone"
+                              buttonInlineEditField={`blocker-target-${index}`}
+                              className="task-queue-filter-menu-submenu task-details-blocker-target-menu"
+                              menuClassName="task-details-blocker-menu-popup"
+                              icon={<IconTasks />}
+                              portalMenu
+                              onChange={(selection) => updateBlockerTarget(index, selection[0] ?? null)}
+                              options={blockerEventOptions}
+                              singleSelect
+                              value={blocker.blockerId ? [blocker.blockerId] : []}
+                            />
+                          ) : (
+                            <input
+                              aria-label={`Blocker note ${index + 1}`}
+                              className="task-detail-inline-edit-input task-details-blocker-input"
+                              onChange={(event) => updateBlockerDraft(index, { description: event.target.value })}
+                              placeholder="Describe blocker"
+                              value={blocker.description}
+                            />
+                          )}
+                          <button
+                            aria-label={`Remove blocker ${index + 1}`}
+                            className="icon-button task-details-blocker-remove-button"
+                            onClick={() => removeBlockerDraft(index)}
+                            type="button"
+                          >
+                            {"\u00D7"}
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="task-detail-copy task-detail-empty" style={{ margin: "0.25rem 0 0" }}>
+                        No blockers yet
+                      </p>
+                    )}
+                    <div className="task-details-blocker-editor-actions">
+                      <FilterDropdown
+                        allLabel="Add blocker"
+                        ariaLabel="Add blocker"
+                        buttonInlineEditField="add-blocker"
+                        className="task-queue-filter-menu-submenu task-details-blocker-add-menu"
+                        menuClassName="task-details-blocker-menu-popup task-details-blocker-add-menu-popup"
+                        icon={<IconTasks />}
+                        portalMenu
+                        portalMenuPlacement="below"
+                        onChange={(selection) => {
+                          const nextType = (selection[0] as TaskBlockerType | undefined) ?? null;
+                          if (!nextType) {
+                            return;
+                          }
+                          addBlockerDraft(nextType);
+                        }}
+                        options={blockerTypeOptions}
+                        showAllOption={false}
+                        singleSelect
+                        value={[]}
+                      />
+                    </div>
+                  </div>
+                ) : openBlockers.length > 0 ? (
+                  <div className="workspace-detail-list task-detail-list" style={{ marginTop: "0.5rem" }}>
+                    {openBlockerRows.map((blocker) => (
+                      <div className="workspace-detail-list-item task-detail-list-item" key={blocker.id}>
+                        <div style={{ minWidth: 0, flex: "1 1 auto", display: "grid", gap: "0.1rem" }}>
+                          <strong
+                            className="task-detail-ellipsis-reveal"
+                            data-full-text={blocker.description}
+                            style={{ color: "var(--text-title)" }}
+                          >
+                            {blocker.description}
+                          </strong>
+                          <div
+                            className="task-detail-ellipsis-reveal"
+                            data-full-text={`${blocker.blockerType.replace("_", " ")}${blocker.blockerType === "task" && blocker.blockerTaskName ? ` ? ${blocker.blockerTaskName}` : ""}${blocker.severity ? ` ? ${blocker.severity}` : ""}`}
+                            style={{ color: "var(--text-copy)", fontSize: "0.8rem" }}
+                          >
+                            {blocker.blockerType.replace("_", " ")}
+                            {blocker.blockerType === "task" && blocker.blockerTaskName ? ` ? ${blocker.blockerTaskName}` : ""}
+                            {blocker.severity ? ` ? ${blocker.severity}` : ""}
+                          </div>
+                        </div>
+                        <button className="secondary-action" onClick={() => void onResolveTaskBlocker(blocker.id)} type="button">
+                          Resolve
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="task-detail-copy task-detail-empty" style={{ margin: "0.25rem 0 0" }}>None</p>
+                )}
+              </div>
+            </details>
+          </div>
+
           <details className="task-details-section-collapse modal-wide">
             <summary className="task-details-section-title task-details-section-summary">
               <span>Advanced</span>
@@ -981,6 +1140,42 @@ export function TaskDetailsModal({
                     <span className={subsystemPillClassName}>
                       {subsystemNames.length > 0 ? subsystemNames.join(", ") : "No subsystem linked"}
                     </span>
+                  </p>
+                )}
+              </label>
+              <label className="field task-detail-row">
+                <span style={{ color: "var(--text-title)" }}>Start date</span>
+                {canInlineEdit ? (
+                  editingField === "startDate" ? (
+                    <input
+                      aria-label="Start date"
+                      autoFocus
+                      className="task-detail-inline-edit-input task-detail-inline-edit-input-date"
+                      data-inline-edit-field="startDate"
+                      onBlur={() => setEditingField(null)}
+                      onChange={(event) => {
+                        setTaskDraft?.((current) => ({ ...current, startDate: event.target.value }));
+                        setEditingField(null);
+                      }}
+                      type="date"
+                      value={editableTask.startDate}
+                    />
+                  ) : (
+                    <span className="task-detail-inline-edit-shell task-detail-inline-edit-shell-inline task-detail-inline-edit-shell-inline-left">
+                      <button
+                        className="task-detail-inline-edit-trigger task-detail-inline-edit-trigger-inline"
+                        data-inline-edit-field="startDate"
+                        onClick={() => setEditingField("startDate")}
+                        type="button"
+                      >
+                        <span className="pill status-pill status-pill-neutral">{startDateText}</span>
+                      </button>
+                      <EditableHoverIndicator className="editable-hover-indicator-inline task-detail-inline-edit-indicator" />
+                    </span>
+                  )
+                ) : (
+                  <p className="task-detail-copy" onDoubleClick={openTaskEditModal}>
+                    <span className="pill status-pill status-pill-neutral">{startDateText}</span>
                   </p>
                 )}
               </label>
@@ -1109,170 +1304,6 @@ export function TaskDetailsModal({
                   </div>
                 </details>
               </label>
-              <div className="field modal-wide task-detail-list-shell task-detail-collapsible-field">
-                <details className="task-detail-collapsible" open={canInlineEdit}>
-                  <summary className="task-detail-collapsible-summary">
-                    <span className="task-detail-collapsible-icon" aria-hidden="true"></span>
-                    <span className="task-detail-copy">Blockers</span>
-                  </summary>
-                  <div className="task-detail-collapsible-body">
-                    {canInlineEdit ? (
-                      <div className="task-details-blocker-editor">
-                        {blockerDrafts.length > 0 ? (
-                          blockerDrafts.map((blocker, index) => (
-                            <div className="task-details-blocker-editor-row" key={blocker.id ?? `blocker-${index}`}>
-                              <FilterDropdown
-                                allLabel="Type"
-                                ariaLabel="Set blocker type"
-                                buttonInlineEditField={`blocker-type-${index}`}
-                                className="task-queue-filter-menu-submenu task-details-blocker-type-menu"
-                                menuClassName="task-details-blocker-menu-popup"
-                                icon={<IconTasks />}
-                                portalMenu
-                                onChange={(selection) => {
-                                  const nextType = selection[0] as TaskBlockerType | undefined;
-                                  if (!nextType) {
-                                    return;
-                                  }
-                                  updateBlockerType(index, nextType);
-                                }}
-                                options={blockerTypeOptions}
-                                showAllOption={false}
-                                singleSelect
-                                value={[blocker.blockerType]}
-                              />
-                              {blocker.blockerType === "task" ? (
-                                <FilterDropdown
-                                allLabel="Select task"
-                                ariaLabel="Set blocker task"
-                                buttonInlineEditField={`blocker-target-${index}`}
-                                className="task-queue-filter-menu-submenu task-details-blocker-target-menu"
-                                menuClassName="task-details-blocker-menu-popup"
-                                icon={<IconTasks />}
-                                portalMenu
-                                onChange={(selection) => updateBlockerTarget(index, selection[0] ?? null)}
-                                options={blockerTaskOptions}
-                                  singleSelect
-                                  value={blocker.blockerId ? [blocker.blockerId] : []}
-                                />
-                              ) : blocker.blockerType === "part_instance" ? (
-                                <FilterDropdown
-                                allLabel="Select part"
-                                ariaLabel="Set blocker part"
-                                buttonInlineEditField={`blocker-target-${index}`}
-                                className="task-queue-filter-menu-submenu task-details-blocker-target-menu"
-                                menuClassName="task-details-blocker-menu-popup"
-                                icon={<IconParts />}
-                                portalMenu
-                                onChange={(selection) => updateBlockerTarget(index, selection[0] ?? null)}
-                                options={partOptions}
-                                  singleSelect
-                                  value={blocker.blockerId ? [blocker.blockerId] : []}
-                                />
-                              ) : blocker.blockerType === "event" ? (
-                                <FilterDropdown
-                                allLabel="Select milestone"
-                                ariaLabel="Set blocker milestone"
-                                buttonInlineEditField={`blocker-target-${index}`}
-                                className="task-queue-filter-menu-submenu task-details-blocker-target-menu"
-                                menuClassName="task-details-blocker-menu-popup"
-                                icon={<IconTasks />}
-                                portalMenu
-                                onChange={(selection) => updateBlockerTarget(index, selection[0] ?? null)}
-                                options={blockerEventOptions}
-                                  singleSelect
-                                  value={blocker.blockerId ? [blocker.blockerId] : []}
-                                />
-                              ) : (
-                                <input
-                                  aria-label={`Blocker note ${index + 1}`}
-                                  className="task-detail-inline-edit-input task-details-blocker-input"
-                                  onChange={(event) =>
-                                    updateBlockerDraft(index, { description: event.target.value })
-                                  }
-                                  placeholder="Describe blocker"
-                                  value={blocker.description}
-                                />
-                              )}
-                              <button
-                                aria-label={`Remove blocker ${index + 1}`}
-                                className="icon-button task-details-blocker-remove-button"
-                                onClick={() => removeBlockerDraft(index)}
-                                type="button"
-                              >
-                                {"\u00D7"}
-                              </button>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="task-detail-copy task-detail-empty" style={{ margin: "0.25rem 0 0" }}>
-                            No blockers yet
-                          </p>
-                        )}
-                        <div className="task-details-blocker-editor-actions">
-                          <FilterDropdown
-                            allLabel="Add blocker"
-                            ariaLabel="Add blocker"
-                            buttonInlineEditField="add-blocker"
-                            className="task-queue-filter-menu-submenu task-details-blocker-add-menu"
-                            menuClassName="task-details-blocker-menu-popup task-details-blocker-add-menu-popup"
-                            icon={<IconTasks />}
-                            portalMenu
-                            portalMenuPlacement="below"
-                            onChange={(selection) => {
-                              const nextType = (selection[0] as TaskBlockerType | undefined) ?? null;
-                              if (!nextType) {
-                                return;
-                              }
-                              addBlockerDraft(nextType);
-                            }}
-                            options={blockerTypeOptions}
-                            showAllOption={false}
-                            singleSelect
-                            value={[]}
-                          />
-                        </div>
-                      </div>
-                    ) : openBlockers.length > 0 ? (
-                      <div className="workspace-detail-list task-detail-list" style={{ marginTop: "0.5rem" }}>
-                        {openBlockerRows.map((blocker) => (
-                          <div className="workspace-detail-list-item task-detail-list-item" key={blocker.id}>
-                            <div style={{ minWidth: 0, flex: "1 1 auto", display: "grid", gap: "0.1rem" }}>
-                              <strong
-                                className="task-detail-ellipsis-reveal"
-                                data-full-text={blocker.description}
-                                style={{ color: "var(--text-title)" }}
-                              >
-                                {blocker.description}
-                              </strong>
-                              <div
-                                className="task-detail-ellipsis-reveal"
-                                data-full-text={`${blocker.blockerType.replace("_", " ")}${blocker.blockerType === "task" && blocker.blockerTaskName ? ` ? ${blocker.blockerTaskName}` : ""}${blocker.severity ? ` ? ${blocker.severity}` : ""}`}
-                                style={{ color: "var(--text-copy)", fontSize: "0.8rem" }}
-                              >
-                                {blocker.blockerType.replace("_", " ")}
-                                {blocker.blockerType === "task" && blocker.blockerTaskName
-                                  ? ` ? ${blocker.blockerTaskName}`
-                                  : ""}
-                                {blocker.severity ? ` ? ${blocker.severity}` : ""}
-                              </div>
-                            </div>
-                            <button
-                              className="secondary-action"
-                              onClick={() => void onResolveTaskBlocker(blocker.id)}
-                              type="button"
-                            >
-                              Resolve
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="task-detail-copy task-detail-empty" style={{ margin: "0.25rem 0 0" }}>None</p>
-                    )}
-                  </div>
-                </details>
-              </div>
             </div>
           </details>
 

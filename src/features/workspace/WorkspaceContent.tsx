@@ -434,6 +434,7 @@ export function WorkspaceContent({
     isNonRobotProject && inventoryView === "parts" ? "materials" : inventoryView;
   const previousTaskViewRef = useRef(taskView);
   const previousWorklogsViewRef = useRef(worklogsView);
+  const previousReportsViewRef = useRef(reportsView);
   const previousManufacturingViewRef = useRef(manufacturingView);
   const previousInventoryViewRef = useRef(effectiveInventoryView);
 
@@ -441,6 +442,11 @@ export function WorkspaceContent({
     previousTaskViewRef.current,
     taskView,
     TASK_VIEW_ORDER,
+  );
+  const reportsSwipeDirection = getSwipeDirection(
+    previousReportsViewRef.current,
+    reportsView,
+    REPORTS_VIEW_ORDER,
   );
   const manufacturingSwipeDirection = getSwipeDirection(
     previousManufacturingViewRef.current,
@@ -465,6 +471,10 @@ export function WorkspaceContent({
   useEffect(() => {
     previousWorklogsViewRef.current = worklogsView;
   }, [worklogsView]);
+
+  useEffect(() => {
+    previousReportsViewRef.current = reportsView;
+  }, [reportsView]);
 
   useEffect(() => {
     previousManufacturingViewRef.current = manufacturingView;
@@ -627,12 +637,30 @@ export function WorkspaceContent({
         <WorkspaceSubPanel
           description={SUBVIEW_INTERACTION_GUIDANCE.reports}
           disableAnimations={disablePanelAnimations}
-          isActive
+          isActive={reportsView === "qa"}
+          swipeDirection={reportsSwipeDirection}
         >
           <ReportsView
             bootstrap={bootstrap}
             openCreateEventReportModal={openCreateEventReportModal}
             openCreateQaReportModal={openCreateQaReportModal}
+            openTaskDetailsModal={openTimelineTaskDetailsModal}
+            view="qa"
+          />
+        </WorkspaceSubPanel>
+
+        <WorkspaceSubPanel
+          description={SUBVIEW_INTERACTION_GUIDANCE.reports}
+          disableAnimations={disablePanelAnimations}
+          isActive={reportsView === "event-results"}
+          swipeDirection={reportsSwipeDirection}
+        >
+          <ReportsView
+            bootstrap={bootstrap}
+            openCreateEventReportModal={openCreateEventReportModal}
+            openCreateQaReportModal={openCreateQaReportModal}
+            openTaskDetailsModal={openTimelineTaskDetailsModal}
+            view="event-results"
           />
         </WorkspaceSubPanel>
       </WorkspaceSectionPanel>

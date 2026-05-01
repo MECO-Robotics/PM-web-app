@@ -1,32 +1,21 @@
-import {
-  useMemo,
-  useState,
-  type CSSProperties,
-  type KeyboardEvent,
-  type MouseEvent,
-} from "react";
+import { useMemo, useState } from "react";
 
-import { formatDate } from "@/lib/appUtils";
 import type { BootstrapPayload, ManufacturingItemRecord } from "@/types";
 import { IconManufacturing, IconPerson, IconTasks } from "@/components/shared";
 import {
-  ColumnFilterDropdown,
   CompactFilterMenu,
-  EditableHoverIndicator,
   type FilterSelection,
   FilterDropdown,
   PaginationControls,
-  RequestedItemMeta,
   SearchToolbarInput,
-  TableCell,
   filterSelectionIncludes,
   useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
-import { getStatusPillClassName } from "@/features/workspace/shared";
 import type { MembersById, SubsystemsById } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import { MANUFACTURING_STATUS_OPTIONS } from "@/features/workspace/shared";
+import { ManufacturingKanbanBoard } from "./ManufacturingKanbanBoard";
 
 interface ManufacturingQueueViewProps {
   activePersonFilter: FilterSelection;
@@ -71,7 +60,6 @@ export function ManufacturingQueueView({
   const [requester, setRequester] = useState<FilterSelection>([]);
   const [status, setStatus] = useState<FilterSelection>([]);
   const [material, setMaterial] = useState<FilterSelection>([]);
-  const [pendingQuickActionKey, setPendingQuickActionKey] = useState<string | null>(null);
 
   const uniqueMaterials = useMemo(() => {
     const materials =
@@ -113,45 +101,6 @@ export function ManufacturingQueueView({
     status,
     subsystem,
   ]);
-
-  const gridTemplate = showInHouseColumn
-    ? "minmax(200px, 2.5fr) 1fr 0.6fr 1fr 1fr 1fr 1fr 1fr"
-    : "minmax(200px, 2.5fr) 1fr 0.6fr 1fr 1fr 1fr 1fr";
-  const canShowMentorQuickActions = Boolean(showMentorQuickActions && onQuickStatusChange);
-
-  const handleRowKeyDown = (
-    event: KeyboardEvent<HTMLDivElement>,
-    item: ManufacturingItemRecord,
-  ) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onEdit(item);
-    }
-  };
-
-  const handleQuickStatusChange = async (
-    event: MouseEvent<HTMLButtonElement>,
-    item: ManufacturingItemRecord,
-    nextStatus: ManufacturingItemRecord["status"],
-  ) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!onQuickStatusChange) {
-      return;
-    }
-
-    const actionKey = `${item.id}:${nextStatus}`;
-    if (pendingQuickActionKey) {
-      return;
-    }
-
-    setPendingQuickActionKey(actionKey);
-    try {
-      await onQuickStatusChange(item, nextStatus);
-    } finally {
-      setPendingQuickActionKey(null);
-    }
-  };
 
   const tutorialTarget = (suffix: string) =>
     tutorialTargetPrefix ? `${tutorialTargetPrefix}-${suffix}` : undefined;
@@ -253,163 +202,35 @@ export function ManufacturingQueueView({
         </div>
       </div>
 
-      <div className={`table-shell ${manufacturingFilterMotionClass}`}>
-        <div
-          className="ops-table ops-table-header manufacturing-table"
-          style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
-        >
-          <span className="table-column-header-cell">
-            <span className="table-column-title">Part</span>
-            <ColumnFilterDropdown
-              allLabel="All subsystems"
-              ariaLabel={`Filter ${title} by subsystem`}
-              onChange={setSubsystem}
-              options={bootstrap.subsystems}
-              value={subsystem}
-            />
-            <ColumnFilterDropdown
-              allLabel="All requesters"
-              ariaLabel={`Filter ${title} by requester`}
-              onChange={setRequester}
-              options={bootstrap.members}
-              value={requester}
-            />
-          </span>
-          <span className="table-column-header-cell">
-            <span className="table-column-title">Material</span>
-            <ColumnFilterDropdown
-              allLabel="All materials"
-              ariaLabel={`Filter ${title} by material`}
-              onChange={setMaterial}
-              options={uniqueMaterials}
-              value={material}
-            />
-          </span>
-          <span>Qty</span>
-          <span>Batch</span>
-          {showInHouseColumn ? <span>Source</span> : null}
-          <span>Due</span>
-          <span className="table-column-header-cell">
-            <span className="table-column-title">Status</span>
-            <ColumnFilterDropdown
-              allLabel="All statuses"
-              ariaLabel={`Filter ${title} by status`}
-              onChange={setStatus}
-              options={MANUFACTURING_STATUS_OPTIONS}
-              value={status}
-            />
-          </span>
-          <span>Mentor</span>
-        </div>
-
-        {manufacturingPagination.pageItems.map((item) => {
-          const approveActionKey = `${item.id}:approved`;
-          const completeActionKey = `${item.id}:complete`;
-          const isApprovePending = pendingQuickActionKey === approveActionKey;
-          const isCompletePending = pendingQuickActionKey === completeActionKey;
-          const isAnyActionPending = Boolean(pendingQuickActionKey);
-
-          const rowContent = (
-            <>
-              <span className="queue-title table-cell table-cell-primary" data-label="Part">
-                <RequestedItemMeta item={item} membersById={membersById} subsystemsById={subsystemsById} />
-              </span>
-              <TableCell label="Material">{item.material}</TableCell>
-              <TableCell label="Qty">{item.quantity}</TableCell>
-              <TableCell label="Batch">{item.batchLabel ?? "Unbatched"}</TableCell>
-              {showInHouseColumn ? (
-                <TableCell label="Source">{item.inHouse ? "In-house" : "Outsourced"}</TableCell>
-              ) : null}
-              <TableCell label="Due">{formatDate(item.dueDate)}</TableCell>
-              <TableCell label="Status" valueClassName="table-cell-pill">
-                <span className={getStatusPillClassName(item.status)}>{item.status.replace("-", " ")}</span>
-              </TableCell>
-              <TableCell label="Mentor">
-                {canShowMentorQuickActions ? (
-                  <span
-                    style={{
-                      alignItems: "center",
-                      display: "inline-flex",
-                      flexWrap: "wrap",
-                      gap: "0.35rem",
-                    }}
-                  >
-                    <span>{item.mentorReviewed ? "Reviewed" : "Pending"}</span>
-                    <button
-                      className="icon-button"
-                      data-tutorial-target={tutorialTarget("approve-job-button")}
-                      disabled={isAnyActionPending || item.status !== "requested"}
-                      onClick={(event) => handleQuickStatusChange(event, item, "approved")}
-                      style={{ padding: "0.15rem 0.4rem" }}
-                      type="button"
-                    >
-                      {isApprovePending ? "Approving..." : "Approve"}
-                    </button>
-                    <button
-                      className="icon-button"
-                      data-tutorial-target={tutorialTarget("complete-job-button")}
-                      disabled={isAnyActionPending || item.status === "complete"}
-                      onClick={(event) => handleQuickStatusChange(event, item, "complete")}
-                      style={{ padding: "0.15rem 0.4rem" }}
-                      type="button"
-                    >
-                      {isCompletePending ? "Completing..." : "Complete"}
-                    </button>
-                  </span>
-                ) : (
-                  item.mentorReviewed ? "Reviewed" : "Pending"
-                )}
-              </TableCell>
-              <EditableHoverIndicator />
-            </>
-          );
-
-          const rowStyle = {
-            "--workspace-grid-template": gridTemplate,
-          } as CSSProperties;
-          const rowClassName =
-            "ops-table ops-row manufacturing-table ops-button-row editable-hover-target editable-hover-target-row";
-
-          return canShowMentorQuickActions ? (
-            <div
-              className={rowClassName}
-              data-tutorial-target={tutorialTarget("edit-job-row")}
-              key={item.id}
-              onClick={() => onEdit(item)}
-              onKeyDown={(event) => handleRowKeyDown(event, item)}
-              role="button"
-              style={rowStyle}
-              tabIndex={0}
-            >
-              {rowContent}
-            </div>
+      <div className={`task-queue-board-shell-frame ${manufacturingFilterMotionClass}`}>
+        <div className="table-shell task-queue-board-shell">
+          {filteredItems.length === 0 ? (
+            <p className="empty-state">{emptyStateMessage}</p>
           ) : (
-            <button
-              className={rowClassName}
-              data-tutorial-target={tutorialTarget("edit-job-row")}
-              key={item.id}
-              onClick={() => onEdit(item)}
-              style={rowStyle}
-              type="button"
-            >
-              {rowContent}
-            </button>
-          );
-        })}
-
-        {filteredItems.length === 0 ? <p className="empty-state">{emptyStateMessage}</p> : null}
-        <PaginationControls
-          label={title}
-          onPageChange={manufacturingPagination.setPage}
-          onPageSizeChange={manufacturingPagination.setPageSize}
-          page={manufacturingPagination.page}
-          pageSize={manufacturingPagination.pageSize}
-          pageSizeOptions={manufacturingPagination.pageSizeOptions}
-          rangeEnd={manufacturingPagination.rangeEnd}
-          rangeStart={manufacturingPagination.rangeStart}
-          totalItems={manufacturingPagination.totalItems}
-          totalPages={manufacturingPagination.totalPages}
-        />
+            <ManufacturingKanbanBoard
+              items={manufacturingPagination.pageItems}
+              membersById={membersById}
+              onEdit={onEdit}
+              onQuickStatusChange={onQuickStatusChange}
+              showInHouseDetails={showInHouseColumn}
+              showMentorQuickActions={showMentorQuickActions}
+              subsystemsById={subsystemsById}
+              tutorialTarget={tutorialTargetPrefix ? tutorialTarget : undefined}
+            />
+          )}
+          <PaginationControls
+            label={title}
+            onPageChange={manufacturingPagination.setPage}
+            onPageSizeChange={manufacturingPagination.setPageSize}
+            page={manufacturingPagination.page}
+            pageSize={manufacturingPagination.pageSize}
+            pageSizeOptions={manufacturingPagination.pageSizeOptions}
+            rangeEnd={manufacturingPagination.rangeEnd}
+            rangeStart={manufacturingPagination.rangeStart}
+            totalItems={manufacturingPagination.totalItems}
+            totalPages={manufacturingPagination.totalPages}
+          />
+        </div>
       </div>
     </section>
   );
