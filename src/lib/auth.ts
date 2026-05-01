@@ -783,6 +783,7 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
       status: task.status ?? "not-started",
       dependencyIds: task.dependencyIds ?? [],
       blockers: task.blockers ?? [],
+      isBlocked: (task.blockers ?? []).length > 0,
       linkedManufacturingIds: task.linkedManufacturingIds ?? [],
       linkedPurchaseIds: task.linkedPurchaseIds ?? [],
       estimatedHours: toNumberOrZero(task.estimatedHours),
@@ -816,13 +817,23 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
     current.push(blocker.description ?? "");
     blockerDescriptionsByTaskId.set(blocker.blockedTaskId, current);
   });
-  const normalizedTasks = tasks.map((task) => ({
-    ...task,
-    dependencyIds:
-      task.dependencyIds.length > 0 ? uniqueIds(task.dependencyIds) : dependencyIdsByTaskId.get(task.id) ?? [],
-    blockers:
-      task.blockers.length > 0 ? uniqueIds(task.blockers) : blockerDescriptionsByTaskId.get(task.id) ?? [],
-  }));
+  const normalizedTasks = tasks.map((task) => {
+    const dependencyIds =
+      task.dependencyIds.length > 0
+        ? uniqueIds(task.dependencyIds)
+        : dependencyIdsByTaskId.get(task.id) ?? [];
+    const blockers =
+      task.blockers.length > 0
+        ? uniqueIds(task.blockers)
+        : blockerDescriptionsByTaskId.get(task.id) ?? [];
+
+    return {
+      ...task,
+      dependencyIds,
+      blockers,
+      isBlocked: blockers.length > 0,
+    };
+  });
 
   return {
     seasons,

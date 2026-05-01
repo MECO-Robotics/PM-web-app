@@ -1,4 +1,5 @@
 export type MemberRole = "student" | "lead" | "mentor" | "admin" | "external";
+// PATCH_TEST_MARKER
 export type EventType =
   | "practice"
   | "competition"
@@ -98,6 +99,7 @@ export interface MemberRecord {
   photoUrl?: string;
   role: MemberRole;
   elevated: boolean;
+  disciplineId?: string | null;
   seasonId: string;
   activeSeasonIds?: string[];
 }
@@ -391,6 +393,7 @@ export interface TaskRecord {
   planningState?: TaskPlanningState;
   dependencyIds: string[];
   blockers: string[];
+  isBlocked?: boolean;
   linkedManufacturingIds: string[];
   linkedPurchaseIds: string[];
   estimatedHours: number;
@@ -582,6 +585,7 @@ export interface MemberPayload {
   photoUrl: string;
   role: MemberRole;
   elevated: boolean;
+  disciplineId?: string | null;
   activeSeasonIds?: string[];
 }
 
