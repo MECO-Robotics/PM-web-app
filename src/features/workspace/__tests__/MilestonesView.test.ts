@@ -89,6 +89,7 @@ function createBootstrap(): BootstrapPayload {
         targetEventId: "event-1",
         dependencyIds: [],
         blockers: [],
+        isBlocked: false,
         linkedManufacturingIds: [],
         linkedPurchaseIds: [],
         estimatedHours: 0,
@@ -120,6 +121,7 @@ function createBootstrap(): BootstrapPayload {
         targetEventId: "event-2",
         dependencyIds: [],
         blockers: [],
+        isBlocked: false,
         linkedManufacturingIds: [],
         linkedPurchaseIds: [],
         estimatedHours: 0,
@@ -146,6 +148,25 @@ function createBootstrap(): BootstrapPayload {
 }
 
 describe("MilestonesView", () => {
+  it("renders milestones as kanban columns grouped by type", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(MilestonesView, {
+        activePersonFilter: [],
+        bootstrap: createBootstrap(),
+        isAllProjectsView: false,
+        onDeleteTimelineEvent: jest.fn(),
+        onSaveTimelineEvent: jest.fn(),
+        subsystemsById: {},
+      }),
+    );
+
+    expect(markup).toContain("task-queue-board");
+    expect(markup).toContain("task-queue-board-column");
+    expect(markup).toContain("task-queue-board-card");
+    expect(markup).toContain("Competition");
+    expect(markup).toContain("Deadline");
+  });
+
   it("renders type chips with dark-mode-safe palette variables", () => {
     const markup = renderToStaticMarkup(
       React.createElement(MilestonesView, {

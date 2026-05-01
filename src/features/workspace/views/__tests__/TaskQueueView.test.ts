@@ -5,8 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
 import { TaskQueueView } from "@/features/workspace/views";
-import { getTaskQueueCardContextLabel } from "@/features/workspace/views/TaskQueueView";
-import { TASK_QUEUE_LAZY_LOAD_BATCH_SIZE } from "@/features/workspace/views/taskQueueBoard";
+import { getTaskQueueCardContextLabel } from "@/features/workspace/views/taskQueue/taskQueueKanban";
+import { TASK_QUEUE_LAZY_LOAD_BATCH_SIZE } from "@/features/workspace/views/taskQueue/taskQueueKanban";
 import type { BootstrapPayload } from "@/types";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -16,7 +16,7 @@ type Task = BootstrapPayload["tasks"][number];
 function createTask(index: number, overrides: Partial<Task> = {}): Task {
   const day = String(index).padStart(2, "0");
 
-  return {
+  const task = {
     id: `task-${index}`,
     projectId: "project-1",
     workstreamId: null,
@@ -55,6 +55,11 @@ function createTask(index: number, overrides: Partial<Task> = {}): Task {
     requiresDocumentation: false,
     documentationLinked: false,
     ...overrides,
+  };
+
+  return {
+    ...task,
+    isBlocked: (task.blockers ?? []).length > 0,
   };
 }
 

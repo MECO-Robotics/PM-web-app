@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 
 import { IconParts, IconSort, IconTasks } from "@/components/shared";
@@ -9,16 +9,12 @@ import type {
   EventType,
 } from "@/types";
 import {
-  ColumnFilterDropdown,
   CompactFilterMenu,
-  EditableHoverIndicator,
   formatFilterSelectionLabel,
   type FilterSelection,
   FilterDropdown,
   SearchToolbarInput,
-  TableCell,
   useFilterChangeMotionClass,
-  useWorkspaceCompactMode,
 } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import { getStatusPillClassName } from "@/features/workspace/shared";
@@ -39,7 +35,6 @@ import { formatDate } from "@/lib/appUtils";
 import {
   DEFAULT_EVENT_TYPE,
   EVENT_TYPE_STYLES,
-  getEventTypeStyle,
 } from "@/features/workspace/shared/eventStyles";
 import {
   buildDateTime,
@@ -56,9 +51,9 @@ import {
 import {
   buildMilestoneProjectLabels,
   filterAndSortMilestones,
-  formatMilestoneDateTime,
   type MilestoneSortField,
 } from "./milestonesViewUtils";
+import { MilestoneKanbanBoard } from "./MilestoneKanbanBoard";
 
 interface MilestonesViewProps {
   activePersonFilter: FilterSelection;
@@ -118,7 +113,6 @@ export function MilestonesView({
   const [eventError, setEventError] = useState<string | null>(null);
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
-  const isCompactToolbar = useWorkspaceCompactMode();
 
   useEffect(() => {
     if (!isAllProjectsView && projectFilter.length > 0) {
@@ -160,18 +154,6 @@ export function MilestonesView({
     () => getMilestoneSubsystemOptions(bootstrap.subsystems, milestoneDraft.projectIds),
     [bootstrap.subsystems, milestoneDraft.projectIds],
   );
-
-  const showProjectCol = isAllProjectsView;
-  const gridTemplate = [
-    showProjectCol ? "1fr" : null,
-    "minmax(220px, 2.5fr)",
-    "1fr",
-    "1fr",
-    "1fr",
-    "1.5fr",
-  ]
-    .filter(Boolean)
-    .join(" ");
 
   const processedEvents = useMemo(() => {
     return filterAndSortMilestones({
@@ -377,37 +359,6 @@ export function MilestonesView({
     }
   };
 
-  const toggleSort = (field: MilestoneSortField) => {
-    if (sortField === field) {
-      setSortOrder((current) => (current === "asc" ? "desc" : "asc"));
-      return;
-    }
-
-    setSortField(field);
-    setSortOrder("asc");
-  };
-
-  const getSortIcon = (field: MilestoneSortField) => {
-    if (sortField !== field) {
-      return "";
-    }
-
-    return sortOrder === "asc" ? "^" : "v";
-  };
-
-  const renderSortLabel = (field: MilestoneSortField, label: string) => {
-    const sortIcon = getSortIcon(field);
-
-    return (
-      <>
-        <span aria-hidden="true" className="table-sort-arrow">
-          {sortIcon}
-        </span>
-        <span>{label}</span>
-      </>
-    );
-  };
-
   const modalPortalTarget =
     typeof document !== "undefined"
       ? ((document.querySelector(".page-shell") as HTMLElement | null) ?? document.body)
@@ -475,51 +426,49 @@ export function MilestonesView({
             ]}
           />
 
-          {isCompactToolbar ? (
-            <CompactFilterMenu
-              activeCount={milestoneSortIsDefault ? 0 : 1}
-              ariaLabel="Sort milestones"
-              buttonLabel="Sort"
-              className="task-queue-sort-menu"
-              icon={<IconSort />}
-              items={[
-                {
-                  label: "Sort by",
-                  content: (
-                    <select
-                      aria-label="Sort milestones by"
-                      className="task-queue-sort-menu-select"
-                      onChange={(event) => setSortField(event.target.value as MilestoneSortField)}
-                      value={sortField}
-                    >
-                      {MILESTONE_SORT_OPTIONS.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.name}
-                        </option>
-                      ))}
-                    </select>
-                  ),
-                },
-                {
-                  label: "Direction",
-                  content: (
-                    <select
-                      aria-label="Sort direction"
-                      className="task-queue-sort-menu-select"
-                      onChange={(event) => setSortOrder(event.target.value as "asc" | "desc")}
-                      value={sortOrder}
-                    >
-                      {SORT_DIRECTION_OPTIONS.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.name}
-                        </option>
-                      ))}
-                    </select>
-                  ),
-                },
-              ]}
-            />
-          ) : null}
+          <CompactFilterMenu
+            activeCount={milestoneSortIsDefault ? 0 : 1}
+            ariaLabel="Sort milestones"
+            buttonLabel="Sort"
+            className="task-queue-sort-menu"
+            icon={<IconSort />}
+            items={[
+              {
+                label: "Sort by",
+                content: (
+                  <select
+                    aria-label="Sort milestones by"
+                    className="task-queue-sort-menu-select"
+                    onChange={(event) => setSortField(event.target.value as MilestoneSortField)}
+                    value={sortField}
+                  >
+                    {MILESTONE_SORT_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              },
+              {
+                label: "Direction",
+                content: (
+                  <select
+                    aria-label="Sort direction"
+                    className="task-queue-sort-menu-select"
+                    onChange={(event) => setSortOrder(event.target.value as "asc" | "desc")}
+                    value={sortOrder}
+                  >
+                    {SORT_DIRECTION_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              },
+            ]}
+          />
 
           <button
             aria-label="Add milestone"
@@ -535,105 +484,16 @@ export function MilestonesView({
       </div>
 
       <div className={`table-shell ${milestoneFilterMotionClass}`}>
-        <div
-          className="queue-table queue-table-header"
-          style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
-        >
-          {showProjectCol ? (
-            <span className="table-column-header-cell">
-              <span className="table-column-title">Project</span>
-              <ColumnFilterDropdown
-                allLabel="All projects"
-                ariaLabel="Filter milestones by project"
-                onChange={setProjectFilter}
-                options={bootstrap.projects}
-                value={projectFilter}
-              />
-            </span>
-          ) : null}
-          <button className="table-sort-button" onClick={() => toggleSort("title")} type="button">
-            {renderSortLabel("title", "Milestone")}
-          </button>
-          <span className="table-column-header-cell">
-            <button className="table-sort-button" onClick={() => toggleSort("type")} type="button">
-              {renderSortLabel("type", "Type")}
-            </button>
-            <ColumnFilterDropdown
-              allLabel="All types"
-              ariaLabel="Filter milestones by type"
-              onChange={setTypeFilter}
-              options={EVENT_TYPE_OPTIONS}
-              value={typeFilter}
-            />
-          </span>
-          <button
-            className="table-sort-button"
-            onClick={() => toggleSort("startDateTime")}
-            type="button"
-          >
-            {renderSortLabel("startDateTime", "Start")}
-          </button>
-          <span>End</span>
-          <span>Related subsystems</span>
-        </div>
-
-        {processedEvents.map((event) => {
-          const eventStyle = getEventTypeStyle(event.type);
-          const relatedSubsystems = event.relatedSubsystemIds
-            .map((subsystemId) => subsystemsById[subsystemId]?.name ?? "Unknown subsystem")
-            .join(", ");
-
-          return (
-            <button
-              className="queue-table queue-row editable-hover-target editable-hover-target-row"
-              data-tutorial-target="edit-milestone-row"
-              key={event.id}
-              onClick={() => openEditEventModal(event)}
-              style={{ "--workspace-grid-template": gridTemplate } as CSSProperties}
-              type="button"
-            >
-              {showProjectCol ? (
-                <TableCell label="Project">
-                  {projectLabelByEventId[event.id] ?? "All projects"}
-                </TableCell>
-              ) : null}
-              <span
-                className="queue-title table-cell table-cell-primary queue-title-stack"
-                data-label="Milestone"
-              >
-                <strong>{event.title}</strong>
-                <small>{event.description.trim() || "No description"}</small>
-              </span>
-              <TableCell label="Type" valueClassName="table-cell-pill">
-                <span
-                  className="pill status-pill milestone-type-pill"
-                  style={{
-                    "--milestone-type-chip-bg": eventStyle.chipBackground,
-                    "--milestone-type-chip-border": eventStyle.columnBorder,
-                    "--milestone-type-chip-text": eventStyle.chipText,
-                    "--milestone-type-chip-bg-dark": eventStyle.darkChipBackground,
-                    "--milestone-type-chip-border-dark": eventStyle.darkColumnBorder,
-                    "--milestone-type-chip-text-dark": eventStyle.darkChipText,
-                  } as CSSProperties}
-                >
-                  {eventStyle.label}
-                </span>
-              </TableCell>
-              <TableCell label="Start">{formatMilestoneDateTime(event.startDateTime)}</TableCell>
-              <TableCell label="End">
-                {event.endDateTime ? formatMilestoneDateTime(event.endDateTime) : "No end"}
-              </TableCell>
-              <TableCell label="Related subsystems">
-                {relatedSubsystems.length > 0 ? relatedSubsystems : "All subsystems"}
-              </TableCell>
-              <EditableHoverIndicator />
-            </button>
-          );
-        })}
-
-        {processedEvents.length === 0 ? (
+        {processedEvents.length > 0 ? (
+          <MilestoneKanbanBoard
+            events={processedEvents}
+            onOpenEvent={openEditEventModal}
+            projectLabelByEventId={projectLabelByEventId}
+            subsystemsById={subsystemsById}
+          />
+        ) : (
           <p className="empty-state">No milestones match the current filters.</p>
-        ) : null}
+        )}
       </div>
 
       {eventModalMode && modalPortalTarget

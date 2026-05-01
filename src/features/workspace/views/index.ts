@@ -9,7 +9,7 @@ export { ReportsView } from "./ReportsView";
 export { RosterView } from "./RosterView";
 export { RisksView } from "./RisksView";
 export { SubsystemsView } from "./SubsystemsView";
-export { TaskQueueView } from "./TaskQueueView";
+export * from "./taskQueue";
 export * from "./timeline";
 export { WorkflowView } from "./WorkflowView";
 export { WorkLogsView } from "./WorkLogsView";
