@@ -3,11 +3,11 @@ import { createPortal } from "react-dom";
 import type { BootstrapPayload, EventRecord, EventType } from "@/types";
 import {
   EVENT_TYPE_OPTIONS,
-} from "@/features/workspace/shared/eventStyles";
+} from "@/features/workspace/shared/events";
 import {
   reconcileMilestoneSubsystemIds,
-} from "@/features/workspace/shared/eventProjectUtils";
-import type { TimelineEventDraft } from "@/features/workspace/shared/timelineEventHelpers";
+} from "@/features/workspace/shared/events";
+import type { TimelineEventDraft } from "@/features/workspace/shared/timeline";
 
 interface TimelineMilestoneModalProps {
   activeDayEvents: EventRecord[];
@@ -390,3 +390,4 @@ export const TimelineMilestoneModal: React.FC<TimelineMilestoneModalProps> = ({
     portalTarget,
   );
 };
+

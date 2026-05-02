@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import type React from "react";
 import type { BootstrapPayload, EventPayload, EventRecord } from "@/types";
-import { getEventProjectIds } from "@/features/workspace/shared/eventProjectUtils";
-import { DEFAULT_EVENT_TYPE } from "@/features/workspace/shared/eventStyles";
+import { getEventProjectIds } from "@/features/workspace/shared/events";
+import { DEFAULT_EVENT_TYPE } from "@/features/workspace/shared/events";
 import {
   buildDateTime,
   compareDateTimes,
   datePortion,
   localTodayDate,
   timePortion,
-} from "@/features/workspace/shared/timelineDateUtils";
+} from "@/features/workspace/shared/timeline";
 import {
   emptyTimelineEventDraft,
   timelineEventDraftFromRecord,
   type TimelineEventDraft,
-} from "@/features/workspace/shared/timelineEventHelpers";
+} from "@/features/workspace/shared/timeline";
 
 interface UseTimelineEventModalArgs {
   dayEventsByDate: Record<string, EventRecord[]>;
@@ -255,3 +255,4 @@ export function useTimelineEventModal({
     switchMilestoneCreateToTask,
   };
 }
+

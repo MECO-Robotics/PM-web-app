@@ -4,7 +4,7 @@ export {
   CompactFilterMenu,
   SearchToolbarInput,
   type CompactFilterMenuItem,
-} from "./workspaceFilters";
+} from "./filters";
 export {
   type FilterSelection,
   filterSelectionIncludes,
@@ -17,11 +17,11 @@ export {
   pruneFilterSelection,
   useFilterChangeMotionClass,
   useWorkspaceCompactMode,
-} from "./workspaceFilterUtils";
+} from "./filters";
 export {
   EditableHoverIndicator,
   PaginationControls,
   RequestedItemMeta,
   TableCell,
   useWorkspacePagination,
-} from "./workspaceTableChrome";
+} from "./table";

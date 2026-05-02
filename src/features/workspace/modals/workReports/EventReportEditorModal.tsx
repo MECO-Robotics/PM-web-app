@@ -1,6 +1,6 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import type { BootstrapPayload, TestResultPayload } from "@/types";
-import { PhotoUploadField } from "@/features/workspace/shared/PhotoUploadField";
+import { PhotoUploadField } from "@/features/workspace/shared/media";
 
 interface EventReportEditorModalProps {
   bootstrap: BootstrapPayload;
@@ -182,3 +182,4 @@ export function EventReportEditorModal({
     </div>
   );
 }
+

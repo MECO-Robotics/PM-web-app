@@ -1,6 +1,7 @@
 @import url("./shell/layout.css");
 @import url("./shell/chrome.css");
 @import url("./shell/filters.css");
+@import url("./shell/filtersControls.css");
 @import url("./shell/profile.css");
 @import url("./shell/sidebar.css");
 @import url("./shell/workspace.css");

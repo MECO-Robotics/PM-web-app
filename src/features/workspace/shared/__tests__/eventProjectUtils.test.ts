@@ -4,7 +4,7 @@ import {
   getEventProjectIds,
   getMilestoneSubsystemOptions,
   reconcileMilestoneSubsystemIds,
-} from "@/features/workspace/shared/eventProjectUtils";
+} from "@/features/workspace/shared/events";
 import type { BootstrapPayload, EventRecord } from "@/types";
 
 const subsystems: BootstrapPayload["subsystems"] = [
@@ -91,3 +91,4 @@ describe("event project helpers", () => {
     ).toEqual(["subsystem-b"]);
   });
 });
+

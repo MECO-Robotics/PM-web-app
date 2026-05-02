@@ -1,7 +1,7 @@
 import {
   WORKSPACE_COLOR_PALETTE,
   resolveWorkspaceColor,
-} from "@/features/workspace/shared/workspaceColors";
+} from "@/features/workspace/shared/model";
 
 export function WorkspaceColorField({
   label,
@@ -96,3 +96,4 @@ export function WorkspaceColorField({
     </div>
   );
 }
+

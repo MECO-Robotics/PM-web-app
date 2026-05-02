@@ -9,11 +9,11 @@ import {
   getTaskOpenBlockersForTask,
   getTaskPlanningState,
   getTaskWaitingOnDependencies,
-} from "@/features/workspace/shared/taskPlanning";
+} from "@/features/workspace/shared/task/taskPlanning";
 import { getStatusPillClassName } from "@/features/workspace/shared";
-import { reconcileMilestoneSubsystemIds } from "@/features/workspace/shared/eventProjectUtils";
-import { EVENT_TYPE_STYLES } from "@/features/workspace/shared/eventStyles";
-import type { TimelineEventDraft } from "@/features/workspace/shared/timelineEventHelpers";
+import { reconcileMilestoneSubsystemIds } from "@/features/workspace/shared/events";
+import { EVENT_TYPE_STYLES } from "@/features/workspace/shared/events";
+import type { TimelineEventDraft } from "@/features/workspace/shared/timeline";
 
 type TaskPlanningState = "blocked" | "at-risk" | "waiting-on-dependency" | "ready" | "overdue";
 
@@ -479,3 +479,4 @@ export function MilestonesEventModal({
     modalPortalTarget,
   );
 }
+

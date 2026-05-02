@@ -18,7 +18,7 @@ import type {
   ManufacturingItemPayload,
 } from "@/types";
 import { normalizeIteration } from "@/lib/appUtils/common";
-import { resolveWorkspaceColor } from "@/features/workspace/shared/workspaceColors";
+import { resolveWorkspaceColor } from "@/features/workspace/shared/model";
 import { uniqueIds } from "./internal";
 
 export const purchaseToPayload = (item: PurchaseItemRecord): PurchaseItemPayload => ({
@@ -92,3 +92,4 @@ export const partInstanceToPayload = (item: PartInstanceRecord): PartInstancePay
   mechanismId: item.mechanismId ?? null,
   photoUrl: item.photoUrl ?? "",
 });
+

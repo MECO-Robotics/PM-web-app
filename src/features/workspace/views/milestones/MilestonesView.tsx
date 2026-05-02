@@ -3,24 +3,24 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { BootstrapPayload, EventPayload, EventRecord } from "@/types";
 import { formatFilterSelectionLabel, type FilterSelection, useFilterChangeMotionClass } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
-import { groupTasksByPlanningState } from "@/features/workspace/shared/taskPlanning";
+import { groupTasksByPlanningState } from "@/features/workspace/shared/task/taskPlanning";
 import {
   getEventProjectIds,
   getMilestoneSubsystemOptions,
-} from "@/features/workspace/shared/eventProjectUtils";
-import { DEFAULT_EVENT_TYPE } from "@/features/workspace/shared/eventStyles";
+} from "@/features/workspace/shared/events";
+import { DEFAULT_EVENT_TYPE } from "@/features/workspace/shared/events";
 import {
   buildDateTime,
   compareDateTimes,
   datePortion,
   localTodayDate,
   timePortion,
-} from "@/features/workspace/shared/timelineDateUtils";
+} from "@/features/workspace/shared/timeline";
 import {
   emptyTimelineEventDraft,
   timelineEventDraftFromRecord,
   type TimelineEventDraft,
-} from "@/features/workspace/shared/timelineEventHelpers";
+} from "@/features/workspace/shared/timeline";
 import {
   buildMilestoneProjectLabels,
   filterAndSortMilestones,
@@ -394,3 +394,4 @@ export function MilestonesView({
     </section>
   );
 }
+

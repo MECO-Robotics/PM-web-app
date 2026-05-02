@@ -7,9 +7,9 @@ import {
   IconSort,
 } from "@/components/shared";
 import { SearchToolbarInput } from "@/features/workspace/shared/WorkspaceViewShared";
-import { CompactFilterMenu } from "@/features/workspace/shared/workspaceCompactFilterMenu";
-import type { FilterSelection } from "@/features/workspace/shared/workspaceFilterUtils";
-import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/workspaceTypes";
+import { CompactFilterMenu } from "@/features/workspace/shared/filters";
+import type { FilterSelection } from "@/features/workspace/shared/filters";
+import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model";
 import { TASK_QUEUE_LAZY_LOAD_BATCH_SIZE } from "./taskQueueKanban";
 import { TaskQueueKanbanBoard } from "./TaskQueueKanbanBoard";
 import { TaskQueueCompactFilterMenu } from "./TaskQueueCompactFilterMenu";
@@ -385,3 +385,4 @@ export function TaskQueueView({
     </section>
   );
 }
+

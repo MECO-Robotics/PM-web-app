@@ -1,5 +1,6 @@
 @import url("./workspace/base.css");
 @import url("./workspace/timeline.css");
+@import url("./workspace/timelineTaskStatus.css");
 @import url("./workspace/taskQueueBoard.css");
 @import url("./workspace/taskQueueBoardAdvanced.css");
 @import url("./workspace/tables.css");

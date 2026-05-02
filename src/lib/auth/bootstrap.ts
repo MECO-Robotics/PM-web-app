@@ -1,4 +1,4 @@
-import { requestApi } from "./core";
+import { requestApi } from "./core/request";
 import { normalizeBootstrapPayload } from "./bootstrap/payload";
 import type { BootstrapPayload } from "@/types";
 

@@ -1,0 +1,73 @@
+
+.page-shell.dark-mode .timeline-column-overlay-toggle:hover,
+.page-shell.dark-mode .timeline-column-overlay-toggle:focus-visible {
+  border-color: rgba(191, 219, 254, 0.44);
+  color: var(--text-title);
+}
+
+.timeline-roster-filter {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.timeline-roster-filter.toolbar-filter-dropdown {
+  max-width: 164px;
+}
+
+.timeline-roster-filter .toolbar-filter-menu-button {
+  max-width: 100%;
+}
+
+.timeline-roster-filter .toolbar-filter-value {
+  max-width: 84px;
+}
+
+.timeline-interval-filter {
+  width: fit-content;
+  max-width: 100%;
+}
+
+.timeline-interval-filter select {
+  min-width: 96px;
+  width: clamp(96px, 11vw, 132px);
+  max-width: 132px;
+}
+
+@media (max-width: 1180px) {
+  .app-topbar-page-label {
+    display: none;
+  }
+
+  .purchase-toolbar {
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
+    justify-content: end;
+    justify-items: end;
+    margin-left: auto;
+  }
+
+  .materials-toolbar,
+  .part-manager-toolbar {
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(180px, max-content));
+    justify-content: end;
+    justify-items: end;
+    margin-left: auto;
+  }
+
+  .timeline-toolbar {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+.section-copy {
+  margin: 0;
+  line-height: 1.35;
+  font-size: 0.92rem;
+  color: var(--text-copy);
+}
+
+.filter-copy {
+  margin-top: 0.2rem;
+}

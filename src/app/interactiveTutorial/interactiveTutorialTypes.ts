@@ -72,6 +72,14 @@ export interface InteractiveTutorialStep {
   selector: string;
 }
 
+export interface InteractiveTutorialChapter {
+  id: InteractiveTutorialChapterId;
+  title: string;
+  summary: string;
+  preferredProjectType: "robot" | "outreach";
+  steps: InteractiveTutorialStep[];
+}
+
 export interface InteractiveTutorialReturnState {
   activeTab: ViewTab;
   taskView: TaskViewTab;

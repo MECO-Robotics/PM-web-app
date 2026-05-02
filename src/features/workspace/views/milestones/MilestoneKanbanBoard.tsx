@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 import type { BootstrapPayload, EventRecord } from "@/types";
 import { EditableHoverIndicator } from "@/features/workspace/shared";
-import { getEventTypeStyle, EVENT_TYPE_STYLES, DEFAULT_EVENT_TYPE } from "@/features/workspace/shared/eventStyles";
+import { getEventTypeStyle, EVENT_TYPE_STYLES, DEFAULT_EVENT_TYPE } from "@/features/workspace/shared/events";
 import { formatMilestoneDateTime } from "./milestonesViewUtils";
 import { KanbanColumns } from "@/features/workspace/views/kanban/KanbanColumns";
 
@@ -129,3 +129,4 @@ export function MilestoneKanbanBoard({
     />
   );
 }
+

@@ -4,7 +4,7 @@ import type {
   PartDefinitionPayload,
 } from "@/types";
 import { buildIterationOptions, formatIterationVersion } from "@/lib/appUtils";
-import { PhotoUploadField } from "@/features/workspace/shared/PhotoUploadField";
+import { PhotoUploadField } from "@/features/workspace/shared/media";
 
 interface PartDefinitionEditorModalProps {
   bootstrap: BootstrapPayload;
@@ -309,3 +309,4 @@ export function PartDefinitionEditorModal({
     </div>
   );
 }
+

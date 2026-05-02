@@ -9,7 +9,7 @@ import type {
   TaskRecord,
   WorkstreamRecord,
 } from "@/types";
-import { resolveWorkspaceColor } from "@/features/workspace/shared/workspaceColors";
+import { resolveWorkspaceColor } from "@/features/workspace/shared/model";
 import { localTodayDate } from "@/lib/dateUtils";
 
 const LEGACY_SEASON_ID = "season-default";
@@ -561,3 +561,4 @@ export function normalizePlanningRecords(source: LegacyBootstrapPayload) {
     projectIdAliases,
   };
 }
+

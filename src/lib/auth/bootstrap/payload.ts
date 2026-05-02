@@ -6,7 +6,7 @@ import type {
   ReportRecord,
   TaskDependencyRecord,
 } from "@/types";
-import { resolveWorkspaceColor } from "@/features/workspace/shared/workspaceColors";
+import { resolveWorkspaceColor } from "@/features/workspace/shared/model";
 import { localTodayDate } from "@/lib/dateUtils";
 import { normalizePlanningRecords, type LegacyBootstrapPayload } from "./planning";
 
@@ -391,3 +391,4 @@ export function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapP
     })),
   };
 }
+

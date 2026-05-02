@@ -8,7 +8,7 @@ import {
   SearchToolbarInput,
   type FilterSelection,
 } from "@/features/workspace/shared";
-import { EVENT_TYPE_STYLES } from "@/features/workspace/shared/eventStyles";
+import { EVENT_TYPE_STYLES } from "@/features/workspace/shared/events";
 import type { MilestoneSortField } from "./milestonesViewUtils";
 
 const EVENT_TYPE_OPTIONS: { id: EventType; name: string }[] = (
@@ -170,3 +170,4 @@ export function MilestonesToolbar({
     </div>
   );
 }
+

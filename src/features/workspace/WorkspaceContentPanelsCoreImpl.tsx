@@ -23,7 +23,7 @@ import type {
   WorklogsViewTab,
 } from "@/lib/workspaceNavigation";
 import type { FilterSelection } from "@/features/workspace/shared";
-import { WorkspaceContentPanelsView } from "./WorkspaceContentPanelsView";
+import { WorkspaceContentPanelsView } from "./components/WorkspaceContentPanelsView";
 
 type SwipeDirection = "left" | "right" | null;
 type TabSwitchDirection = "up" | "down";

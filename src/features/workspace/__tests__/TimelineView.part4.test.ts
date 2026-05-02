@@ -3,7 +3,7 @@ import * as React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { localTodayDate } from "@/features/workspace/shared/timelineDateUtils";
+import { localTodayDate } from "@/features/workspace/shared/timeline";
 import { TimelineView } from "@/features/workspace/views/timeline/TimelineView";
 import { createBootstrap, createBootstrapWithDependency, createBootstrapWithTaskRows, createBootstrapWithScopedOverflowTasks, readAppCss, membersById } from "./timelineTestFixtures";
 
@@ -181,7 +181,7 @@ describe("TimelineView", () => {
   it("uses task discipline and subsystem colors for timeline horizontal highlights", () => {
     const css = readAppCss();
     const portalSource = readFileSync(
-      join(process.cwd(), "src/features/workspace/views/timeline/TimelineRowHighlightsPortal.tsx"),
+      join(process.cwd(), "src/features/workspace/views/timeline/portals/TimelineRowHighlightsPortal.tsx"),
       "utf8",
     );
     const helperSource = readFileSync(
@@ -253,7 +253,7 @@ describe("TimelineView", () => {
     );
     const css = readAppCss();
     const portalSource = readFileSync(
-      join(process.cwd(), "src/features/workspace/views/timeline/TimelineTodayMarkerPortal.tsx"),
+      join(process.cwd(), "src/features/workspace/views/timeline/portals/TimelineTodayMarkerPortal.tsx"),
       "utf8",
     );
     const overlaySource = readFileSync(
@@ -357,3 +357,4 @@ describe("TimelineView", () => {
     expect(css).toMatch(/\.timeline-row-highlight-anchor\s*\{[\s\S]*min-height:\s*38px/);
 });
 });
+

@@ -1,5 +1,5 @@
 import type { BootstrapPayload, TaskStatus } from "@/types";
-import { getTaskWaitingOnDependencies } from "@/features/workspace/shared/taskPlanning";
+import { getTaskWaitingOnDependencies } from "@/features/workspace/shared/task/taskPlanning";
 
 type LegacyTaskDependencyRecord = {
   id: string;

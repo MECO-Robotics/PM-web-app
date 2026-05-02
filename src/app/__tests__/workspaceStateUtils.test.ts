@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { scopeBootstrapBySelection } from "@/app/workspaceStateUtils";
+import { scopeBootstrapBySelection } from "@/app/state/workspaceStateUtils";
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
 import type { BootstrapPayload } from "@/types";
 

@@ -1,10 +1,10 @@
 import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import type { BootstrapPayload, TaskPayload, TaskRecord } from "@/types";
-import { TaskDetailsAdvancedSection } from "./TaskDetailsAdvancedSection";
-import { TaskDetailsDependencyBlockersSection } from "./TaskDetailsDependencyBlockersSection";
-import { TaskDetailsHeaderSection } from "./TaskDetailsHeaderSection";
-import { TaskDetailsOverviewSection } from "./TaskDetailsOverviewSection";
-import type { TaskDetailsEditableField } from "./taskModalTypes";
+import { TaskDetailsAdvancedSection } from "./task/TaskDetailsAdvancedSection";
+import { TaskDetailsDependencyBlockersSection } from "./task/TaskDetailsDependencyBlockersSection";
+import { TaskDetailsHeaderSection } from "./task/TaskDetailsHeaderSection";
+import { TaskDetailsOverviewSection } from "./task/TaskDetailsOverviewSection";
+import type { TaskDetailsEditableField } from "./task/taskModalTypes";
 
 interface TaskDetailsModalProps {
   activeTask: TaskRecord;

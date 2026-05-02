@@ -3,8 +3,8 @@ import * as React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { monthEndFromDay } from "@/features/workspace/shared/timelineDateUtils";
-import { clampTimelineZoom, formatTimelineZoomLabel, getTimelineDayTrackSize, getTimelineGridMinWidth } from "@/features/workspace/shared/timelineZoom";
+import { monthEndFromDay } from "@/features/workspace/shared/timeline";
+import { clampTimelineZoom, formatTimelineZoomLabel, getTimelineDayTrackSize, getTimelineGridMinWidth } from "@/features/workspace/shared/timeline";
 import { TimelineView } from "@/features/workspace/views/timeline/TimelineView";
 import { createBootstrap, createBootstrapWithEmptySubsystem, createBootstrapWithoutTasks, readAppCss, membersById } from "./timelineTestFixtures";
 
@@ -291,3 +291,4 @@ describe("TimelineView", () => {
   });
 
 });
+

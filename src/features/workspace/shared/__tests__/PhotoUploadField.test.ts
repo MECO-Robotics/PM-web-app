@@ -3,7 +3,7 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { PhotoUploadField } from "@/features/workspace/shared/PhotoUploadField";
+import { PhotoUploadField } from "@/features/workspace/shared/media";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -41,3 +41,4 @@ describe("PhotoUploadField", () => {
     expect(markup).toContain("controls");
   });
 });
+

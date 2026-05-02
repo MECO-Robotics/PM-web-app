@@ -3,7 +3,7 @@ import {
   getTaskOpenBlockersForTask,
   getTaskPlanningState,
   getTaskWaitingOnDependencies,
-} from "../taskPlanning";
+} from "../task/taskPlanning";
 import type { BootstrapPayload } from "@/types";
 
 const bootstrap = {

@@ -1,11 +1,11 @@
 import type { BootstrapPayload } from "@/types";
 import { IconManufacturing, IconParts, IconPerson, IconTasks } from "@/components/shared";
-import { CompactFilterMenu } from "@/features/workspace/shared/workspaceCompactFilterMenu";
-import { FilterDropdown } from "@/features/workspace/shared/workspaceFilters";
-import { TASK_PRIORITY_OPTIONS } from "@/features/workspace/shared/workspaceOptions";
+import { CompactFilterMenu } from "@/features/workspace/shared/filters";
+import { FilterDropdown } from "@/features/workspace/shared/filters";
+import { TASK_PRIORITY_OPTIONS } from "@/features/workspace/shared/model";
 import { TASK_QUEUE_STATUS_OPTIONS } from "./taskQueueKanban";
-import type { DropdownOption } from "@/features/workspace/shared/workspaceTypes";
-import type { FilterSelection } from "@/features/workspace/shared/workspaceFilterUtils";
+import type { DropdownOption } from "@/features/workspace/shared/model";
+import type { FilterSelection } from "@/features/workspace/shared/filters";
 
 import {
   getTaskQueueFilterToneClassName,
@@ -182,3 +182,4 @@ export function TaskQueueCompactFilterMenu({
     />
   );
 }
+

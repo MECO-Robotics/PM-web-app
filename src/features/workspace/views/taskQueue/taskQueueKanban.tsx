@@ -13,11 +13,11 @@ import {
   filterSelectionIntersects,
   filterSelectionMatchesTaskPeople,
 } from "@/features/workspace/shared";
-import { resolveWorkspaceColor } from "@/features/workspace/shared/workspaceColors";
+import { resolveWorkspaceColor } from "@/features/workspace/shared/model";
 import {
   getTaskOpenBlockersForTask,
   getTaskWaitingOnDependencies,
-} from "@/features/workspace/shared/taskPlanning";
+} from "@/features/workspace/shared/task/taskPlanning";
 
 export type TaskQueueBoardState = TaskStatus | "blocked" | "waiting-on-dependency";
 export const TASK_QUEUE_LAZY_LOAD_BATCH_SIZE = 15;
@@ -475,3 +475,4 @@ export function filterTaskQueueTasks(
 
   return result;
 }
+

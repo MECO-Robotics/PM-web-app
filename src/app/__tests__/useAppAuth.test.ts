@@ -1,4 +1,4 @@
-import { getGoogleButtonTheme } from "@/app/googleButtonTheme";
+import { getGoogleButtonTheme } from "@/app/theme/googleButtonTheme";
 
 describe("getGoogleButtonTheme", () => {
   it("uses a dark filled button for dark mode auth surfaces", () => {

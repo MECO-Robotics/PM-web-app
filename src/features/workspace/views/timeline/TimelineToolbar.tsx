@@ -15,8 +15,8 @@ import {
   formatTimelineZoomLabel,
   TIMELINE_ZOOM_MAX,
   TIMELINE_ZOOM_MIN,
-} from "@/features/workspace/shared/timelineZoom";
-import type { TimelineViewInterval } from "@/features/workspace/shared/timelineDateUtils";
+} from "@/features/workspace/shared/timeline";
+import type { TimelineViewInterval } from "@/features/workspace/shared/timeline";
 
 const TIMELINE_INTERVAL_OPTIONS = [
   { id: "week", name: "Week" },
@@ -149,3 +149,4 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
     </div>
   );
 };
+

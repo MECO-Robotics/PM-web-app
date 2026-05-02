@@ -5,8 +5,8 @@ import {
   filterSelectionMatchesTaskPeople,
   type FilterSelection,
 } from "@/features/workspace/shared";
-import { getEventProjectIds } from "@/features/workspace/shared/eventProjectUtils";
-import { getEventTypeStyle } from "@/features/workspace/shared/eventStyles";
+import { getEventProjectIds } from "@/features/workspace/shared/events";
+import { getEventTypeStyle } from "@/features/workspace/shared/events";
 
 export type MilestoneSortField = "startDateTime" | "title" | "type";
 
@@ -141,3 +141,4 @@ export function filterAndSortMilestones({
     return 0;
   });
 }
+

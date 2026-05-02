@@ -3,7 +3,7 @@
 import {
   readStoredThemePreference,
   writeStoredThemePreference,
-} from "@/app/useAppShell";
+} from "@/app/hooks/useAppShell";
 
 describe("useAppShell storage helpers", () => {
   const originalWindow = globalThis.window;

@@ -6,7 +6,7 @@ import type {
 } from "@/types";
 import { getDefaultTaskDisciplineIdForProject } from "@/lib/taskDisciplines";
 import { localTodayDate } from "@/lib/dateUtils";
-import { getTaskOpenBlockersForTask } from "@/features/workspace/shared/taskPlanning";
+import { getTaskOpenBlockersForTask } from "@/features/workspace/shared/task/taskPlanning";
 import { getDefaultSubsystemId } from "@/lib/appUtils/common";
 import { createLookupById, removeId, uniqueIds } from "./internal";
 

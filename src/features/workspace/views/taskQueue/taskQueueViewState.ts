@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import type { BootstrapPayload, TaskRecord } from "@/types";
 import { formatIterationVersion } from "@/lib/appUtils";
-import type { DropdownOption } from "@/features/workspace/shared/workspaceTypes";
+import type { DropdownOption } from "@/features/workspace/shared/model";
 import {
   filterSelectionIncludes,
   filterSelectionIntersects,
@@ -11,7 +11,7 @@ import {
   formatFilterSelectionLabel,
   type FilterSelection,
   useFilterChangeMotionClass,
-} from "@/features/workspace/shared/workspaceFilterUtils";
+} from "@/features/workspace/shared/filters";
 import {
   formatSubsystemNames,
   formatTaskQueueAssignees,
@@ -480,3 +480,4 @@ export function useTaskQueueViewState({
     showSubsystemIterationFilter,
   };
 }
+

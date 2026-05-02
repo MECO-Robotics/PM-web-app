@@ -15,7 +15,7 @@ import type {
 } from "@/types";
 import { getDefaultSubsystemId } from "@/lib/appUtils/common";
 import { localTodayDate } from "@/lib/dateUtils";
-import { resolveWorkspaceColor } from "@/features/workspace/shared/workspaceColors";
+import { resolveWorkspaceColor } from "@/features/workspace/shared/model";
 
 export function buildEmptyPurchasePayload(bootstrap: BootstrapPayload): PurchaseItemPayload {
   const firstPartDefinition = bootstrap.partDefinitions[0] ?? null;
@@ -315,3 +315,4 @@ export function buildEmptyPartInstancePayload(
     photoUrl: "",
   };
 }
+

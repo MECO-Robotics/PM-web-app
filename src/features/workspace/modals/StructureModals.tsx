@@ -1,7 +1,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import type { BootstrapPayload, MechanismPayload, SubsystemPayload } from "@/types";
 import { buildIterationOptions, formatIterationVersion } from "@/lib/appUtils";
-import { PhotoUploadField } from "@/features/workspace/shared/PhotoUploadField";
+import { PhotoUploadField } from "@/features/workspace/shared/media";
 import { WorkspaceColorField } from "./WorkspaceColorField";
 
 interface SubsystemEditorModalProps {
@@ -537,3 +537,4 @@ export function MechanismEditorModal({
     </div>
   );
 }
+

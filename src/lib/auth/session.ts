@@ -5,9 +5,9 @@ import type {
 import {
   fetchCurrentUser,
   isApiErrorLike,
-  loadStoredSessionToken,
   postJson,
-} from "./core";
+} from "./core/request";
+import { loadStoredSessionToken } from "./core/sessionStorage";
 
 export function exchangeGoogleCredential(credential: string) {
   return postJson<SessionResponse>("/auth/google", { credential });

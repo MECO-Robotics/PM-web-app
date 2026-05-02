@@ -1,6 +1,6 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import type { BootstrapPayload, QaReportPayload } from "@/types";
-import { PhotoUploadField } from "@/features/workspace/shared/PhotoUploadField";
+import { PhotoUploadField } from "@/features/workspace/shared/media";
 
 interface QaReportEditorModalProps {
   bootstrap: BootstrapPayload;
@@ -229,3 +229,4 @@ export function QaReportEditorModal({
     </div>
   );
 }
+

@@ -1,10 +1,10 @@
-export { EMPTY_BOOTSTRAP } from "./bootstrapDefaults";
+export { EMPTY_BOOTSTRAP } from "./model";
 export {
   WORKSPACE_PANEL_CLASS,
   type DropdownOption,
   type MembersById,
   type SubsystemsById,
-} from "./workspaceTypes";
+} from "./model";
 export {
   type ArtifactModalMode,
   type EventReportModalMode,
@@ -19,7 +19,7 @@ export {
   type TaskModalMode,
   type WorkLogModalMode,
   type WorkstreamModalMode,
-} from "./workspaceModalModes";
+} from "./model";
 export {
   MANUFACTURING_STATUS_OPTIONS,
   MATERIAL_CATEGORY_OPTIONS,
@@ -30,8 +30,32 @@ export {
   TASK_PRIORITY_OPTIONS,
   TASK_STATUS_OPTIONS,
   formatTaskStatusLabel,
-} from "./workspaceOptions";
-export { getStatusPillClassName } from "./workspaceUtils";
+} from "./model";
+export { getStatusPillClassName } from "./model";
+export {
+  EVENT_TYPE_STYLES,
+  DEFAULT_EVENT_TYPE,
+  getEventProjectIds,
+  getEventTypeStyle,
+  getMilestoneSubsystemOptions,
+  reconcileMilestoneSubsystemIds,
+  type WorkspaceEventStyle,
+} from "./events";
+export {
+  addDaysToDay,
+  addMonthsToDay,
+  buildDateTime,
+  compareDateTimes,
+  datePortion,
+  formatTimelinePeriodLabel,
+  localTodayDate,
+  monthEndFromDay,
+  monthLabelFromDay,
+  monthStartFromDay,
+  timePortion,
+  type TimelineViewInterval,
+  withColumnOverlayTint,
+} from "./timeline";
 export {
   ColumnFilterDropdown,
   CompactFilterMenu,
@@ -55,4 +79,8 @@ export {
   useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "./WorkspaceViewShared";
-export { PhotoUploadField } from "./PhotoUploadField";
+export { PhotoUploadField } from "./media";
+export {
+  SUBVIEW_INTERACTION_GUIDANCE,
+  type WorkspaceSubviewTab,
+} from "./ui";
