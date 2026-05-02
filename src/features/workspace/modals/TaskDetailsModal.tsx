@@ -415,15 +415,22 @@ export function TaskDetailsModal({
         return blocker.description.trim();
     }
   };
-  const addBlockerDraft = (_blockerType: TaskBlockerType) => {
+  const addBlockerDraft = (blockerType: TaskBlockerType) => {
     setTaskDraft?.((current) => ({
       ...current,
       taskBlockers: [
         ...(current.taskBlockers ?? []),
         {
-          blockerType: "external",
+          blockerType,
           blockerId: null,
-          description: "",
+          description:
+            blockerType === "task"
+              ? "Waiting on task"
+              : blockerType === "part_instance"
+                ? "Waiting on part"
+                : blockerType === "event"
+                  ? "Waiting on milestone"
+                  : "",
           severity: "medium",
         },
       ],
