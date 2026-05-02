@@ -15,6 +15,7 @@ import type {
   InventoryViewTab,
   ManufacturingViewTab,
   RiskManagementViewTab,
+  ReportsViewTab,
   TaskViewTab,
   ViewTab,
   WorklogsViewTab,
@@ -279,6 +280,7 @@ export default function AppWorkspace() {
   const [riskManagementView, setRiskManagementView] =
     useState<RiskManagementViewTab>("risks");
   const [worklogsView, setWorklogsView] = useState<WorklogsViewTab>("logs");
+  const [reportsView, setReportsView] = useState<ReportsViewTab>("qa");
   const [manufacturingView, setManufacturingView] =
     useState<ManufacturingViewTab>("cnc");
   const [inventoryView, setInventoryView] = useState<InventoryViewTab>("materials");
@@ -3341,6 +3343,7 @@ export default function AppWorkspace() {
     inventoryView,
     isSidebarCollapsed,
     manufacturingView,
+    reportsView,
     riskManagementView,
     selectedProjectId,
     selectedSeasonId,
@@ -3835,16 +3838,18 @@ export default function AppWorkspace() {
           handleSignOut={handleSignOut}
           inventoryView={inventoryView}
           isLoadingData={isLoadingData}
+          isMyViewActive={isMyViewActive}
+          isNonRobotProject={isNonRobotProject}
           loadWorkspace={loadWorkspace}
           manufacturingView={manufacturingView}
           riskManagementView={riskManagementView}
-          isMyViewActive={isMyViewActive}
+          reportsView={reportsView}
           myViewMemberName={signedInMember?.name ?? null}
           sessionUser={sessionUser}
-          isNonRobotProject={isNonRobotProject}
           setInventoryView={setInventoryView}
           setManufacturingView={setManufacturingView}
           setRiskManagementView={setRiskManagementView}
+          setReportsView={setReportsView}
           setTaskView={setTaskView}
           setWorklogsView={setWorklogsView}
           taskView={taskView}
@@ -4066,6 +4071,7 @@ export default function AppWorkspace() {
           manufacturingView={manufacturingView}
           inventoryView={inventoryView}
           riskManagementView={riskManagementView}
+          reportsView={reportsView}
           taskView={taskView}
           worklogsView={worklogsView}
           selectMember={selectMember}

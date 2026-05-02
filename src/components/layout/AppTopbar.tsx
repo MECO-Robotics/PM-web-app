@@ -9,6 +9,7 @@ import {
 } from "@/lib/branding";
 import {
   BASE_SECTION_LABELS,
+  REPORTS_VIEW_OPTIONS,
   RISK_MANAGEMENT_VIEW_OPTIONS,
   MANUFACTURING_VIEW_OPTIONS,
   NON_ROBOT_INVENTORY_VIEW_OPTIONS,
@@ -17,6 +18,7 @@ import {
   WORKLOG_VIEW_OPTIONS,
   type InventoryViewTab,
   type ManufacturingViewTab,
+  type ReportsViewTab,
   type RiskManagementViewTab,
   type TaskViewTab,
   type WorklogsViewTab,
@@ -74,9 +76,11 @@ function TopbarNavigation({
   manufacturingView,
   riskManagementView,
   worklogsView,
+  reportsView,
   setInventoryView,
   setManufacturingView,
   setRiskManagementView,
+  setReportsView,
   setWorklogsView,
   setTaskView,
   subsystemsLabel,
@@ -88,9 +92,11 @@ function TopbarNavigation({
   manufacturingView: ManufacturingViewTab;
   riskManagementView: RiskManagementViewTab;
   worklogsView: WorklogsViewTab;
+  reportsView: ReportsViewTab;
   setInventoryView: Dispatch<SetStateAction<InventoryViewTab>>;
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
   setRiskManagementView: Dispatch<SetStateAction<RiskManagementViewTab>>;
+  setReportsView: Dispatch<SetStateAction<ReportsViewTab>>;
   setWorklogsView: Dispatch<SetStateAction<WorklogsViewTab>>;
   setTaskView: Dispatch<SetStateAction<TaskViewTab>>;
   subsystemsLabel: string;
@@ -136,6 +142,19 @@ function TopbarNavigation({
             onChange={setWorklogsView}
             options={WORKLOG_VIEW_OPTIONS}
             tutorialPrefix="worklogs-view"
+          />
+        </>
+      );
+    case "reports":
+      return (
+        <>
+          <span className="app-topbar-page-label">{BASE_SECTION_LABELS.reports}</span>
+          <TopbarTabs
+            activeValue={reportsView}
+            ariaLabel="Report views"
+            onChange={setReportsView}
+            options={REPORTS_VIEW_OPTIONS}
+            tutorialPrefix="reports-view"
           />
         </>
       );
@@ -190,11 +209,13 @@ interface AppTopbarProps {
   loadWorkspace: () => Promise<void>;
   manufacturingView: ManufacturingViewTab;
   riskManagementView: RiskManagementViewTab;
+  reportsView: ReportsViewTab;
   myViewMemberName: string | null;
   sessionUser: SessionUser | null;
   setInventoryView: Dispatch<SetStateAction<InventoryViewTab>>;
   setManufacturingView: Dispatch<SetStateAction<ManufacturingViewTab>>;
   setRiskManagementView: Dispatch<SetStateAction<RiskManagementViewTab>>;
+  setReportsView: Dispatch<SetStateAction<ReportsViewTab>>;
   setTaskView: Dispatch<SetStateAction<TaskViewTab>>;
   setWorklogsView: Dispatch<SetStateAction<WorklogsViewTab>>;
   taskView: TaskViewTab;
@@ -220,11 +241,13 @@ export function AppTopbar({
   loadWorkspace,
   manufacturingView,
   riskManagementView,
+  reportsView,
   myViewMemberName,
   sessionUser,
   setInventoryView,
   setManufacturingView,
   setRiskManagementView,
+  setReportsView,
   setTaskView,
   setWorklogsView,
   taskView,
@@ -278,9 +301,11 @@ export function AppTopbar({
           manufacturingView={manufacturingView}
           riskManagementView={riskManagementView}
           worklogsView={worklogsView}
+          reportsView={reportsView}
           setInventoryView={setInventoryView}
           setManufacturingView={setManufacturingView}
           setRiskManagementView={setRiskManagementView}
+          setReportsView={setReportsView}
           setWorklogsView={setWorklogsView}
           setTaskView={setTaskView}
           subsystemsLabel={subsystemsLabel}

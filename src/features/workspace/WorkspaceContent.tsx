@@ -24,11 +24,13 @@ import type {
 import {
   INVENTORY_VIEW_ORDER,
   MANUFACTURING_VIEW_ORDER,
+  REPORTS_VIEW_ORDER,
   TASK_VIEW_ORDER,
   WORKLOG_VIEW_ORDER,
   type InventoryViewTab,
   type ManufacturingViewTab,
   type RiskManagementViewTab,
+  type ReportsViewTab,
   type TaskViewTab,
   type ViewTab,
   type WorklogsViewTab,
@@ -154,6 +156,7 @@ interface WorkspaceContentProps {
   manufacturingView: ManufacturingViewTab;
   inventoryView: InventoryViewTab;
   riskManagementView: RiskManagementViewTab;
+  reportsView: ReportsViewTab;
   taskView: TaskViewTab;
   worklogsView: WorklogsViewTab;
   selectMember: (id: string | null, payload: BootstrapPayload) => void;
@@ -408,6 +411,7 @@ export function WorkspaceContent({
   manufacturingView,
   inventoryView,
   riskManagementView,
+  reportsView,
   taskView,
   worklogsView,
   requestMemberPhotoUpload,

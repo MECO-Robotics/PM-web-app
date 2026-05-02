@@ -16,7 +16,7 @@ import { AppTopbar } from "@/components/layout/AppTopbar";
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
 function renderTopbar(
-  activeTab: "inventory" | "worklogs" = "inventory",
+  activeTab: "inventory" | "worklogs" | "reports" = "inventory",
   isNonRobotProject: boolean,
   myView: {
     isActive: boolean;
@@ -50,6 +50,7 @@ function renderTopbar(
       loadWorkspace: jest.fn(),
       manufacturingView: "cnc",
       riskManagementView: "risks",
+      reportsView: "qa",
       onToggleMyView: jest.fn(),
       onCreateSeason: jest.fn(),
       onSelectSeason: jest.fn(),
@@ -69,6 +70,7 @@ function renderTopbar(
       setInventoryView: jest.fn(),
       setManufacturingView: jest.fn(),
       setRiskManagementView: jest.fn(),
+      setReportsView: jest.fn(),
       setTaskView: jest.fn(),
       setWorklogsView: jest.fn(),
       subsystemsLabel: "Workflow",
@@ -132,5 +134,13 @@ describe("AppTopbar", () => {
     expect(markup).toContain("Summary");
     expect(markup).not.toContain("QA");
     expect(markup).not.toContain("Event Result");
+  });
+
+  it("shows QA and Event Results in the reports top bar", () => {
+    const markup = renderTopbar("reports", true);
+
+    expect(markup).toContain("QA");
+    expect(markup).toContain("Event Results");
+    expect(markup).not.toContain("Timeline");
   });
 });
