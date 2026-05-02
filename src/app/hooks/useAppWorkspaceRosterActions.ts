@@ -1,7 +1,7 @@
 import type { AppWorkspaceModel } from "@/app/hooks/useAppWorkspaceModel";
-import { useAppWorkspaceRosterMemberActions } from "@/app/hooks/useAppWorkspaceRosterMemberActions";
-import { useAppWorkspaceRosterRobotActions } from "@/app/hooks/useAppWorkspaceRosterRobotActions";
-import { useAppWorkspaceRosterSeasonActions } from "@/app/hooks/useAppWorkspaceRosterSeasonActions";
+import { useAppWorkspaceRosterMemberActions } from "@/app/hooks/workspace/roster/useAppWorkspaceRosterMemberActions";
+import { useAppWorkspaceRosterRobotActions } from "@/app/hooks/workspace/roster/useAppWorkspaceRosterRobotActions";
+import { useAppWorkspaceRosterSeasonActions } from "@/app/hooks/workspace/roster/useAppWorkspaceRosterSeasonActions";
 
 export type AppWorkspaceRosterActions = ReturnType<typeof useAppWorkspaceRosterActions>;
 

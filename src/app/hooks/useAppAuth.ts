@@ -1,5 +1,5 @@
-import { useAppAuthGoogleButton } from "@/app/hooks/useAppAuthGoogleButton";
-import { useAppAuthSession } from "@/app/hooks/useAppAuthSession";
+import { useAppAuthGoogleButton } from "@/app/hooks/auth/useAppAuthGoogleButton";
+import { useAppAuthSession } from "@/app/hooks/auth/useAppAuthSession";
 
 interface UseAppAuthArgs {
   resetWorkspace: () => void;

@@ -1,8 +1,8 @@
 // @ts-nocheck
 import type { AppWorkspaceModel } from "@/app/hooks/useAppWorkspaceModel";
-import { useAppWorkspaceTaskModalActions } from "@/app/hooks/useAppWorkspaceTaskModalActions";
-import { useAppWorkspaceTaskMutationActions } from "@/app/hooks/useAppWorkspaceTaskMutationActions";
-import { useAppWorkspaceTaskSubmissionActions } from "@/app/hooks/useAppWorkspaceTaskSubmissionActions";
+import { useAppWorkspaceTaskModalActions } from "@/app/hooks/workspace/task/useAppWorkspaceTaskModalActions";
+import { useAppWorkspaceTaskMutationActions } from "@/app/hooks/workspace/task/useAppWorkspaceTaskMutationActions";
+import { useAppWorkspaceTaskSubmissionActions } from "@/app/hooks/workspace/task/useAppWorkspaceTaskSubmissionActions";
 
 export type AppWorkspaceTaskActions = ReturnType<typeof useAppWorkspaceTaskActions>;
 

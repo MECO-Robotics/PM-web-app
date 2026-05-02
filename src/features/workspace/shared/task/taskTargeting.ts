@@ -9,6 +9,11 @@ import {
   getTaskOpenBlockersForTask as getTaskOpenBlockersForTaskFromPlanning,
   getTaskWaitingOnDependencies as getTaskWaitingOnDependenciesFromPlanning,
 } from "./taskPlanning";
+import {
+  getTaskTargetArrays,
+  normalizeTaskTargetPayload,
+  removeId,
+} from "./taskTargetingHelpers";
 
 export type TaskTargetKind = "workstream" | "subsystem" | "mechanism" | "part-instance";
 
@@ -16,11 +21,6 @@ export interface TaskTargetSelection {
   kind: TaskTargetKind;
   id: string;
 }
-
-type TaskSelectionPayload = Pick<
-  TaskPayload,
-  "subsystemId" | "subsystemIds" | "mechanismId" | "mechanismIds" | "partInstanceId" | "partInstanceIds"
->;
 
 type SelectionLookups = {
   mechanismsById: Record<string, BootstrapPayload["mechanisms"][number]>;
@@ -56,83 +56,13 @@ function uniqueIds(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value))));
 }
 
-function removeId(ids: string[], id: string) {
-  return ids.filter((currentId) => currentId !== id);
-}
-
-function getTaskTargetArrays(payload: TaskSelectionPayload) {
-  return {
-    subsystemIds: payload.subsystemIds.length ? payload.subsystemIds : uniqueIds([payload.subsystemId]),
-    mechanismIds: payload.mechanismIds.length ? payload.mechanismIds : uniqueIds([payload.mechanismId]),
-    partInstanceIds: payload.partInstanceIds.length
-      ? payload.partInstanceIds
-      : uniqueIds([payload.partInstanceId]),
-  };
-}
-
-function normalizeTaskTargetPayload(
-  payload: TaskPayload,
-  bootstrap: BootstrapPayload,
-  targets: {
-    subsystemIds: string[];
-    mechanismIds: string[];
-    partInstanceIds: string[];
-  },
-) {
-  const mechanismsById = Object.fromEntries(
-    bootstrap.mechanisms.map((mechanism) => [mechanism.id, mechanism]),
-  ) as Record<string, BootstrapPayload["mechanisms"][number]>;
-  const partInstancesById = Object.fromEntries(
-    bootstrap.partInstances.map((partInstance) => [partInstance.id, partInstance]),
-  ) as Record<string, BootstrapPayload["partInstances"][number]>;
-  let subsystemIds = uniqueIds(targets.subsystemIds);
-  let mechanismIds = uniqueIds(targets.mechanismIds);
-  const partInstanceIds = uniqueIds(targets.partInstanceIds);
-
-  mechanismIds.forEach((mechanismId) => {
-    const mechanism = mechanismsById[mechanismId];
-
-    if (mechanism) {
-      subsystemIds = uniqueIds([...subsystemIds, mechanism.subsystemId]);
-    }
-  });
-
-  partInstanceIds.forEach((partInstanceId) => {
-    const partInstance = partInstancesById[partInstanceId];
-
-    if (!partInstance) {
-      return;
-    }
-
-    subsystemIds = uniqueIds([...subsystemIds, partInstance.subsystemId]);
-
-    if (partInstance.mechanismId) {
-      mechanismIds = uniqueIds([...mechanismIds, partInstance.mechanismId]);
-    }
-  });
-
-  const normalizedSubsystemIds = uniqueIds(subsystemIds);
-  const normalizedMechanismIds = uniqueIds(mechanismIds);
-  const normalizedPartInstanceIds = uniqueIds(partInstanceIds);
-
-  return {
-    ...payload,
-    workstreamId: null,
-    workstreamIds: [],
-    subsystemId: normalizedSubsystemIds[0] ?? "",
-    subsystemIds: normalizedSubsystemIds,
-    mechanismId: normalizedMechanismIds[0] ?? null,
-    mechanismIds: normalizedMechanismIds,
-    partInstanceId: normalizedPartInstanceIds[0] ?? null,
-    partInstanceIds: normalizedPartInstanceIds,
-  } as TaskPayload;
-}
-
 export function getTaskTargetGroupLabel(project: Pick<BootstrapPayload["projects"][number], "projectType"> | null | undefined) {
   return project?.projectType === "robot" ? "Subsystems" : "Workstreams";
 }
 
-export function getTaskSelectedPrimaryTargetIds(payload: TaskSelectionPayload) {
+export function getTaskSelectedPrimaryTargetIds(
+  payload: Pick<TaskPayload, "subsystemId" | "subsystemIds">,
+) {
   return payload.subsystemIds.length > 0
     ? payload.subsystemIds
     : payload.subsystemId
@@ -140,7 +70,9 @@ export function getTaskSelectedPrimaryTargetIds(payload: TaskSelectionPayload) {
       : [];
 }
 
-export function getTaskSelectedPrimaryTargetId(payload: TaskSelectionPayload) {
+export function getTaskSelectedPrimaryTargetId(
+  payload: Pick<TaskPayload, "subsystemId" | "subsystemIds">,
+) {
   return getTaskSelectedPrimaryTargetIds(payload)[0] ?? "";
 }
 
@@ -314,7 +246,6 @@ export function toggleTaskTargetSelection(
       );
       partInstanceIds = partInstanceIds.filter((partInstanceId) => {
         const partInstance = partInstancesById[partInstanceId];
-
         return Boolean(
           partInstance &&
             partInstance.subsystemId !== selection.id &&
@@ -328,7 +259,6 @@ export function toggleTaskTargetSelection(
 
   if (selection.kind === "mechanism") {
     const mechanism = mechanismsById[selection.id];
-
     if (!mechanism) {
       return payload;
     }
@@ -346,7 +276,6 @@ export function toggleTaskTargetSelection(
 
   if (selection.kind === "part-instance") {
     const partInstance = partInstancesById[selection.id];
-
     if (!partInstance) {
       return payload;
     }

@@ -1,0 +1,112 @@
+import { IconManufacturing, IconTasks } from "@/components/shared";
+import {
+  CompactFilterMenu,
+  FilterDropdown,
+  PART_STATUS_OPTIONS,
+  SearchToolbarInput,
+  type FilterSelection,
+} from "@/features/workspace/shared";
+import type { BootstrapPayload } from "@/types";
+
+interface PartsToolbarProps {
+  bootstrap: BootstrapPayload;
+  openCreatePartDefinitionModal: () => void;
+  partSearch: string;
+  partStatus: FilterSelection;
+  partSubsystem: FilterSelection;
+  setPartSearch: (value: string) => void;
+  setPartStatus: (value: FilterSelection) => void;
+  setPartSubsystem: (value: FilterSelection) => void;
+  setShowArchivedPartDefinitions: (value: boolean) => void;
+  showArchivedPartDefinitions: boolean;
+}
+
+const ARCHIVED_LABEL_STYLE = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.35rem",
+  color: "var(--text-copy)",
+  fontSize: "0.85rem",
+} as const;
+
+export function PartsToolbar({
+  bootstrap,
+  openCreatePartDefinitionModal,
+  partSearch,
+  partStatus,
+  partSubsystem,
+  setPartSearch,
+  setPartStatus,
+  setPartSubsystem,
+  setShowArchivedPartDefinitions,
+  showArchivedPartDefinitions,
+}: PartsToolbarProps) {
+  return (
+    <div className="panel-actions filter-toolbar part-manager-toolbar">
+      <div data-tutorial-target="parts-search-input">
+        <SearchToolbarInput
+          ariaLabel="Search parts"
+          onChange={setPartSearch}
+          placeholder="Search parts..."
+          value={partSearch}
+        />
+      </div>
+      <label style={ARCHIVED_LABEL_STYLE}>
+        <input
+          checked={showArchivedPartDefinitions}
+          onChange={(event) => setShowArchivedPartDefinitions(event.target.checked)}
+          type="checkbox"
+        />
+        Show archived definitions
+      </label>
+
+      <CompactFilterMenu
+        activeCount={[partSubsystem, partStatus].filter((value) => value.length > 0).length}
+        ariaLabel="Part filters"
+        buttonLabel="Filters"
+        className="materials-filter-menu"
+        items={[
+          {
+            label: "Subsystem",
+            content: (
+              <FilterDropdown
+                allLabel="All subsystems"
+                ariaLabel="Filter parts by subsystem"
+                className="task-queue-filter-menu-submenu"
+                icon={<IconManufacturing />}
+                onChange={setPartSubsystem}
+                options={bootstrap.subsystems}
+                value={partSubsystem}
+              />
+            ),
+          },
+          {
+            label: "Status",
+            content: (
+              <FilterDropdown
+                allLabel="All statuses"
+                ariaLabel="Filter parts by status"
+                className="task-queue-filter-menu-submenu"
+                icon={<IconTasks />}
+                onChange={setPartStatus}
+                options={PART_STATUS_OPTIONS}
+                value={partStatus}
+              />
+            ),
+          },
+        ]}
+      />
+
+      <button
+        aria-label="Add part definition"
+        className="primary-action queue-toolbar-action part-manager-toolbar-action"
+        data-tutorial-target="create-part-button"
+        onClick={openCreatePartDefinitionModal}
+        title="Add part definition"
+        type="button"
+      >
+        Add
+      </button>
+    </div>
+  );
+}

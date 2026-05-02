@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import "@/app/App.css";
 import { useAppAuth } from "@/app/hooks/useAppAuth";
 import { useAppShell } from "@/app/hooks/useAppShell";
-import { useAppWorkspaceGlobalEffects } from "@/app/hooks/useAppWorkspaceGlobalEffects";
+import { useAppWorkspaceGlobalEffects } from "@/app/hooks/workspace/derived/useAppWorkspaceGlobalEffects";
 import { useAppWorkspaceUiState } from "@/app/hooks/useAppWorkspaceUiState";
 import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared/model";
 import type {

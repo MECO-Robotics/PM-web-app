@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { useAppWorkspaceReportModalActions } from "@/app/hooks/useAppWorkspaceReportModalActions";
-import { useAppWorkspaceReportRiskActions } from "@/app/hooks/useAppWorkspaceReportRiskActions";
-import { useAppWorkspaceReportSubmitActions } from "@/app/hooks/useAppWorkspaceReportSubmitActions";
+import { useAppWorkspaceReportModalActions } from "@/app/hooks/workspace/report/useAppWorkspaceReportModalActions";
+import { useAppWorkspaceReportRiskActions } from "@/app/hooks/workspace/report/useAppWorkspaceReportRiskActions";
+import { useAppWorkspaceReportSubmitActions } from "@/app/hooks/workspace/report/useAppWorkspaceReportSubmitActions";
 import type { AppWorkspaceModel } from "@/app/hooks/useAppWorkspaceModel";
 
 export type AppWorkspaceReportActions = ReturnType<typeof useAppWorkspaceReportActions>;

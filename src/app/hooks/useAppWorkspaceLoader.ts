@@ -1,10 +1,10 @@
 // @ts-nocheck
 import type { AppWorkspaceState } from "@/app/hooks/useAppWorkspaceState";
 import type { AppWorkspaceDerived } from "@/app/hooks/useAppWorkspaceDerived";
-import { useAppWorkspaceLoaderActions } from "@/app/hooks/useAppWorkspaceLoaderActions";
-import { useAppWorkspaceLoaderUnauthorized } from "@/app/hooks/useAppWorkspaceLoaderUnauthorized";
-import { useAppWorkspaceLoaderUploads } from "@/app/hooks/useAppWorkspaceLoaderUploads";
-import { useAppWorkspaceLoaderWorkspace } from "@/app/hooks/useAppWorkspaceLoaderWorkspace";
+import { useAppWorkspaceLoaderActions } from "@/app/hooks/workspace/loader/useAppWorkspaceLoaderActions";
+import { useAppWorkspaceLoaderUnauthorized } from "@/app/hooks/workspace/loader/useAppWorkspaceLoaderUnauthorized";
+import { useAppWorkspaceLoaderUploads } from "@/app/hooks/workspace/loader/useAppWorkspaceLoaderUploads";
+import { useAppWorkspaceLoaderWorkspace } from "@/app/hooks/workspace/loader/useAppWorkspaceLoaderWorkspace";
 
 export type AppWorkspaceLoader = ReturnType<typeof useAppWorkspaceLoader>;
 

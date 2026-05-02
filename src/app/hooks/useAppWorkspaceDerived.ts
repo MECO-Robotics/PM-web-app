@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { useAppWorkspaceDerivedSelection } from "@/app/hooks/useAppWorkspaceDerivedSelection";
-import { useAppWorkspaceDerivedWorkspace } from "@/app/hooks/useAppWorkspaceDerivedWorkspace";
-import { buildAppWorkspaceDerivedStateSlice } from "@/app/hooks/buildAppWorkspaceDerivedStateSlice";
+import { useAppWorkspaceDerivedSelection } from "@/app/hooks/workspace/derived/useAppWorkspaceDerivedSelection";
+import { useAppWorkspaceDerivedWorkspace } from "@/app/hooks/workspace/derived/useAppWorkspaceDerivedWorkspace";
+import { buildAppWorkspaceDerivedStateSlice } from "@/app/hooks/workspace/derived/buildAppWorkspaceDerivedStateSlice";
 import type { AppWorkspaceState } from "@/app/hooks/useAppWorkspaceState";
 
 export type AppWorkspaceDerived = ReturnType<typeof useAppWorkspaceDerived>;
