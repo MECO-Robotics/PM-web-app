@@ -53,6 +53,58 @@ const TASK_QUEUE_BOARD_STATE_LOGO_SPECS: Record<
 
 const PRIORITY_ORDER: TaskRecord["priority"][] = ["critical", "high", "medium", "low"];
 
+function isTaskCardDateOverdue(dateValue: string): boolean {
+  if (!dateValue) {
+    return false;
+  }
+
+  const parsedDate = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return parsedDate.getTime() < today.getTime();
+}
+
+function isTaskCardDateToday(dateValue: string): boolean {
+  if (!dateValue) {
+    return false;
+  }
+
+  const parsedDate = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return parsedDate.getTime() === today.getTime();
+}
+
+function getTaskCardDueDatePillClassName(task: TaskRecord): string {
+  if (!task.dueDate) {
+    return "pill status-pill status-pill-neutral";
+  }
+
+  if (task.status === "complete") {
+    return "pill task-detail-deadline-pill task-detail-deadline-pill-success";
+  }
+
+  if (isTaskCardDateOverdue(task.dueDate)) {
+    return "pill task-detail-deadline-pill task-detail-deadline-pill-danger";
+  }
+
+  if (isTaskCardDateToday(task.dueDate)) {
+    return "pill task-detail-deadline-pill task-detail-deadline-pill-warning";
+  }
+
+  return "pill task-detail-deadline-pill task-detail-deadline-pill-success";
+}
+
 interface TaskQueueKanbanBoardProps {
   bootstrap: BootstrapPayload;
   disciplinesById: Record<string, BootstrapPayload["disciplines"][number]>;
@@ -269,6 +321,8 @@ function TaskQueueCard({
       } as CSSProperties)
     : undefined;
   const boardState = getTaskQueueBoardState(task, bootstrap);
+  const dueDateText = task.dueDate ? `Due ${formatDate(task.dueDate)}` : "Not set";
+  const dueDatePillClassName = getTaskCardDueDatePillClassName(task);
   const taskContextLabel = getTaskQueueCardContextLabel(
     task,
     isNonRobotProject ? "operations" : "robot",
@@ -303,7 +357,7 @@ function TaskQueueCard({
     >
       <div className="task-queue-board-card-header">
         <strong>{task.title}</strong>
-        <span className="task-queue-board-card-due">Due {formatDate(task.dueDate)}</span>
+        <span className={`task-queue-board-card-due ${dueDatePillClassName}`}>{dueDateText}</span>
       </div>
       <small className="task-queue-board-card-summary">{task.summary}</small>
       <div

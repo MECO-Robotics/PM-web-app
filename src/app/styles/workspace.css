@@ -1763,7 +1763,7 @@
   color: #cbd5e1;
 }
 
-.page-shell.dark-mode .task-queue-board-card-due {
+.page-shell.dark-mode .task-queue-board-card-due:not(.pill) {
   background: rgba(59, 130, 246, 0.16);
   color: #93c5fd;
 }
