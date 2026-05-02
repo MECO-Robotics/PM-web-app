@@ -404,6 +404,7 @@ export function buildEmptyTaskPayload(bootstrap: BootstrapPayload): TaskPayload 
         estimatedHours: 4,
         actualHours: 0,
         blockers: [],
+        taskDependencies: [],
         taskBlockers: [],
         linkedManufacturingIds: [],
         linkedPurchaseIds: [],
@@ -731,20 +732,24 @@ function getTaskDependencyDrafts(
   bootstrap?: BootstrapPayload,
 ): TaskDependencyDraft[] {
   const explicitDependencies = bootstrap?.taskDependencies?.filter(
-    (dependency) => dependency.downstreamTaskId === task.id,
+    (dependency) => dependency.taskId === task.id,
   );
 
   if (explicitDependencies && explicitDependencies.length > 0) {
     return explicitDependencies.map((dependency) => ({
       id: dependency.id,
-      upstreamTaskId: dependency.upstreamTaskId,
+      kind: dependency.kind,
+      refId: dependency.refId,
+      requiredState: dependency.requiredState,
       dependencyType: dependency.dependencyType,
     }));
   }
 
   return uniqueIds(task.dependencyIds ?? []).map((upstreamTaskId) => ({
-    upstreamTaskId,
-    dependencyType: "finish_to_start",
+    kind: "task",
+    refId: upstreamTaskId,
+    requiredState: "complete",
+    dependencyType: "hard",
   }));
 }
 

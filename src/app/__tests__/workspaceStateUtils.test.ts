@@ -115,9 +115,11 @@ function createBootstrap(): BootstrapPayload {
     taskDependencies: [
       {
         id: "dependency-hidden-upstream",
-        upstreamTaskId: "task-hidden",
-        downstreamTaskId: "task-visible",
-        dependencyType: "finish_to_start",
+        taskId: "task-visible",
+        kind: "task",
+        refId: "task-hidden",
+        requiredState: "complete",
+        dependencyType: "hard",
         createdAt: "2026-04-20T00:00:00.000Z",
       },
     ],

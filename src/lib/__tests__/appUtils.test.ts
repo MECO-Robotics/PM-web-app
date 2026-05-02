@@ -327,14 +327,16 @@ describe("appUtils", () => {
     expect(localTodayDate(localDate)).toBe("2026-01-02");
   });
 
-  it("taskToPayload carries dependency records from bootstrap data", () => {
+  it("taskToPayload carries structured dependency records from bootstrap data", () => {
     const bootstrap = createBootstrap({
       taskDependencies: [
         {
           id: "task-dependency-1",
-          upstreamTaskId: "task-upstream",
-          downstreamTaskId: "task-1",
-          dependencyType: "blocks",
+          taskId: "task-1",
+          kind: "task",
+          refId: "task-upstream",
+          requiredState: "complete",
+          dependencyType: "hard",
           createdAt: "2026-02-01T00:00:00.000Z",
         },
       ],
@@ -343,8 +345,10 @@ describe("appUtils", () => {
     expect(taskToPayload(bootstrap.tasks[0], bootstrap).taskDependencies).toEqual([
       {
         id: "task-dependency-1",
-        upstreamTaskId: "task-upstream",
-        dependencyType: "blocks",
+        kind: "task",
+        refId: "task-upstream",
+        requiredState: "complete",
+        dependencyType: "hard",
       },
     ]);
   });

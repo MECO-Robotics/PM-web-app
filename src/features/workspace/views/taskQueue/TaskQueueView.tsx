@@ -94,6 +94,8 @@ function getTaskQueueStatusToneClassName(value: string) {
   switch (value) {
     case "in-progress":
       return "filter-tone-warning";
+    case "waiting-on-dependency":
+      return "filter-tone-warning";
     case "waiting-for-qa":
       return "filter-tone-info";
     case "complete":

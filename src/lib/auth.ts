@@ -348,7 +348,12 @@ type LegacyBootstrapPayload = Partial<Omit<BootstrapPayload, "artifacts" | "even
   tasks?: Array<Partial<TaskRecord> & { requirementId?: string | null }>;
   artifacts?: Array<Partial<ArtifactRecord>>;
   events?: Array<Partial<EventRecord>>;
-  taskDependencies?: Array<Partial<TaskDependencyRecord>>;
+  taskDependencies?: Array<
+    Partial<TaskDependencyRecord> & {
+      upstreamTaskId?: string;
+      downstreamTaskId?: string;
+    }
+  >;
   taskBlockers?: Array<Partial<TaskBlockerRecord>>;
 };
 
@@ -792,20 +797,33 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
       documentationLinked: task.documentationLinked ?? false,
     };
   });
+  const normalizedDependencies = (source.taskDependencies ?? []).map((dependency, index) => {
+    const kind = dependency.kind ?? "task";
+    const dependencyType = dependency.dependencyType === "soft" ? "soft" : "hard";
+    const refId = dependency.refId ?? dependency.upstreamTaskId ?? "";
+    const taskId = dependency.taskId ?? dependency.downstreamTaskId ?? "";
+
+    return {
+      id: dependency.id ?? `task-dependency-${index + 1}`,
+      taskId,
+      kind,
+      refId,
+      requiredState:
+        dependency.requiredState ??
+        (kind === "part_instance" ? "available" : "complete"),
+      dependencyType,
+      createdAt: dependency.createdAt ?? new Date().toISOString(),
+    };
+  });
   const dependencyIdsByTaskId = new Map<string, string[]>();
-  (source.taskDependencies ?? []).forEach((dependency) => {
-    if (dependency.dependencyType === "soft") {
+  normalizedDependencies.forEach((dependency) => {
+    if (dependency.kind !== "task" || dependency.dependencyType === "soft" || !dependency.taskId) {
       return;
     }
 
-    const downstreamTaskId = dependency.downstreamTaskId;
-    if (!downstreamTaskId) {
-      return;
-    }
-
-    const current = dependencyIdsByTaskId.get(downstreamTaskId) ?? [];
-    current.push(dependency.upstreamTaskId ?? "");
-    dependencyIdsByTaskId.set(downstreamTaskId, current);
+    const current = dependencyIdsByTaskId.get(dependency.taskId) ?? [];
+    current.push(dependency.refId);
+    dependencyIdsByTaskId.set(dependency.taskId, current);
   });
   const blockerDescriptionsByTaskId = new Map<string, string[]>();
   (source.taskBlockers ?? []).forEach((blocker) => {
@@ -840,6 +858,7 @@ function normalizePlanningRecords(source: LegacyBootstrapPayload) {
     projects,
     workstreams,
     tasks: normalizedTasks,
+    taskDependencies: normalizedDependencies,
     projectIdAliases,
   };
 }
@@ -1134,9 +1153,13 @@ function normalizeBootstrapPayload(payload: BootstrapPayload): BootstrapPayload 
     taskDependencies:
       (source.taskDependencies ?? []).map((dependency, index) => ({
         id: dependency.id ?? `task-dependency-${index + 1}`,
-        upstreamTaskId: dependency.upstreamTaskId ?? "",
-        downstreamTaskId: dependency.downstreamTaskId ?? "",
-        dependencyType: dependency.dependencyType ?? "finish_to_start",
+        taskId: dependency.taskId ?? dependency.downstreamTaskId ?? "",
+        kind: dependency.kind ?? "task",
+        refId: dependency.refId ?? dependency.upstreamTaskId ?? "",
+        requiredState:
+          dependency.requiredState ??
+          ((dependency.kind ?? "task") === "part_instance" ? "available" : "complete"),
+        dependencyType: dependency.dependencyType === "soft" ? "soft" : "hard",
         createdAt: dependency.createdAt ?? new Date().toISOString(),
       })),
     taskBlockers:

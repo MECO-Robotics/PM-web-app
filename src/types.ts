@@ -48,7 +48,8 @@ export type TaskPlanningState =
   | "blocked"
   | "overdue"
   | "at-risk";
-export type TaskDependencyType = "blocks" | "soft" | "finish_to_start";
+export type TaskDependencyKind = "task" | "milestone" | "part_instance" | "event";
+export type TaskDependencyType = "hard" | "soft";
 export type TaskBlockerType =
   | "task"
   | "event"
@@ -395,6 +396,7 @@ export interface TaskRecord {
   dependencyIds: string[];
   blockers: string[];
   isBlocked?: boolean;
+  isWaitingOnDependency?: boolean;
   linkedManufacturingIds: string[];
   linkedPurchaseIds: string[];
   estimatedHours: number;
@@ -405,7 +407,9 @@ export interface TaskRecord {
 
 export interface TaskDependencyDraft {
   id?: string;
-  upstreamTaskId: string;
+  kind: TaskDependencyKind;
+  refId: string;
+  requiredState?: string;
   dependencyType: TaskDependencyType;
 }
 
@@ -419,8 +423,10 @@ export interface TaskBlockerDraft {
 
 export interface TaskDependencyRecord {
   id: string;
-  upstreamTaskId: string;
-  downstreamTaskId: string;
+  taskId: string;
+  kind: TaskDependencyKind;
+  refId: string;
+  requiredState?: string;
   dependencyType: TaskDependencyType;
   createdAt: string;
 }
@@ -722,8 +728,10 @@ export interface TaskPayload {
 }
 
 export interface TaskDependencyPayload {
-  upstreamTaskId: string;
-  downstreamTaskId: string;
+  taskId: string;
+  kind: TaskDependencyKind;
+  refId: string;
+  requiredState?: string;
   dependencyType: TaskDependencyType;
 }
 
