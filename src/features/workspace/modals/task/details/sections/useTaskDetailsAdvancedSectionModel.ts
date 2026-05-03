@@ -95,12 +95,38 @@ export function useTaskDetailsAdvancedSectionModel({
     .map((mechanismId) => mechanismsById[mechanismId])
     .filter((mechanism): mechanism is BootstrapPayload["mechanisms"][number] => Boolean(mechanism))
     .map(getMechanismLabel);
+  const mechanismRows = selectedMechanismIds
+    .map((mechanismId) => {
+      const mechanism = mechanismsById[mechanismId];
+      if (!mechanism) {
+        return null;
+      }
+
+      return {
+        id: mechanismId,
+        label: getMechanismLabel(mechanism),
+      };
+    })
+    .filter((mechanism): mechanism is { id: string; label: string } => Boolean(mechanism));
   const partLabels = selectedPartInstanceIds
     .map((partInstanceId) => partInstancesById[partInstanceId])
     .filter((partInstance): partInstance is BootstrapPayload["partInstances"][number] =>
       Boolean(partInstance),
     )
     .map(getPartInstanceLabel);
+  const partRows = selectedPartInstanceIds
+    .map((partInstanceId) => {
+      const partInstance = partInstancesById[partInstanceId];
+      if (!partInstance) {
+        return null;
+      }
+
+      return {
+        id: partInstanceId,
+        label: getPartInstanceLabel(partInstance),
+      };
+    })
+    .filter((partInstance): partInstance is { id: string; label: string } => Boolean(partInstance));
   const partsText = partLabels.length > 0 ? partLabels.join(", ") : "No part linked";
 
   const handleDisciplineChange = (selection: string[]) => {
@@ -124,12 +150,40 @@ export function useTaskDetailsAdvancedSectionModel({
     }));
   };
 
+  const removeMechanismSelection = (mechanismId: string) => {
+    setTaskDraft?.((current) => {
+      const nextMechanismIds = getTaskSelectedMechanismIds(current).filter(
+        (currentMechanismId) => currentMechanismId !== mechanismId,
+      );
+
+      return {
+        ...current,
+        mechanismIds: nextMechanismIds,
+        mechanismId: nextMechanismIds[0] ?? null,
+      };
+    });
+  };
+
   const handlePartsChange = (selection: string[]) => {
     setTaskDraft?.((current) => ({
       ...current,
       partInstanceIds: selection,
       partInstanceId: selection[0] ?? null,
     }));
+  };
+
+  const removePartInstanceSelection = (partInstanceId: string) => {
+    setTaskDraft?.((current) => {
+      const nextPartInstanceIds = getTaskSelectedPartInstanceIds(current).filter(
+        (currentPartInstanceId) => currentPartInstanceId !== partInstanceId,
+      );
+
+      return {
+        ...current,
+        partInstanceIds: nextPartInstanceIds,
+        partInstanceId: nextPartInstanceIds[0] ?? null,
+      };
+    });
   };
 
   return {
@@ -145,7 +199,11 @@ export function useTaskDetailsAdvancedSectionModel({
     handlePartsChange,
     handleStartDateChange,
     mechanismNames,
+    mechanismRows,
     partsText,
+    partRows,
+    removeMechanismSelection,
+    removePartInstanceSelection,
     projectMechanisms,
     projectPartInstances,
     selectedMechanismIds,

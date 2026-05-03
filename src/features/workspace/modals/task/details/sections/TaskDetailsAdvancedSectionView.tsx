@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { BootstrapPayload, TaskPayload, TaskRecord } from "@/types";
 import { EditableHoverIndicator, FilterDropdown } from "../../../../shared/WorkspaceViewShared";
-import { IconManufacturing, IconParts, IconPlus } from "@/components/shared/Icons";
+import { IconManufacturing, IconParts, IconPlus, IconTrash } from "@/components/shared/Icons";
 import type { TaskDetailsEditableField } from "../../taskModalTypes";
 import { TaskDetailReveal } from "../TaskDetailReveal";
 import { useTaskDetailsAdvancedSectionModel } from "./useTaskDetailsAdvancedSectionModel";
@@ -178,6 +178,35 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
                       No mechanism linked
                     </p>
                   )
+                ) : model.mechanismRows.length > 0 ? (
+                  <div className="task-details-dependency-editor">
+                    {model.mechanismRows.map((mechanism, index) => (
+                      <div
+                        className="workspace-detail-list-item task-detail-list-item task-details-dependency-row task-details-dependency-row-with-delete"
+                        key={mechanism.id}
+                      >
+                        <button
+                          aria-label={`Remove mechanism ${index + 1}`}
+                          className="icon-button task-details-dependency-row-remove-button"
+                          onClick={() => model.removeMechanismSelection(mechanism.id)}
+                          type="button"
+                        >
+                          <IconTrash />
+                        </button>
+                        <button
+                          className="task-details-dependency-row-button task-details-mechanism-row-button"
+                          onClick={() => setEditingField("mechanism")}
+                          type="button"
+                        >
+                          <TaskDetailReveal
+                            className="task-detail-ellipsis-reveal"
+                            style={{ color: "var(--text-title)", fontWeight: 800 }}
+                            text={mechanism.label}
+                          />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <span className="task-detail-inline-edit-shell task-detail-inline-edit-shell-inline">
                     <button
@@ -186,9 +215,7 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
                       onClick={() => setEditingField("mechanism")}
                       type="button"
                     >
-                      <span className="task-detail-copy">
-                        {model.mechanismNames.length > 0 ? model.mechanismNames.join(", ") : "No mechanism linked"}
-                      </span>
+                      <span className="task-detail-copy">No mechanism linked</span>
                     </button>
                     <EditableHoverIndicator className="editable-hover-indicator-inline task-detail-inline-edit-indicator" />
                   </span>
@@ -255,6 +282,35 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
                       No part linked
                     </p>
                   )
+                ) : model.partRows.length > 0 ? (
+                  <div className="task-details-dependency-editor">
+                    {model.partRows.map((partInstance, index) => (
+                      <div
+                        className="workspace-detail-list-item task-detail-list-item task-details-dependency-row task-details-dependency-row-with-delete"
+                        key={partInstance.id}
+                      >
+                        <button
+                          aria-label={`Remove part ${index + 1}`}
+                          className="icon-button task-details-dependency-row-remove-button"
+                          onClick={() => model.removePartInstanceSelection(partInstance.id)}
+                          type="button"
+                        >
+                          <IconTrash />
+                        </button>
+                        <button
+                          className="task-details-dependency-row-button task-details-parts-row-button"
+                          onClick={() => setEditingField("parts")}
+                          type="button"
+                        >
+                          <TaskDetailReveal
+                            className="task-detail-ellipsis-reveal"
+                            style={{ color: "var(--text-title)", fontWeight: 800 }}
+                            text={partInstance.label}
+                          />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <span className="task-detail-inline-edit-shell task-detail-inline-edit-shell-inline">
                     <button
@@ -263,7 +319,7 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
                       onClick={() => setEditingField("parts")}
                       type="button"
                     >
-                      <span className="task-detail-copy">{model.partsText}</span>
+                      <span className="task-detail-copy">No part linked</span>
                     </button>
                     <EditableHoverIndicator className="editable-hover-indicator-inline task-detail-inline-edit-indicator" />
                   </span>

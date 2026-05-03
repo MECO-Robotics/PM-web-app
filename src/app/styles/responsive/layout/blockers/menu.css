@@ -72,6 +72,23 @@
   background: var(--bg-row-alt);
 }
 
+.task-details-dependency-row-button {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.task-details-dependency-row-button:focus-visible {
+  outline: none;
+}
+
 .task-details-dependency-row-content {
   display: grid;
   gap: 0.1rem;
@@ -97,6 +114,7 @@
 }
 
 .task-details-blocker-input {
+  width: 100%;
   min-width: 0;
   padding: 0.5rem 0.7rem;
   border: 1px solid var(--border-base);
@@ -104,6 +122,10 @@
   background: var(--bg-row-alt);
   color: var(--text-title);
   font: inherit;
+}
+
+.task-details-blocker-row-input {
+  box-sizing: border-box;
 }
 
 .task-details-blocker-input:focus,

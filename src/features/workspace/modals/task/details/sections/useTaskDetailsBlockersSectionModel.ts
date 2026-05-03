@@ -18,14 +18,22 @@ export function useTaskDetailsBlockersSectionModel({
   setTaskDraft,
   taskDraft,
 }: UseTaskDetailsBlockersSectionModelArgs) {
+  const getBlockerKey = (blocker: { id?: string } | undefined, index: number) =>
+    blocker?.id ?? `blocker-${index}`;
   const blockerDrafts = taskDraft?.taskBlockers ?? [];
   const openBlockers = getTaskOpenBlockersForTask(activeTaskId, bootstrap);
   const addBlockerDraft = () => {
+    const blockerId =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `blocker-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
     setTaskDraft?.((current) => ({
       ...current,
       taskBlockers: [
         ...(current.taskBlockers ?? []),
         {
+          id: blockerId,
           blockerType: "external",
           blockerId: null,
           description: "",
@@ -33,14 +41,20 @@ export function useTaskDetailsBlockersSectionModel({
         },
       ],
     }));
+
+    return blockerId;
   };
-  const updateBlockerDraft = (index: number, updates: Partial<TaskBlockerDraft>) => {
+  const updateBlockerDraft = (blockerKey: string, updates: Partial<TaskBlockerDraft>) => {
     setTaskDraft?.((current) => {
       const nextBlockers = [...(current.taskBlockers ?? [])];
-      const existingBlocker = nextBlockers[index];
-      if (!existingBlocker) {
+      const index = nextBlockers.findIndex(
+        (blocker, currentIndex) => getBlockerKey(blocker, currentIndex) === blockerKey,
+      );
+      if (index < 0) {
         return current;
       }
+
+      const existingBlocker = nextBlockers[index];
 
       nextBlockers[index] = {
         ...existingBlocker,
@@ -53,11 +67,11 @@ export function useTaskDetailsBlockersSectionModel({
       };
     });
   };
-  const removeBlockerDraft = (index: number) => {
+  const removeBlockerDraft = (blockerKey: string) => {
     setTaskDraft?.((current) => ({
       ...current,
       taskBlockers: (current.taskBlockers ?? []).filter(
-        (_blocker, currentIndex) => currentIndex !== index,
+        (blocker, currentIndex) => getBlockerKey(blocker, currentIndex) !== blockerKey,
       ),
     }));
   };

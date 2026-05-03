@@ -92,6 +92,23 @@
   background: var(--bg-row-alt);
 }
 
+.task-details-dependency-row-button {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.task-details-dependency-row-button:focus-visible {
+  outline: none;
+}
+
 .task-detail-collapsible-body .workspace-detail-list-item.task-details-dependency-row.task-details-dependency-row-with-delete > .task-details-dependency-row-remove-button {
   position: absolute;
   left: -0.95rem;
