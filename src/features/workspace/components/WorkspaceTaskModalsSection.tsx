@@ -1,7 +1,15 @@
+import { useEffect, useState } from "react";
 import { TaskDetailsModal, TaskEditorModal } from "../WorkspaceModals";
 import type { WorkspaceModalHostViewProps } from "./workspaceModalHostViewTypes";
 
 export function WorkspaceTaskModalsSection(props: WorkspaceModalHostViewProps) {
+  const [advancedSectionOpen, setAdvancedSectionOpen] = useState(false);
+  const modalTaskId = props.activeTimelineTaskDetail?.id ?? props.activeTask?.id ?? null;
+
+  useEffect(() => {
+    setAdvancedSectionOpen(false);
+  }, [modalTaskId]);
+
   if (!props.activeTimelineTaskDetail && !props.taskModalMode) {
     return null;
   }
@@ -13,8 +21,10 @@ export function WorkspaceTaskModalsSection(props: WorkspaceModalHostViewProps) {
           activeTask={props.activeTimelineTaskDetail}
           bootstrap={props.bootstrap}
           closeTaskDetailsModal={props.closeTimelineTaskDetailsModal}
+          advancedSectionOpen={advancedSectionOpen}
           onEditTask={props.onOpenTaskEditFromTimelineDetails}
           onResolveTaskBlocker={props.handleResolveTaskBlocker}
+          setAdvancedSectionOpen={setAdvancedSectionOpen}
         />
       ) : null}
 
@@ -23,6 +33,7 @@ export function WorkspaceTaskModalsSection(props: WorkspaceModalHostViewProps) {
           activeTask={props.activeTask}
           bootstrap={props.bootstrap}
           closeTaskModal={props.closeTaskModal}
+          advancedSectionOpen={advancedSectionOpen}
           disciplinesById={props.disciplinesById}
           eventsById={props.eventsById}
           handleDeleteTask={props.handleDeleteTask}
@@ -38,6 +49,7 @@ export function WorkspaceTaskModalsSection(props: WorkspaceModalHostViewProps) {
           openTaskDetailsModal={props.openTaskDetailsModal}
           onTaskEditCanceled={props.onTaskEditCanceled}
           setTaskDraft={props.setTaskDraft}
+          setAdvancedSectionOpen={setAdvancedSectionOpen}
           showCreateTypeToggle={props.showTimelineCreateToggleInTaskModal}
           onSwitchCreateTypeToMilestone={props.onSwitchTaskCreateToMilestone}
           students={props.students}

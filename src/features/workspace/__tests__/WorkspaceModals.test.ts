@@ -73,6 +73,12 @@ describe("TaskEditorModal", () => {
     expect(renderTaskModal("edit")).toContain(">Advanced<");
   });
 
+  it("preserves an open advanced section in edit mode markup", () => {
+    const markup = renderTaskModal("edit", undefined, true);
+
+    expect(markup).toContain('task-details-section-collapse modal-wide" open');
+  });
+
   it("renders a multi-student assignment control", () => {
     const markup = renderTaskModal("create");
 

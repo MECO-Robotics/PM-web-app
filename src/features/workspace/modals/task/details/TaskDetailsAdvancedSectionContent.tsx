@@ -6,9 +6,11 @@ import { TaskDetailsAdvancedSectionView } from "./sections/TaskDetailsAdvancedSe
 interface TaskDetailsAdvancedSectionProps {
   activeTask: TaskRecord;
   bootstrap: BootstrapPayload;
+  advancedSectionOpen: boolean;
   canInlineEdit: boolean;
   editingField: TaskDetailsEditableField | null;
   openTaskEditModal: () => void;
+  setAdvancedSectionOpen: Dispatch<SetStateAction<boolean>>;
   setEditingField: Dispatch<SetStateAction<TaskDetailsEditableField | null>>;
   setTaskDraft?: Dispatch<SetStateAction<TaskPayload>>;
   taskDraft?: TaskPayload;

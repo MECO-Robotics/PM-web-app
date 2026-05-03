@@ -10,9 +10,11 @@ interface TaskDetailsModalProps {
   activeTask: TaskRecord;
   bootstrap: BootstrapPayload;
   closeTaskDetailsModal: () => void;
+  advancedSectionOpen: boolean;
   footerActions?: ReactNode;
   headerTitle?: ReactNode;
   setTaskDraft?: Dispatch<SetStateAction<TaskPayload>>;
+  setAdvancedSectionOpen: Dispatch<SetStateAction<boolean>>;
   taskDraft?: TaskPayload;
   onEditTask: (task: TaskRecord) => void;
   onResolveTaskBlocker: (blockerId: string) => Promise<void>;
@@ -24,9 +26,11 @@ export function TaskDetailsModal({
   activeTask,
   bootstrap,
   closeTaskDetailsModal,
+  advancedSectionOpen,
   footerActions,
   headerTitle,
   setTaskDraft,
+  setAdvancedSectionOpen,
   taskDraft,
   onEditTask,
   onResolveTaskBlocker,
@@ -89,9 +93,11 @@ export function TaskDetailsModal({
           <TaskDetailsAdvancedSection
             activeTask={activeTask}
             bootstrap={bootstrap}
+            advancedSectionOpen={advancedSectionOpen}
             canInlineEdit={canInlineEdit}
             editingField={editingField}
             openTaskEditModal={openTaskEditModal}
+            setAdvancedSectionOpen={setAdvancedSectionOpen}
             setEditingField={setEditingField}
             setTaskDraft={setTaskDraft}
             taskDraft={taskDraft}

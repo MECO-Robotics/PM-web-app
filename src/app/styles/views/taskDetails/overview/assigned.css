@@ -142,9 +142,13 @@
 }
 
 .task-details-inline-edit-left {
+  justify-self: start;
+  align-self: start;
   justify-items: start;
   align-items: start;
   text-align: left;
+  width: 100%;
+  min-width: 0;
 }
 
 .task-details-inline-edit-left .task-detail-inline-edit-shell,

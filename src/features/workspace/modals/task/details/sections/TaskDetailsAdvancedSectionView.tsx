@@ -9,9 +9,11 @@ import { useTaskDetailsAdvancedSectionModel } from "./useTaskDetailsAdvancedSect
 interface TaskDetailsAdvancedSectionViewProps {
   activeTask: TaskRecord;
   bootstrap: BootstrapPayload;
+  advancedSectionOpen: boolean;
   canInlineEdit: boolean;
   editingField: TaskDetailsEditableField | null;
   openTaskEditModal: () => void;
+  setAdvancedSectionOpen: Dispatch<SetStateAction<boolean>>;
   setEditingField: Dispatch<SetStateAction<TaskDetailsEditableField | null>>;
   setTaskDraft?: Dispatch<SetStateAction<TaskPayload>>;
   taskDraft?: TaskPayload;
@@ -21,9 +23,11 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
   const {
     activeTask,
     bootstrap,
+    advancedSectionOpen,
     canInlineEdit,
     editingField,
     openTaskEditModal,
+    setAdvancedSectionOpen,
     setEditingField,
     setTaskDraft,
     taskDraft,
@@ -38,7 +42,11 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
   const editableTask = model.editableTask;
 
   return (
-    <details className="task-details-section-collapse modal-wide">
+    <details
+      className="task-details-section-collapse modal-wide"
+      open={advancedSectionOpen}
+      onToggle={(event) => setAdvancedSectionOpen(event.currentTarget.open)}
+    >
       <summary className="task-details-section-title task-details-section-summary">
         <span>Advanced</span>
       </summary>

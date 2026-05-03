@@ -204,11 +204,7 @@ export function TaskDetailsOverviewSection({
             </span>
           )}
         </label>
-        <label
-          className={`field task-detail-row task-detail-row-chip task-details-overview-subsystem ${
-            canInlineEdit ? "task-details-inline-edit-left" : ""
-          }`}
-        >
+        <label className={`field task-detail-row task-detail-row-chip task-details-overview-subsystem ${canInlineEdit ? "task-details-inline-edit-left" : ""}`}>
           <span style={{ color: "var(--text-title)" }}>{subsystemFieldLabel}</span>
           {canInlineEdit ? (
             editingField === "subsystem" ? (

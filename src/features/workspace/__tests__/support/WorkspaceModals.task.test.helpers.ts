@@ -9,6 +9,7 @@ import { createBootstrap } from "./WorkspaceModals.test.shared";
 export function renderTaskModal(
   taskModalMode: ComponentProps<typeof TaskEditorModal>["taskModalMode"],
   overrides?: Partial<ReturnType<typeof buildEmptyTaskPayload>>,
+  advancedSectionOpen = false,
 ) {
   const bootstrap = createBootstrap();
   const requestPhotoUpload = jest.fn(async () => "https://cdn.example.test/uploaded.png");
@@ -47,6 +48,8 @@ export function renderTaskModal(
       requestPhotoUpload,
       openTaskDetailsModal: jest.fn(),
       onTaskEditCanceled: jest.fn(),
+      advancedSectionOpen,
+      setAdvancedSectionOpen: jest.fn(),
       students: bootstrap.members.filter((member) => member.role !== "mentor"),
       taskDraft,
       taskModalMode,

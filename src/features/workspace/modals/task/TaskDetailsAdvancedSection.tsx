@@ -6,10 +6,12 @@ import { TaskDetailsAdvancedSectionContent } from "./details/TaskDetailsAdvanced
 interface TaskDetailsAdvancedSectionProps {
   activeTask: TaskRecord;
   bootstrap: BootstrapPayload;
+  advancedSectionOpen: boolean;
   canInlineEdit: boolean;
   editingField: TaskDetailsEditableField | null;
   openTaskEditModal: () => void;
   setEditingField: Dispatch<SetStateAction<TaskDetailsEditableField | null>>;
+  setAdvancedSectionOpen: Dispatch<SetStateAction<boolean>>;
   setTaskDraft?: Dispatch<SetStateAction<TaskPayload>>;
   taskDraft?: TaskPayload;
 }
@@ -17,9 +19,11 @@ interface TaskDetailsAdvancedSectionProps {
 export function TaskDetailsAdvancedSection({
   activeTask,
   bootstrap,
+  advancedSectionOpen,
   canInlineEdit,
   editingField,
   openTaskEditModal,
+  setAdvancedSectionOpen,
   setEditingField,
   setTaskDraft,
   taskDraft,
@@ -28,9 +32,11 @@ export function TaskDetailsAdvancedSection({
     <TaskDetailsAdvancedSectionContent
       activeTask={activeTask}
       bootstrap={bootstrap}
+      advancedSectionOpen={advancedSectionOpen}
       canInlineEdit={canInlineEdit}
       editingField={editingField}
       openTaskEditModal={openTaskEditModal}
+      setAdvancedSectionOpen={setAdvancedSectionOpen}
       setEditingField={setEditingField}
       setTaskDraft={setTaskDraft}
       taskDraft={taskDraft}

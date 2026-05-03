@@ -55,6 +55,8 @@
 
 .task-details-modal .task-detail-inline-edit-shell-inline.task-detail-inline-edit-shell-inline-left {
   display: flex;
+  flex-direction: row;
+  align-items: center;
   width: 100%;
   justify-content: flex-start;
 }
@@ -88,25 +90,6 @@
   border: 1px solid var(--border-base);
   border-radius: 12px;
   background: var(--bg-row-alt);
-}
-
-.task-detail-collapsible-body .workspace-detail-list-item.task-details-dependency-row.task-details-dependency-row-with-delete {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 0.1rem;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  padding: 0.45rem 0.5rem;
-}
-
-.task-details-dependency-row-with-delete > .task-details-dependency-row-content {
-  display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-  width: 100%;
 }
 
 .task-detail-collapsible-body .workspace-detail-list-item.task-details-dependency-row.task-details-dependency-row-with-delete > .task-details-dependency-row-remove-button {

@@ -10,6 +10,7 @@ interface TaskEditorModalProps {
   activeTask: TaskRecord | null;
   bootstrap: BootstrapPayload;
   closeTaskModal: () => void;
+  advancedSectionOpen: boolean;
   disciplinesById: Record<string, BootstrapPayload["disciplines"][number]>;
   eventsById: Record<string, BootstrapPayload["events"][number]>;
   handleDeleteTask: (taskId: string) => Promise<void>;
@@ -25,6 +26,7 @@ interface TaskEditorModalProps {
   requestPhotoUpload: (projectId: string, file: File) => Promise<string>;
   openTaskDetailsModal: (task: TaskRecord) => void;
   onTaskEditCanceled: () => void;
+  setAdvancedSectionOpen: Dispatch<SetStateAction<boolean>>;
   taskDraft: TaskPayload;
   taskModalMode: "create" | "edit";
   showCreateTypeToggle?: boolean;
@@ -37,6 +39,7 @@ export function TaskEditorModal(props: TaskEditorModalProps) {
     activeTask,
     bootstrap,
     closeTaskModal,
+    advancedSectionOpen,
     handleResolveTaskBlocker,
     handleTaskSubmit,
     isDeletingTask,
@@ -45,6 +48,7 @@ export function TaskEditorModal(props: TaskEditorModalProps) {
     requestPhotoUpload,
     openTaskDetailsModal,
     onTaskEditCanceled,
+    setAdvancedSectionOpen,
     taskDraft,
     taskModalMode,
     showCreateTypeToggle,
@@ -78,6 +82,7 @@ export function TaskEditorModal(props: TaskEditorModalProps) {
           activeTask={activeTask}
           bootstrap={bootstrap}
           closeTaskDetailsModal={handleTaskEditClosed}
+          advancedSectionOpen={advancedSectionOpen}
           footerActions={
             <>
               <button
@@ -103,6 +108,7 @@ export function TaskEditorModal(props: TaskEditorModalProps) {
           }
           onEditTask={() => undefined}
           onResolveTaskBlocker={handleResolveTaskBlocker}
+          setAdvancedSectionOpen={setAdvancedSectionOpen}
           setTaskDraft={setTaskDraft}
           showDependencyBlockersSection
           showEditButton={false}
