@@ -95,12 +95,12 @@ export function useInteractiveTutorialCoreActionsStart({
         );
         setTutorialSeasonId(sandboxSelection.tutorialSeasonId);
         setTutorialSeasonName(
-          `${sandboxSelection.tutorialSeason?.name ?? "Default Season"} (fake sandbox)`,
+          `${sandboxSelection.tutorialSeason?.name ?? "Tutorial Season"} (fake sandbox)`,
         );
       } else {
         setSelectedSeasonId(null);
         setTutorialSeasonId(null);
-        setTutorialSeasonName("Default Season (fake sandbox)");
+        setTutorialSeasonName("Tutorial Season (fake sandbox)");
       }
 
       if (sandboxSelection.tutorialProject) {

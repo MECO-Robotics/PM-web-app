@@ -21,6 +21,10 @@ export interface NormalizedPlanningProjects {
   projectIdAliases: Map<string, string>;
 }
 
+function getTutorialSeasonName(seasonId: string) {
+  return seasonId === LEGACY_SEASON_ID ? "Tutorial Season" : toTitleFromId(seasonId);
+}
+
 export function normalizePlanningProjects(
   source: LegacyBootstrapPayload,
   startDate: string,
@@ -46,7 +50,7 @@ export function normalizePlanningProjects(
 
     seasons = seasonIds.map((seasonId) => ({
       id: seasonId,
-      name: seasonIdsFromProjects.length > 0 ? toTitleFromId(seasonId) : "Default Season",
+      name: getTutorialSeasonName(seasonId),
       type: "season",
       startDate,
       endDate,
