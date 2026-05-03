@@ -17,6 +17,8 @@ export interface UseTimelineMilestoneOverlaySyncResult {
   timelineGridRef: MutableRefObject<HTMLDivElement | null>;
   timelineHeaderHeight: number;
   timelineShellRef: MutableRefObject<HTMLDivElement | null>;
+  timelineTodayMarkerLabelTop: number | null;
+  timelineTodayMarkerLineLeft: number | null;
   timelineTodayMarkerLeft: number | null;
   tooltipPortalTarget: HTMLElement | null;
 }
@@ -34,6 +36,8 @@ export function useTimelineMilestoneOverlaySync({
   const timelineDayCellRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const timelineLayerGeometryFrameRef = useRef<number | null>(null);
   const timelineScrollResetFrameRef = useRef<number | null>(null);
+  const [timelineTodayMarkerLabelTop, setTimelineTodayMarkerLabelTop] = useState<number | null>(null);
+  const [timelineTodayMarkerLineLeft, setTimelineTodayMarkerLineLeft] = useState<number | null>(null);
 
   const queueTimelineLayerUpdate = useCallback(() => {
     if (typeof window === "undefined") {
@@ -113,7 +117,15 @@ export function useTimelineMilestoneOverlaySync({
       );
 
       const todayCell = timelineDayCellRefs.current[localTodayDate()];
-      const nextTodayMarkerLeft = todayCell ? todayCell.offsetLeft : null;
+      const nextTodayMarkerLineLeft = todayCell ? todayCell.offsetLeft : null;
+      const nextTodayMarkerLeft = todayCell ? todayCell.offsetLeft + todayCell.offsetWidth / 2 : null;
+      const nextTodayMarkerLabelTop = todayCell ? todayCell.offsetTop : null;
+      setTimelineTodayMarkerLineLeft((previous) =>
+        previous === nextTodayMarkerLineLeft ? previous : nextTodayMarkerLineLeft,
+      );
+      setTimelineTodayMarkerLabelTop((previous) =>
+        previous === nextTodayMarkerLabelTop ? previous : nextTodayMarkerLabelTop,
+      );
       setTimelineTodayMarkerLeft((previous) =>
         previous === nextTodayMarkerLeft ? previous : nextTodayMarkerLeft,
       );
@@ -204,6 +216,8 @@ export function useTimelineMilestoneOverlaySync({
     timelineGridRef,
     timelineHeaderHeight,
     timelineShellRef,
+    timelineTodayMarkerLabelTop,
+    timelineTodayMarkerLineLeft,
     timelineTodayMarkerLeft,
     tooltipPortalTarget,
   };

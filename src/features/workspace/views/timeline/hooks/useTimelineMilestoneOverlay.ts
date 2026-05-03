@@ -44,6 +44,8 @@ export function useTimelineMilestoneOverlay({
   const timelineDayCellRefs = sync.timelineDayCellRefs;
   const timelineGridRef = sync.timelineGridRef;
   const timelineShellRef = sync.timelineShellRef;
+  const timelineTodayMarkerLabelTop = sync.timelineTodayMarkerLabelTop;
+  const timelineTodayMarkerLineLeft = sync.timelineTodayMarkerLineLeft;
   const timelineTodayMarkerLeft = sync.timelineTodayMarkerLeft;
   const isTimelineShellScrolling = sync.isTimelineShellScrolling;
   const tooltipPortalTarget = sync.tooltipPortalTarget;
@@ -158,6 +160,8 @@ export function useTimelineMilestoneOverlay({
     timelineDayMilestoneUnderlays,
     timelineGridRef,
     timelineShellRef,
+    timelineTodayMarkerLabelTop,
+    timelineTodayMarkerLineLeft,
     timelineTodayMarkerLeft,
     tooltipPortalTarget,
     isTimelineShellScrolling,

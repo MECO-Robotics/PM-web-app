@@ -267,11 +267,23 @@ describe("TimelineView", () => {
     expect(portalSource).toContain("timeline-today-marker-column");
     expect(portalSource).toContain("timeline-today-marker-line");
     expect(portalSource).toContain("Today");
-    expect(overlaySource).toContain("offsetLeft");
+    expect(overlaySource).toContain("offsetLeft : null");
+    expect(overlaySource).toContain("offsetLeft + todayCell.offsetWidth / 2");
+    expect(overlaySource).toContain("offsetTop : null");
     expect(css).toMatch(/\.timeline-today-marker-line\s*\{[\s\S]*position:\s*absolute/);
     expect(css).toMatch(/\.timeline-today-marker-column\s*\{[\s\S]*position:\s*absolute/);
     expect(css).toMatch(/\.timeline-today-marker-line\s*\{[\s\S]*width:\s*2px/);
+    expect(portalSource).toContain('background: "var(--meco-blue)"');
+    expect(portalSource).not.toContain("boxShadow");
+    expect(portalSource).toContain("todayMarkerLineLeft");
+    expect(portalSource).toContain("todayMarkerLabelTop");
+    expect(portalSource).toContain("todayMarkerLeft - todayMarkerLineLeft");
+    expect(portalSource).toContain("zIndex: 1");
+    expect(portalSource).toContain("bottom: 0,");
+    expect(portalSource).toContain('top: showLabelAtTop ? `${todayMarkerLabelTop - 4}px` : undefined,');
+    expect(portalSource).toContain('transform: showLabelAtTop ? "translate(-50%, -50%)" : "translateX(-50%)"');
     expect(css).toMatch(/\.timeline-today-marker-label\s*\{[\s\S]*font-weight:\s*800/);
+    expect(portalSource).toContain("zIndex: 13");
   });
 
   it("keeps subsystem accent strips on every sticky timeline subsystem surface", () => {
