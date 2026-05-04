@@ -5,6 +5,7 @@ import {
   filterSelectionMatchesTaskPeople,
   type FilterSelection,
 } from "@/features/workspace/shared/WorkspaceViewShared";
+import { getMilestoneTasksForState } from "@/features/workspace/shared/milestones";
 import { getMilestoneProjectIds } from "@/features/workspace/shared/events/eventProjectUtils";
 import { getMilestoneTypeStyle } from "@/features/workspace/shared/events/eventStyles";
 
@@ -49,24 +50,24 @@ export function buildMilestoneProjectLabels(
 
 export function filterAndSortMilestones({
   activePersonFilter,
+  bootstrap,
   milestones,
   isAllProjectsView,
   projectFilter,
   searchFilter,
   sortField,
   sortOrder,
-  tasks,
   subsystemsById,
   typeFilter,
 }: {
   activePersonFilter: FilterSelection;
+  bootstrap: BootstrapPayload;
   milestones: BootstrapPayload["milestones"];
   isAllProjectsView: boolean;
   projectFilter: string[];
   searchFilter: string;
   sortField: MilestoneSortField;
   sortOrder: "asc" | "desc";
-  tasks: BootstrapPayload["tasks"];
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
   typeFilter: string[];
 }) {
@@ -74,9 +75,11 @@ export function filterAndSortMilestones({
 
   if (activePersonFilter.length > 0) {
     const matchingMilestoneIds = new Set(
-      tasks.flatMap((task) =>
-        task.targetMilestoneId && filterSelectionMatchesTaskPeople(activePersonFilter, task)
-          ? [task.targetMilestoneId]
+      milestones.flatMap((milestone) =>
+        getMilestoneTasksForState(milestone, bootstrap).some((task) =>
+          filterSelectionMatchesTaskPeople(activePersonFilter, task),
+        )
+          ? [milestone.id]
           : [],
       ),
     );

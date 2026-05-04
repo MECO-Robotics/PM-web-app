@@ -66,6 +66,7 @@ export interface MilestoneGeometry {
 
 export interface TimelineDayMilestoneUnderlay {
   id: string;
+  milestone: MilestoneRecord;
   lines: string[];
   color: string;
   rotationDeg: 45 | 90;

@@ -45,6 +45,7 @@ function createBootstrap(): BootstrapPayload {
         id: "milestone-1",
         title: "Regional",
         type: "competition",
+        status: "ready",
         startDateTime: "2026-03-10T14:00:00.000Z",
         endDateTime: null,
         isExternal: true,
@@ -56,12 +57,26 @@ function createBootstrap(): BootstrapPayload {
         id: "milestone-2",
         title: "Design review",
         type: "deadline",
+        status: "blocked",
         startDateTime: "2026-03-12T14:00:00.000Z",
         endDateTime: null,
         isExternal: false,
         description: "Subsystem review",
         projectIds: ["project-1"],
         relatedSubsystemIds: [],
+      },
+    ],
+    milestoneRequirements: [
+      {
+        id: "milestone-2:scope:subsystem:subsystem-1",
+        milestoneId: "milestone-2",
+        targetType: "subsystem",
+        targetId: "subsystem-1",
+        conditionType: "iteration",
+        conditionValue: "iteration = 1",
+        required: true,
+        sortOrder: 1,
+        notes: "",
       },
     ],
     tasks: [
@@ -118,7 +133,7 @@ function createBootstrap(): BootstrapPayload {
         startDate: "2026-03-02",
         dueDate: "2026-03-11",
         priority: "medium",
-        targetMilestoneId: "milestone-2",
+        targetMilestoneId: null,
         dependencyIds: [],
         blockers: [],
         isBlocked: false,
@@ -161,13 +176,16 @@ describe("MilestonesView", () => {
     );
 
     expect(markup).toContain("task-queue-board");
+    expect(markup).toContain("milestone-board");
     expect(markup).toContain("task-queue-board-column");
     expect(markup).toContain("task-queue-board-card");
     expect(markup).toContain("Competition");
     expect(markup).toContain("Deadline");
+    expect((markup.match(/task-queue-board-card-due/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    expect(markup).toContain("task-queue-board-card-status-icon");
   });
 
-  it("renders type chips with dark-mode-safe palette variables", () => {
+  it("renders milestone status badges with the shared status palette", () => {
     const markup = renderToStaticMarkup(
       React.createElement(MilestonesView, {
         activePersonFilter: [],
@@ -179,10 +197,8 @@ describe("MilestonesView", () => {
       }),
     );
 
-    expect(markup).toContain("milestone-type-pill");
-    expect(markup).toContain("--milestone-type-chip-bg-dark");
-    expect(markup).toContain("--milestone-type-chip-text-dark");
-    expect(markup).not.toContain("color:#1f3f7a");
+    expect(markup).toContain("status-pill-warning");
+    expect(markup).toContain("Milestone status: In progress");
   });
 
   it("filters milestones to the active person via linked tasks", () => {
@@ -201,7 +217,7 @@ describe("MilestonesView", () => {
     );
 
     expect(markup).toContain("Regional");
-    expect(markup).not.toContain("Design review");
+    expect(markup).toContain("Design review");
     expect(markup).toContain("Only milestones linked to tasks assigned to or mentored by Alex Builder.");
   });
 

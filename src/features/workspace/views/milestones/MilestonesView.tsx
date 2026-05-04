@@ -69,11 +69,11 @@ export function MilestonesView({
       </div>
 
       <MilestonesBoardSection
+        bootstrap={bootstrap}
         milestones={milestones.processedMilestones}
         motionClassName={milestones.milestoneFilterMotionClass}
-        onOpenMilestone={milestones.openEditMilestoneModal}
+        onOpenMilestone={milestones.openMilestoneDetailsModal}
         projectLabelByMilestoneId={milestones.projectLabelByMilestoneId}
-        subsystemsById={subsystemsById}
       />
 
       <MilestonesMilestoneModal
@@ -95,6 +95,7 @@ export function MilestonesView({
         modalPortalTarget={milestones.modalPortalTarget}
         onClose={milestones.closeMilestoneModal}
         onDelete={milestones.handleMilestoneDelete}
+        onEditMilestone={milestones.openEditMilestoneModal}
         onSubmit={milestones.handleMilestoneSubmit}
         projectsById={milestones.projectsById}
         selectableSubsystems={milestones.selectableSubsystems}

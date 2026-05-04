@@ -4,27 +4,27 @@ import type { BootstrapPayload, MilestoneRecord } from "@/types";
 import { MilestoneKanbanBoard } from "../MilestoneKanbanBoard";
 
 interface MilestonesBoardSectionProps {
+  bootstrap: BootstrapPayload;
   milestones: MilestoneRecord[];
   motionClassName: string;
   onOpenMilestone: (milestone: MilestoneRecord) => void;
   projectLabelByMilestoneId: Record<string, string>;
-  subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
 }
 
 export function MilestonesBoardSection({
+  bootstrap,
   milestones,
   motionClassName,
   onOpenMilestone,
   projectLabelByMilestoneId,
-  subsystemsById,
 }: MilestonesBoardSectionProps) {
   return milestones.length > 0 ? (
     <KanbanScrollFrame motionClassName={motionClassName}>
       <MilestoneKanbanBoard
+        bootstrap={bootstrap}
         milestones={milestones}
         onOpenMilestone={onOpenMilestone}
         projectLabelByMilestoneId={projectLabelByMilestoneId}
-        subsystemsById={subsystemsById}
       />
     </KanbanScrollFrame>
   ) : (

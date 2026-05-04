@@ -4,6 +4,7 @@ import { type FilterSelection } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import { buildTimelineGridLayout } from "./model/timelineGridLayout";
 import { TimelineGridBody } from "./TimelineGridBody";
+import { TimelineMilestoneDetailModal } from "./TimelineMilestoneDetailModal";
 import { TimelineMilestoneHoverLayer } from "./TimelineMilestoneHoverLayer";
 import { TimelineMilestoneModal } from "./TimelineMilestoneModal";
 import {
@@ -45,6 +46,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   onSaveTimelineMilestone,
   triggerCreateMilestoneToken,
 }) => {
+  void _membersById;
+
   const state = useTimelineViewState();
   const data = useTimelineViewData({
     activePersonFilter,
@@ -164,6 +167,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       />
 
       <TimelineMilestoneUnderlaysPortal
+        onOpenMilestoneDetails={data.milestoneModal.openMilestoneDetailModalForMilestone}
         portalTarget={data.tooltipPortalTarget}
         underlays={data.timelineDayMilestoneUnderlays}
       />
@@ -218,6 +222,14 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         setMilestoneStartDate={data.milestoneModal.setMilestoneStartDate}
         setMilestoneStartTime={data.milestoneModal.setMilestoneStartTime}
         subsystemsById={data.subsystemsById}
+      />
+
+      <TimelineMilestoneDetailModal
+        bootstrap={bootstrap}
+        milestone={data.milestoneModal.activeMilestoneDetail}
+        onClose={data.milestoneModal.closeMilestoneDetailModal}
+        onEdit={data.milestoneModal.openEditMilestoneModalForMilestone}
+        portalTarget={data.modalPortalTarget}
       />
     </section>
   );

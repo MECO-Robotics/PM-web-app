@@ -15,6 +15,18 @@ import type {
 
 const MILESTONE_UNDERLAY_HORIZONTAL_GAP = 18;
 
+type TimelineMilestoneUnderlayEntry = {
+  id: string;
+  milestone: MilestoneRecord;
+  lines: string[];
+  color: string;
+  rotationDeg: 45 | 90;
+  geometry: MilestoneGeometry;
+  startDay: string;
+  endDay: string;
+  sourceOrder: number;
+};
+
 function compareTimelineMilestonesByStart(left: MilestoneRecord, right: MilestoneRecord) {
   const startComparison = left.startDateTime.localeCompare(right.startDateTime);
   if (startComparison !== 0) {
@@ -62,7 +74,7 @@ export function buildTimelineDayMilestoneUnderlays({
   const timelineEnd = timelineDays[timelineDays.length - 1];
   const underlayEntries = [...milestones]
     .sort(compareTimelineMilestonesByStart)
-    .map((milestone, sourceOrder) => {
+    .map<TimelineMilestoneUnderlayEntry | null>((milestone, sourceOrder) => {
       const milestoneStartDay = datePortion(milestone.startDateTime);
       const milestoneEndDay = datePortion(milestone.endDateTime ?? milestone.startDateTime);
       const clampedStartDay = milestoneStartDay < timelineStart ? timelineStart : milestoneStartDay;
@@ -82,6 +94,7 @@ export function buildTimelineDayMilestoneUnderlays({
 
       return {
         id: milestone.id,
+        milestone,
         lines: [milestone.title],
         color: style.chipText,
         rotationDeg: isMultiDayMilestone ? 45 : 90,
@@ -92,18 +105,7 @@ export function buildTimelineDayMilestoneUnderlays({
       };
     })
     .filter(
-      (
-        entry,
-      ): entry is {
-        id: string;
-        lines: string[];
-        color: string;
-        rotationDeg: 45 | 90;
-        geometry: MilestoneGeometry;
-        startDay: string;
-        endDay: string;
-        sourceOrder: number;
-      } => entry !== null,
+      (entry): entry is TimelineMilestoneUnderlayEntry => entry !== null,
     )
     .sort((left, right) => {
       const startComparison = left.startDay.localeCompare(right.startDay);
@@ -150,6 +152,7 @@ export function buildTimelineDayMilestoneUnderlays({
 
     return {
       id: entry.id,
+      milestone: entry.milestone,
       lines: entry.lines,
       color: entry.color,
       rotationDeg: entry.rotationDeg,
@@ -159,4 +162,3 @@ export function buildTimelineDayMilestoneUnderlays({
     } satisfies TimelineDayMilestoneUnderlay;
   });
 }
-

@@ -10,7 +10,7 @@ interface MilestonesMilestoneModalReadinessSectionProps {
   activeMilestoneCompleteTasks: BootstrapPayload["tasks"];
   activeMilestoneTasks: BootstrapPayload["tasks"];
   bootstrap: BootstrapPayload;
-  milestoneModalMode: "create" | "edit" | null;
+  milestoneModalMode: "create" | "detail" | "edit" | null;
   milestoneTaskGroups: Record<TaskPlanningState, BootstrapPayload["tasks"]>;
   milestoneTaskOrder: readonly TaskPlanningState[];
 }
@@ -24,7 +24,7 @@ export function MilestonesMilestoneModalReadinessSection({
   milestoneTaskGroups,
   milestoneTaskOrder,
 }: MilestonesMilestoneModalReadinessSectionProps) {
-  return milestoneModalMode === "edit" && activeMilestone ? (
+  return milestoneModalMode !== "create" && activeMilestone ? (
     <div className="field modal-wide">
       <span style={{ color: "var(--text-title)" }}>Readiness</span>
       {activeMilestoneTasks.length > 0 ? (

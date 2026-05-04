@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import type { BootstrapPayload, MilestoneRecord } from "@/types";
 import type { TimelineMilestoneDraft } from "@/features/workspace/shared/timeline";
 
+import { MilestonesEventDetailsModal } from "./MilestonesEventDetailsModal";
 import { MilestonesMilestoneModalActions } from "./sections/MilestonesMilestoneModalActions";
 import { MilestonesMilestoneModalFields } from "./sections/MilestonesMilestoneModalFields";
 import { MilestonesMilestoneModalReadinessSection } from "./sections/MilestonesMilestoneModalReadinessSection";
@@ -16,7 +17,7 @@ interface MilestonesMilestoneModalProps {
   activeMilestoneTasks: BootstrapPayload["tasks"];
   bootstrap: BootstrapPayload;
   milestoneError: string | null;
-  milestoneModalMode: "create" | "edit" | null;
+  milestoneModalMode: "create" | "detail" | "edit" | null;
   milestoneStartDate: string;
   milestoneStartTime: string;
   milestoneEndDate: string;
@@ -29,6 +30,7 @@ interface MilestonesMilestoneModalProps {
   modalPortalTarget: HTMLElement | null;
   onClose: () => void;
   onDelete: () => void;
+  onEditMilestone: (milestone: MilestoneRecord) => void;
   onSubmit: (milestone: FormEvent<HTMLFormElement>) => void;
   projectsById: Record<string, BootstrapPayload["projects"][number]>;
   selectableSubsystems: BootstrapPayload["subsystems"];
@@ -59,6 +61,7 @@ export function MilestonesMilestoneModal({
   modalPortalTarget,
   onClose,
   onDelete,
+  onEditMilestone,
   onSubmit,
   projectsById,
   selectableSubsystems,
@@ -71,6 +74,24 @@ export function MilestonesMilestoneModal({
 }: MilestonesMilestoneModalProps) {
   if (!milestoneModalMode || !modalPortalTarget) {
     return null;
+  }
+
+  if (milestoneModalMode === "detail") {
+    return activeMilestone ? (
+      <MilestonesEventDetailsModal
+        activeMilestone={activeMilestone}
+        activeMilestoneCompleteTasks={activeMilestoneCompleteTasks}
+        activeMilestoneTasks={activeMilestoneTasks}
+        bootstrap={bootstrap}
+        milestoneTaskGroups={milestoneTaskGroups}
+        milestoneTaskOrder={milestoneTaskOrder}
+        modalPortalTarget={modalPortalTarget}
+        onClose={onClose}
+        onEditMilestone={onEditMilestone}
+        projectsById={projectsById}
+        selectableSubsystems={selectableSubsystems}
+      />
+    ) : null;
   }
 
   return createPortal(

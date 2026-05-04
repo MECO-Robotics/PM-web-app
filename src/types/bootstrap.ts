@@ -19,6 +19,7 @@ import type {
   RiskRecord,
   SeasonRecord,
   SubsystemRecord,
+  MilestoneRequirementRecord,
   TaskBlockerRecord,
   TaskDependencyRecord,
   TaskRecord,
@@ -41,6 +42,7 @@ export interface BootstrapPayload {
   partDefinitions: PartDefinitionRecord[];
   partInstances: PartInstanceRecord[];
   milestones: MilestoneRecord[];
+  milestoneRequirements?: MilestoneRequirementRecord[];
   taskDependencies?: TaskDependencyRecord[];
   taskBlockers?: TaskBlockerRecord[];
   reports: ReportRecord[];

@@ -88,13 +88,13 @@ export function useMilestonesViewState({
     () =>
       filterAndSortMilestones({
         activePersonFilter,
+        bootstrap,
         milestones: bootstrap.milestones,
         isAllProjectsView,
         projectFilter,
         searchFilter,
         sortField,
         sortOrder,
-        tasks: bootstrap.tasks,
         subsystemsById,
         typeFilter,
       }),

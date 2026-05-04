@@ -1,13 +1,16 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import type { MilestoneRecord } from "@/types";
 import type { TimelineDayMilestoneUnderlay } from "../timelineViewModel";
 
 interface TimelineMilestoneUnderlaysPortalProps {
   portalTarget: HTMLElement | null;
+  onOpenMilestoneDetails: (milestone: MilestoneRecord) => void;
   underlays: TimelineDayMilestoneUnderlay[];
 }
 
 export const TimelineMilestoneUnderlaysPortal: React.FC<TimelineMilestoneUnderlaysPortalProps> = ({
+  onOpenMilestoneDetails,
   portalTarget,
   underlays,
 }) => {
@@ -19,10 +22,19 @@ export const TimelineMilestoneUnderlaysPortal: React.FC<TimelineMilestoneUnderla
     <>
       {underlays.map((underlay) => (
         <div
-          aria-hidden="true"
           key={`timeline-underlay-${underlay.id}`}
           className="timeline-day-milestone-underlay"
+          aria-label={`Open milestone ${underlay.milestone.title}`}
+          onClick={() => onOpenMilestoneDetails(underlay.milestone)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onOpenMilestoneDetails(underlay.milestone);
+            }
+          }}
+          role="button"
           title={underlay.lines.join(", ")}
+          tabIndex={0}
           style={{
             left: `${underlay.geometry.left + underlay.horizontalOffset}px`,
             top: `${underlay.geometry.bodyTop}px`,
@@ -33,6 +45,8 @@ export const TimelineMilestoneUnderlaysPortal: React.FC<TimelineMilestoneUnderla
             alignItems: "center",
             justifyContent: "center",
             color: underlay.color,
+            pointerEvents: "auto",
+            cursor: "pointer",
             zIndex: 4 + underlay.stackOrder,
           }}
         >

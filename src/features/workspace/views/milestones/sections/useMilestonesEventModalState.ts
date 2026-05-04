@@ -2,6 +2,7 @@ import { useMemo, useState, type Dispatch, type FormEvent, type SetStateAction }
 
 import type { BootstrapPayload, MilestonePayload, MilestoneRecord } from "@/types";
 import type { FilterSelection } from "@/features/workspace/shared/WorkspaceViewShared";
+import { getMilestoneTasksForState } from "@/features/workspace/shared/milestones";
 import { DEFAULT_EVENT_TYPE as DEFAULT_MILESTONE_TYPE, getMilestoneProjectIds } from "@/features/workspace/shared/milestones";
 import {
   buildDateTime,
@@ -49,7 +50,7 @@ export type MilestonesMilestoneModalState = {
   milestoneEndDate: string;
   milestoneEndTime: string;
   milestoneError: string | null;
-  milestoneModalMode: "create" | "edit" | null;
+  milestoneModalMode: "create" | "detail" | "edit" | null;
   milestoneStartDate: string;
   milestoneStartTime: string;
   milestoneTaskGroups: Record<TaskPlanningState, BootstrapPayload["tasks"]>;
@@ -61,10 +62,11 @@ export type MilestonesMilestoneModalState = {
   milestoneDraft: TimelineMilestoneDraft;
   modalPortalTarget: HTMLElement | null;
   openCreateMilestoneModal: () => void;
+  openMilestoneDetailsModal: (milestone: MilestoneRecord) => void;
   openEditMilestoneModal: (milestone: MilestoneRecord) => void;
   setMilestoneEndDate: Dispatch<SetStateAction<string>>;
   setMilestoneEndTime: Dispatch<SetStateAction<string>>;
-  setMilestoneModalMode: Dispatch<SetStateAction<"create" | "edit" | null>>;
+  setMilestoneModalMode: Dispatch<SetStateAction<"create" | "detail" | "edit" | null>>;
   setMilestoneStartDate: Dispatch<SetStateAction<string>>;
   setMilestoneStartTime: Dispatch<SetStateAction<string>>;
   setMilestoneDraft: Dispatch<SetStateAction<TimelineMilestoneDraft>>;
@@ -79,7 +81,7 @@ export function useMilestonesMilestoneModalState({
   scopedProjectIds,
   subsystemsById,
 }: UseMilestonesMilestoneModalStateArgs): MilestonesMilestoneModalState {
-  const [milestoneModalMode, setMilestoneModalMode] = useState<"create" | "edit" | null>(null);
+  const [milestoneModalMode, setMilestoneModalMode] = useState<"create" | "detail" | "edit" | null>(null);
   const [activeMilestoneId, setActiveMilestoneId] = useState<string | null>(null);
   const [milestoneDraft, setMilestoneDraft] = useState<TimelineMilestoneDraft>(
     emptyTimelineMilestoneDraft(DEFAULT_MILESTONE_TYPE),
@@ -98,10 +100,8 @@ export function useMilestonesMilestoneModalState({
       : null;
   const activeMilestoneTasks = useMemo(
     () =>
-      activeMilestone
-        ? bootstrap.tasks.filter((task) => task.targetMilestoneId === activeMilestone.id)
-        : [],
-    [activeMilestone, bootstrap.tasks],
+      activeMilestone ? getMilestoneTasksForState(activeMilestone, bootstrap) : [],
+    [activeMilestone, bootstrap],
   );
   const activeMilestoneCompleteTasks = useMemo(
     () => activeMilestoneTasks.filter((task) => task.status === "complete"),
@@ -141,6 +141,12 @@ export function useMilestonesMilestoneModalState({
     setMilestoneError(null);
   };
 
+  const openMilestoneDetailsModal = (milestone: MilestoneRecord) => {
+    setMilestoneModalMode("detail");
+    setActiveMilestoneId(milestone.id);
+    setMilestoneError(null);
+  };
+
   const openEditMilestoneModal = (milestone: MilestoneRecord) => {
     const milestoneProjectIds = getMilestoneProjectIds(milestone, subsystemsById);
     setMilestoneModalMode("edit");
@@ -158,7 +164,7 @@ export function useMilestonesMilestoneModalState({
 
   const handleMilestoneSubmit = async (milestone: FormEvent<HTMLFormElement>) => {
     milestone.preventDefault();
-    if (!milestoneModalMode) {
+    if (!milestoneModalMode || milestoneModalMode === "detail") {
       return;
     }
 
@@ -264,6 +270,7 @@ export function useMilestonesMilestoneModalState({
     milestoneDraft,
     modalPortalTarget,
     openCreateMilestoneModal,
+    openMilestoneDetailsModal,
     openEditMilestoneModal,
     setMilestoneEndDate,
     setMilestoneEndTime,

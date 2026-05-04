@@ -1,9 +1,9 @@
 import React from "react";
 import {
+  IconCalendar,
   IconChevronLeft,
   IconChevronRight,
   IconPerson,
-  IconTasks,
 } from "@/components/shared";
 import type { BootstrapPayload } from "@/types";
 import {
@@ -80,7 +80,7 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
           ariaLabel="Timeline interval"
           buttonDataTutorialTarget="timeline-interval-select"
           className="timeline-interval-filter"
-          icon={<IconTasks />}
+          icon={<IconCalendar />}
           onChange={(selection) => {
             const nextInterval = selection.length === 0 ? "all" : (selection[selection.length - 1] as TimelineViewInterval);
             onIntervalChange(nextInterval);
@@ -149,4 +149,3 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
     </div>
   );
 };
-

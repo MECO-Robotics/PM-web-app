@@ -71,7 +71,7 @@ export const TimelineTaskStatusCell: React.FC<TimelineTaskStatusCellProps> = ({
         type="button"
         style={{
           position: "absolute",
-          right: "2px",
+          right: "0px",
           top: "50%",
           transform: "translateY(-50%)",
           border: "none",

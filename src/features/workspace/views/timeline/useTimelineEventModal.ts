@@ -52,6 +52,7 @@ export function useTimelineMilestoneModal({
   const [milestoneError, setMilestoneError] = useState<string | null>(null);
   const [isSavingMilestone, setIsSavingMilestone] = useState(false);
   const [isDeletingMilestone, setIsDeletingMilestone] = useState(false);
+  const [activeMilestoneDetail, setActiveMilestoneDetail] = useState<MilestoneRecord | null>(null);
 
   const closeMilestoneModal = useCallback(() => {
     setMilestoneModalMode(null);
@@ -64,6 +65,7 @@ export function useTimelineMilestoneModal({
 
   const openCreateMilestoneModalForDay = useCallback(
     (day: string) => {
+      setActiveMilestoneDetail(null);
       setMilestoneModalMode("create");
       setActiveMilestoneId(null);
       setActiveMilestoneDay(day);
@@ -90,6 +92,7 @@ export function useTimelineMilestoneModal({
 
   const openEditMilestoneModalForDay = useCallback(
     (day: string, milestone: MilestoneRecord) => {
+      setActiveMilestoneDetail(null);
       const milestoneProjectIds = getMilestoneProjectIds(milestone, subsystemsById);
       setMilestoneModalMode("edit");
       setActiveMilestoneId(milestone.id);
@@ -107,6 +110,13 @@ export function useTimelineMilestoneModal({
     [scopedProjectIds, subsystemsById],
   );
 
+  const openEditMilestoneModalForMilestone = useCallback(
+    (milestone: MilestoneRecord) => {
+      openEditMilestoneModalForDay(datePortion(milestone.startDateTime), milestone);
+    },
+    [openEditMilestoneModalForDay],
+  );
+
   const openMilestoneModalForDay = useCallback(
     (day: string) => {
       const milestonesOnDay = dayMilestonesByDate[day] ?? [];
@@ -119,6 +129,15 @@ export function useTimelineMilestoneModal({
     },
     [dayMilestonesByDate, openCreateMilestoneModalForDay, openEditMilestoneModalForDay],
   );
+
+  const openMilestoneDetailModalForMilestone = useCallback((milestone: MilestoneRecord) => {
+    setActiveMilestoneDetail(milestone);
+    closeMilestoneModal();
+  }, [closeMilestoneModal]);
+
+  const closeMilestoneDetailModal = useCallback(() => {
+    setActiveMilestoneDetail(null);
+  }, []);
 
   const switchMilestoneCreateToTask = useCallback(() => {
     closeMilestoneModal();
@@ -234,6 +253,8 @@ export function useTimelineMilestoneModal({
     activeDayMilestones: activeMilestoneDay ? dayMilestonesByDate[activeMilestoneDay] ?? [] : [],
     activeMilestoneDay,
     activeMilestoneId,
+    activeMilestoneDetail,
+    closeMilestoneDetailModal,
     closeMilestoneModal,
     milestoneDraft,
     milestoneEndDate,
@@ -247,6 +268,8 @@ export function useTimelineMilestoneModal({
     isDeletingMilestone,
     isSavingMilestone,
     openMilestoneModalForDay,
+    openMilestoneDetailModalForMilestone,
+    openEditMilestoneModalForMilestone,
     setMilestoneDraft,
     setMilestoneEndDate,
     setMilestoneEndTime,
@@ -255,5 +278,3 @@ export function useTimelineMilestoneModal({
     switchMilestoneCreateToTask,
   };
 }
-
-

@@ -25,6 +25,28 @@ export interface MilestoneRecord {
   photoUrl?: string;
 }
 
+export type MilestoneRequirementTargetType =
+  | "project"
+  | "workflow"
+  | "artifact"
+  | "subsystem"
+  | "mechanism"
+  | "part-instance";
+
+export type MilestoneRequirementConditionType = "iteration" | "workflow_state" | "custom";
+
+export interface MilestoneRequirementRecord {
+  id: string;
+  milestoneId: string;
+  targetType: MilestoneRequirementTargetType;
+  targetId: string;
+  conditionType: MilestoneRequirementConditionType;
+  conditionValue: string;
+  required: boolean;
+  sortOrder: number;
+  notes: string;
+}
+
 export interface TaskRecord {
   id: string;
   projectId: string;
