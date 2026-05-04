@@ -71,7 +71,8 @@ export const TimelineTaskTrackRowList: React.FC<TimelineTaskTrackRowListProps> =
         return buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
           gridRow: rowStart + index,
           gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
-          margin: "4px 4px",
+          margin: 0,
+          boxSizing: "border-box",
           position: "relative",
           zIndex: 10018,
           borderRadius: "4px",
@@ -81,20 +82,22 @@ export const TimelineTaskTrackRowList: React.FC<TimelineTaskTrackRowListProps> =
           textAlign: "left",
           padding: "0 8px",
           cursor: "pointer",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-        alignSelf: "center",
-        minWidth: 0,
-      });
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+          alignSelf: "center",
+          minWidth: 0,
+        });
     }
 
     return buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
       gridRow: rowStart,
       gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
       height: "8px",
-      margin: "0 2px",
+      margin: 0,
+      boxSizing: "border-box",
+      padding: "0 4px",
       position: "relative",
       zIndex: 10018,
       borderRadius: "2px",
@@ -102,7 +105,6 @@ export const TimelineTaskTrackRowList: React.FC<TimelineTaskTrackRowListProps> =
       cursor: "pointer",
       alignSelf: "center",
       minWidth: 0,
-      padding: 0,
       opacity: 0.7,
     });
   };
