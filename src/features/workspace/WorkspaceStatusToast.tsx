@@ -1,3 +1,5 @@
+import { createPortal } from "react-dom";
+
 export function WorkspaceInfoToast({
   message,
   onDismiss,
@@ -5,7 +7,7 @@ export function WorkspaceInfoToast({
   message: string;
   onDismiss: () => void;
 }) {
-  return (
+  const toast = (
     <aside className="workspace-info-toast" role="status" aria-live="polite">
       <section className="workspace-info-toast-card">
         <div className="workspace-info-toast-header">
@@ -27,6 +29,8 @@ export function WorkspaceInfoToast({
       </section>
     </aside>
   );
+
+  return typeof document !== "undefined" ? createPortal(toast, document.body) : toast;
 }
 
 export function WorkspaceErrorPopup({
