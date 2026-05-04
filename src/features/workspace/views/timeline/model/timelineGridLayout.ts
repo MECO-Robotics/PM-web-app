@@ -44,18 +44,18 @@ export function buildTimelineGridLayout({
   const subsystemColumnWidth = showSubsystemCol ? SUBSYSTEM_COLUMN_WIDTH : 0;
   const subsystemColumnIndex = hasProjectColumn ? 2 : 1;
   const firstDayGridColumn = hasProjectColumn ? 3 : 2;
-  const statusIconColumnIndex = firstDayGridColumn + dayCount;
-  const fixedTimelineColumnWidth = projectColumnWidth + subsystemColumnWidth + STATUS_ICON_COLUMN_WIDTH;
+  const statusIconColumnIndex = firstDayGridColumn + Math.max(0, dayCount - 1);
+  const fixedTimelineColumnWidth = projectColumnWidth + subsystemColumnWidth;
   const statusIconStickyRight = 0;
   const subsystemStickyLeft = hasProjectColumn ? projectColumnWidth : 0;
   const dayTrackSize = getTimelineDayTrackSize(viewInterval, timelineZoom, fixedTimelineColumnWidth);
-  const timelineGridTemplate = `${hasProjectColumn ? `${projectColumnWidth}px ` : ""}${subsystemColumnWidth}px repeat(${dayCount}, ${dayTrackSize}) ${STATUS_ICON_COLUMN_WIDTH}px`;
+  const timelineGridTemplate = `${hasProjectColumn ? `${projectColumnWidth}px ` : ""}${subsystemColumnWidth}px repeat(${dayCount}, ${dayTrackSize})`;
   const gridMinWidth = getTimelineGridMinWidth({
     dayCount,
     hasProjectColumn,
     projectColumnWidth,
     subsystemColumnWidth,
-    taskColumnWidth: STATUS_ICON_COLUMN_WIDTH,
+    taskColumnWidth: 0,
     viewInterval,
     zoom: timelineZoom,
   });

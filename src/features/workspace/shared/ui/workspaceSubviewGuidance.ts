@@ -22,7 +22,7 @@ export const SUBVIEW_INTERACTION_GUIDANCE: Record<WorkspaceSubviewTab, string> =
   timeline:
     "Use the person and date-range filters above to focus the schedule, click a date number to add or edit milestones for that day, collapse or expand subsystem rows with the arrows, click a task row to highlight it, and click the task label or bar to open details.",
   milestones:
-    "Use search and filters to narrow milestones, click a row to edit details, and use Add to create new milestone milestones tied to relevant subsystems when needed.",
+    "Use search and filters to narrow milestones, click a row to open milestone details, then use Edit milestone or double-click a field to edit it. Use Add to create new milestone milestones tied to relevant subsystems when needed.",
   queue:
     "Use search and filters to narrow the list, click a column header to sort, and hover any row to reveal the pencil cue before clicking the row to open its task details. Use Add to create a new task.",
   logs:

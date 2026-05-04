@@ -29,11 +29,12 @@ export const TimelineTaskStatusCell: React.FC<TimelineTaskStatusCellProps> = ({
   onOpenTask,
   ownerId,
   statusIconColumnIndex,
-  statusIconColumnWidth,
+  statusIconColumnWidth: _statusIconColumnWidth,
   statusIconStickyRight,
   task,
   taskStatusSignalsById,
 }) => {
+  void _statusIconColumnWidth;
   const signal = taskStatusSignalsById[task.id] ?? task.status;
 
   return (
@@ -44,9 +45,9 @@ export const TimelineTaskStatusCell: React.FC<TimelineTaskStatusCellProps> = ({
         gridRow: `${gridRow}`,
         gridColumn: `${statusIconColumnIndex}`,
         minHeight: "38px",
-        width: `${statusIconColumnWidth}px`,
-        minWidth: `${statusIconColumnWidth}px`,
-        maxWidth: `${statusIconColumnWidth}px`,
+        width: 0,
+        minWidth: 0,
+        maxWidth: 0,
         padding: 0,
         display: "inline-flex",
         alignItems: "center",
@@ -73,7 +74,7 @@ export const TimelineTaskStatusCell: React.FC<TimelineTaskStatusCellProps> = ({
           position: "absolute",
           right: "0px",
           top: "50%",
-          transform: "translateY(-50%)",
+          transform: "translate(50%, -50%)",
           border: "none",
           background: "none",
           padding: 0,

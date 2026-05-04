@@ -58,9 +58,10 @@
 
 .timeline-layout {
   color: var(--text-copy);
-  width: calc(100vw - var(--shell-sidebar-width));
+  width: calc(100% + 0.85rem);
   max-width: none;
   min-width: 0;
+  margin-right: -0.85rem;
 }
 
 .timeline-layout .timeline-shell {

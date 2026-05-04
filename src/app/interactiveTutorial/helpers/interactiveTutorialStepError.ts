@@ -47,7 +47,7 @@ export function getInteractiveTutorialStepError(
     case "milestone-search":
       return "Type in the milestone search input to continue.";
     case "milestone-edit":
-      return "Open a milestone row in edit mode to continue.";
+      return "Open a milestone row to continue.";
     case "create-worklog":
       return "Create and save one new work log to continue.";
     case "create-material":

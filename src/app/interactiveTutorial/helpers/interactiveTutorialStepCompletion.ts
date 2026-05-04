@@ -142,7 +142,10 @@ export function isInteractiveTutorialStepComplete(
   }
 
   if (step.id === "milestone-edit") {
-    return Boolean(document.querySelector('[data-tutorial-target="milestone-edit-modal"]'));
+    return Boolean(
+      document.querySelector('[data-tutorial-target="milestone-detail-modal"]') ||
+        document.querySelector('[data-tutorial-target="milestone-edit-modal"]'),
+    );
   }
 
   if (step.id === "material-edit") {

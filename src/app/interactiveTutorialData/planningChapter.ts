@@ -96,8 +96,8 @@ const planningSteps = [
   },
   {
     id: "milestone-edit",
-    title: "Edit a milestone",
-    instruction: "Click a milestone row to open the edit modal.",
+    title: "Open milestone details",
+    instruction: "Click a milestone row to open the details popup.",
     selector: '[data-tutorial-target="edit-milestone-row"]',
   },
   {
