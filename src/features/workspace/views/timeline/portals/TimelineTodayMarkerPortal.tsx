@@ -30,7 +30,7 @@ export const TimelineTodayMarkerPortal: React.FC<TimelineTodayMarkerPortalProps>
         bottom: 0,
         width: 0,
         pointerEvents: "none",
-        zIndex: 10041,
+        zIndex: 10017,
       }}
     >
       <div
@@ -44,7 +44,7 @@ export const TimelineTodayMarkerPortal: React.FC<TimelineTodayMarkerPortalProps>
           width: "2px",
           transform: "translateX(-50%)",
           background: "var(--meco-blue)",
-          zIndex: 10042,
+          zIndex: 1,
         }}
       />
       <div
@@ -52,11 +52,11 @@ export const TimelineTodayMarkerPortal: React.FC<TimelineTodayMarkerPortalProps>
         className="timeline-today-marker-label"
         style={{
           position: "absolute",
-          left: `${todayMarkerLeft - todayMarkerLineLeft}px`,
+          left: 0,
           top: showLabelAtTop ? `${todayMarkerLabelTop - 4}px` : undefined,
           bottom: showLabelAtTop ? undefined : "2px",
           transform: showLabelAtTop ? "translate(-50%, -50%)" : "translateX(-50%)",
-          zIndex: 10043,
+          zIndex: 2,
           padding: "1px 6px",
           borderRadius: "999px",
           border: "1px solid var(--border-base)",
