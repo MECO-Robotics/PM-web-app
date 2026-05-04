@@ -203,4 +203,3 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
     </div>
   );
 };
-

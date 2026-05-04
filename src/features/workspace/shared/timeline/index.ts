@@ -29,4 +29,5 @@ export {
   formatTimelineZoomLabel,
   getTimelineDayTrackSize,
   getTimelineGridMinWidth,
+  getTimelineMinimumZoomForWidth,
 } from "./timelineZoom";

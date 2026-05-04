@@ -41,6 +41,7 @@ export interface TimelineMonthGroup {
 export interface TimelineDayHeaderCell {
   day: string;
   weekdayLabel: string;
+  weekdayNarrowLabel: string;
   dayNumberLabel: string;
   milestonesOnDay: MilestoneRecord[];
   dayStyle: WorkspaceMilestoneStyle | null;
@@ -71,6 +72,8 @@ export interface TimelineDayMilestoneUnderlay {
   color: string;
   rotationDeg: 45 | 90;
   geometry: MilestoneGeometry;
+  startDay: string;
+  endDay: string;
   horizontalOffset: number;
   stackOrder: number;
 }
@@ -82,4 +85,3 @@ export interface TimelineMilestonePopupItem {
 
 export * from "./model/timelineViewData";
 export * from "./model/timelineMilestoneData";
-

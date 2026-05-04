@@ -11,8 +11,9 @@
 .subsystem-row {
   display: grid;
   gap: 0.35rem;
-  min-width: 1120px;
+  min-width: 0;
   width: 100%;
+  justify-content: start;
 }
 
 .subsystem-group {
@@ -61,6 +62,26 @@
   gap: 0.18rem;
   position: relative;
   overflow: visible;
+  container-type: inline-size;
+}
+
+.timeline-day-weekday-label {
+  white-space: nowrap;
+  font-size: 8px;
+}
+
+.timeline-day-weekday-label-compact {
+  display: none;
+}
+
+@container (max-width: 28px) {
+  .timeline-day-weekday-label-full {
+    display: none;
+  }
+
+  .timeline-day-weekday-label-compact {
+    display: block;
+  }
 }
 
 .timeline-day:hover,

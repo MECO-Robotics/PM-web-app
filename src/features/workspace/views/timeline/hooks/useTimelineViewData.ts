@@ -30,6 +30,7 @@ interface UseTimelineViewDataArgs {
     milestoneId: string | null,
     payload: MilestonePayload,
   ) => Promise<void>;
+  timelineZoom: number;
   triggerCreateMilestoneToken: number;
   viewAnchorDate: string;
   viewInterval: TimelineViewInterval;
@@ -41,6 +42,7 @@ export function useTimelineViewData({
   openCreateTaskModal,
   onDeleteTimelineMilestone,
   onSaveTimelineMilestone,
+  timelineZoom,
   triggerCreateMilestoneToken,
   viewAnchorDate,
   viewInterval,
@@ -141,6 +143,7 @@ export function useTimelineViewData({
     handleTimelineDayMouseEnter,
     queueTimelineLayerUpdate,
     resolveMilestonePopupGeometry,
+    showMilestoneUnderlayPopup,
     setHoveredMilestonePopupLayerRef,
     timelineDayCellRefs,
     timelineDayMilestoneUnderlays,
@@ -155,6 +158,7 @@ export function useTimelineViewData({
     days: timeline.days,
     dayMilestonesByDate,
     milestones: scopedMilestones,
+    timelineZoom,
   });
 
   const resolveRowHighlightGeometry = useTimelineRowHighlightGeometry(timelineShellRef);
@@ -203,7 +207,7 @@ export function useTimelineViewData({
     timelineTodayMarkerLineLeft,
     timelineTodayMarkerLeft,
     modalPortalTarget,
+    showMilestoneUnderlayPopup,
     tooltipPortalTarget,
   };
 }
-

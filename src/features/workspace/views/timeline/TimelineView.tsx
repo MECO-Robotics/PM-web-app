@@ -1,7 +1,8 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import type { BootstrapPayload, MilestonePayload, TaskRecord } from "@/types";
 import { type FilterSelection } from "@/features/workspace/shared";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
+import { getTimelineMinimumZoomForWidth } from "@/features/workspace/shared/timeline";
 import { buildTimelineGridLayout } from "./model/timelineGridLayout";
 import { TimelineGridBody } from "./TimelineGridBody";
 import { TimelineMilestoneDetailModal } from "./TimelineMilestoneDetailModal";
@@ -49,10 +50,12 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   void _membersById;
 
   const state = useTimelineViewState();
+  const { setTimelineZoomMin } = state;
   const data = useTimelineViewData({
     activePersonFilter,
     bootstrap,
     openCreateTaskModal,
+    timelineZoom: state.timelineZoom,
     onDeleteTimelineMilestone,
     onSaveTimelineMilestone,
     triggerCreateMilestoneToken,
@@ -90,6 +93,43 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     ],
   );
 
+  useEffect(() => {
+    const shell = data.timelineShellRef.current;
+    if (!shell) {
+      return undefined;
+    }
+
+    const updateZoomFloor = () => {
+      setTimelineZoomMin(
+        getTimelineMinimumZoomForWidth({
+          dayCount: data.timeline.days.length,
+          fixedColumnWidth: layout.fixedTimelineColumnWidth,
+          shellWidth: shell.clientWidth,
+          viewInterval: state.viewInterval,
+        }),
+      );
+    };
+
+    updateZoomFloor();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const resizeObserver = new ResizeObserver(updateZoomFloor);
+    resizeObserver.observe(shell);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [
+    data.timeline.days.length,
+    data.timelineShellRef,
+    layout.fixedTimelineColumnWidth,
+    setTimelineZoomMin,
+    state.viewInterval,
+  ]);
+
   return (
     <section className={`panel dense-panel timeline-layout ${WORKSPACE_PANEL_CLASS}`}>
       <div className="panel-header compact-header">
@@ -111,6 +151,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
           onShiftPeriod={state.shiftTimelinePeriod}
           timelinePeriodLabel={data.timelinePeriodLabel}
           timelineZoom={state.timelineZoom}
+          timelineZoomMin={state.timelineZoomMin}
           viewInterval={state.viewInterval}
         />
       </div>
@@ -167,7 +208,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       />
 
       <TimelineMilestoneUnderlaysPortal
+        onHideMilestonePopup={data.clearHoveredMilestonePopup}
         onOpenMilestoneDetails={data.milestoneModal.openMilestoneDetailModalForMilestone}
+        onShowMilestonePopup={data.showMilestoneUnderlayPopup}
         portalTarget={data.tooltipPortalTarget}
         underlays={data.timelineDayMilestoneUnderlays}
       />

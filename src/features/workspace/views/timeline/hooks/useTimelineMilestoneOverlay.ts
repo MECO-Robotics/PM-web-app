@@ -17,17 +17,20 @@ interface UseTimelineMilestoneOverlayArgs {
   days: string[];
   dayMilestonesByDate: Record<string, MilestoneRecord[]>;
   milestones: BootstrapPayload["milestones"];
+  timelineZoom: number;
 }
 
 export function useTimelineMilestoneOverlay({
   days,
   dayMilestonesByDate,
   milestones,
+  timelineZoom,
 }: UseTimelineMilestoneOverlayArgs) {
   const sync = useTimelineMilestoneOverlaySync({ days });
   const layout = useTimelineMilestoneOverlayLayout({
     days,
     milestones,
+    timelineZoom,
     timelineDayCellLayouts: sync.timelineDayCellLayouts,
     timelineDayCellRefs: sync.timelineDayCellRefs,
     timelineGridHeight: sync.timelineGridHeight,
@@ -131,6 +134,31 @@ export function useTimelineMilestoneOverlay({
     [dayMilestonesByDate, days, timelineDayMilestoneUnderlays, updateHoveredMilestonePopup],
   );
 
+  const showMilestoneUnderlayPopup = useCallback(
+    (anchor: HTMLElement, milestone: MilestoneRecord) => {
+      const startDay = datePortion(milestone.startDateTime);
+      const endDay = milestone.endDateTime ? datePortion(milestone.endDateTime) : startDay;
+      const milestonesOnDay = dayMilestonesByDate[startDay] ?? [milestone];
+      const popupItems = getTimelineMilestonePopupItems(
+        milestonesOnDay,
+        timelineDayMilestoneUnderlays,
+      );
+
+      anchor.dataset.popupStartDay = startDay;
+      anchor.dataset.popupEndDay = endDay;
+
+      const dayStyle = getMilestoneTypeStyle(milestone.type);
+      updateHoveredMilestonePopup(
+        anchor,
+        popupItems.map((item) => item.text),
+        popupItems.map((item) => item.horizontalOffset),
+        dayStyle.columnBackground,
+        dayStyle.chipText,
+      );
+    },
+    [dayMilestonesByDate, timelineDayMilestoneUnderlays, updateHoveredMilestonePopup],
+  );
+
   const clearHoveredMilestonePopup = useCallback(() => {
     if (!hoveredMilestonePopupRef.current) {
       return;
@@ -156,6 +184,7 @@ export function useTimelineMilestoneOverlay({
     queueTimelineLayerUpdate,
     resolveMilestonePopupGeometry,
     setHoveredMilestonePopupLayerRef,
+    showMilestoneUnderlayPopup,
     timelineDayCellRefs,
     timelineDayMilestoneUnderlays,
     timelineGridRef,
@@ -167,5 +196,3 @@ export function useTimelineMilestoneOverlay({
     isTimelineShellScrolling,
   };
 }
-
-

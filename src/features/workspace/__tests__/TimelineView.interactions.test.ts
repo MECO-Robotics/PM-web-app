@@ -218,7 +218,11 @@ describe("TimelineView interactions", () => {
 
     expect(underlaySource).toContain('aria-label={`Open milestone ${underlay.milestone.title}`}');
     expect(underlaySource).toContain("role=\"button\"");
+    expect(underlaySource).toContain("onMouseEnter={(event) => onShowMilestonePopup(event.currentTarget, underlay.milestone)}");
+    expect(underlaySource).toContain("onMouseLeave={onHideMilestonePopup}");
     expect(underlaySource).toContain("onClick={() => onOpenMilestoneDetails(underlay.milestone)}");
+    expect(timelineViewSource).toContain("onHideMilestonePopup={data.clearHoveredMilestonePopup}");
+    expect(timelineViewSource).toContain("onShowMilestonePopup={data.showMilestoneUnderlayPopup}");
     expect(detailModalSource).toContain("MilestonesEventDetailsModal");
     expect(detailModalSource).toContain("groupTasksByPlanningState");
     expect(timelineViewSource).toContain("<TimelineMilestoneDetailModal");

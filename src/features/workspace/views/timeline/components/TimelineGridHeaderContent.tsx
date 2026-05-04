@@ -61,6 +61,7 @@ export function TimelineGridHeaderContent({
       data-is-scrolling={isScrolling ? "true" : undefined}
       onWheel={handleTimelineZoomWheel}
       style={{
+        "--timeline-zoom": timelineZoom,
         overflowX: "auto",
         padding: 0,
         background: "var(--bg-panel)",
@@ -71,7 +72,8 @@ export function TimelineGridHeaderContent({
         minWidth: 0,
         boxSizing: "border-box",
         justifySelf: "stretch",
-      }}
+        alignSelf: "stretch",
+      } as React.CSSProperties & { "--timeline-zoom": number }}
     >
       <div
         className="timeline-grid-motion"
@@ -229,7 +231,12 @@ export function TimelineGridHeaderContent({
             data-popup-start-day={cell.primaryMilestoneStartDay}
             data-popup-end-day={cell.primaryMilestoneEndDay}
           >
-            <span style={{ whiteSpace: "nowrap", fontSize: "8px" }}>{cell.weekdayLabel}</span>
+            <span className="timeline-day-weekday-label timeline-day-weekday-label-full">
+              {cell.weekdayLabel}
+            </span>
+            <span className="timeline-day-weekday-label timeline-day-weekday-label-compact">
+              {cell.weekdayNarrowLabel}
+            </span>
             <button
               className={`timeline-day-number-button${cell.milestonesOnDay.length ? " has-milestone" : ""}`}
               onClick={() => handleTimelineHeaderDayClick(cell.day)}

@@ -75,6 +75,7 @@ describe("TimelineView", () => {
           {
             day: "2026-04-06",
             weekdayLabel: "Mon",
+            weekdayNarrowLabel: "M",
             dayNumberLabel: "6",
             milestonesOnDay: [],
             dayStyle: null,
@@ -129,6 +130,37 @@ describe("TimelineView", () => {
     expect(getTimelineMilestonePopupItems([morningMilestone, afternoonMilestone], underlays)).toEqual([
       { text: "Morning review", horizontalOffset: -9 },
       { text: "Afternoon review", horizontalOffset: 9 },
+    ]);
+  });
+
+  it("widens milestone lane spacing as zoom increases", () => {
+    const firstMilestone = createTimelineMilestone({
+      id: "milestone-a",
+      title: "First review",
+      startDateTime: "2026-04-08T09:00:00.000Z",
+    });
+    const secondMilestone = createTimelineMilestone({
+      id: "milestone-b",
+      title: "Second review",
+      startDateTime: "2026-04-08T14:00:00.000Z",
+    });
+    const underlays = buildTimelineDayMilestoneUnderlays({
+      milestones: [firstMilestone, secondMilestone],
+      resolveGeometry: () => ({
+        left: 100,
+        width: 24,
+        centerX: 112,
+        centerY: 80,
+        bodyTop: 40,
+        bodyHeight: 80,
+      }),
+      timelineDays: ["2026-04-08"],
+      timelineZoom: 2,
+    });
+
+    expect(getTimelineMilestonePopupItems([firstMilestone, secondMilestone], underlays)).toEqual([
+      { text: "First review", horizontalOffset: -18 },
+      { text: "Second review", horizontalOffset: 18 },
     ]);
   });
 

@@ -61,10 +61,12 @@ export function buildTimelineDayMilestoneUnderlays({
   milestones,
   resolveGeometry,
   timelineDays,
+  timelineZoom = 1,
 }: {
   milestones: BootstrapPayload["milestones"];
   resolveGeometry: (popupStartDay: string | null, popupEndDay: string | null) => MilestoneGeometry | null;
   timelineDays: string[];
+  timelineZoom?: number;
 }) {
   if (!timelineDays.length) {
     return [];
@@ -147,8 +149,12 @@ export function buildTimelineDayMilestoneUnderlays({
 
   return layoutEntries.map((entry) => {
     const clusterLaneCount = clusterLaneCounts.get(entry.clusterIndex) ?? 1;
+    const laneGap = Math.max(
+      MILESTONE_UNDERLAY_HORIZONTAL_GAP,
+      Math.round(MILESTONE_UNDERLAY_HORIZONTAL_GAP * timelineZoom),
+    );
     const horizontalOffset =
-      (entry.laneIndex - (clusterLaneCount - 1) / 2) * MILESTONE_UNDERLAY_HORIZONTAL_GAP;
+      (entry.laneIndex - (clusterLaneCount - 1) / 2) * laneGap;
 
     return {
       id: entry.id,
@@ -157,6 +163,8 @@ export function buildTimelineDayMilestoneUnderlays({
       color: entry.color,
       rotationDeg: entry.rotationDeg,
       geometry: entry.geometry,
+      startDay: entry.startDay,
+      endDay: entry.endDay,
       horizontalOffset,
       stackOrder: entry.laneIndex,
     } satisfies TimelineDayMilestoneUnderlay;

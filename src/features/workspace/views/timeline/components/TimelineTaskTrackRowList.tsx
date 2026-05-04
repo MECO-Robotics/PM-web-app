@@ -68,19 +68,19 @@ export const TimelineTaskTrackRowList: React.FC<TimelineTaskTrackRowListProps> =
   const isCollapsed = mode !== "subsystem-expanded";
   const buildTaskBarStyle = (task: TimelineTaskSpan, index: number) => {
     if (mode === "subsystem-expanded") {
-      return buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
-        gridRow: rowStart + index,
-        gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
-        margin: "4px 4px",
-        position: "relative",
-        zIndex: 10018,
-        borderRadius: "4px",
-        border: "none",
-        color: "#fff",
-        fontSize: "0.7rem",
-        textAlign: "left",
-        padding: "0 8px",
-        cursor: "pointer",
+        return buildTimelineTaskToneStyle(task.disciplineId, disciplinesById, {
+          gridRow: rowStart + index,
+          gridColumn: `${task.offset + firstDayGridColumn} / span ${task.span}`,
+          margin: "4px 4px",
+          position: "relative",
+          zIndex: 10018,
+          borderRadius: "4px",
+          border: "none",
+          color: "#fff",
+          fontSize: "0.7rem",
+          textAlign: "left",
+          padding: "0 8px",
+          cursor: "pointer",
         overflow: "hidden",
         textOverflow: "ellipsis",
         whiteSpace: "nowrap",
@@ -167,4 +167,3 @@ export const TimelineTaskTrackRowList: React.FC<TimelineTaskTrackRowListProps> =
     </>
   );
 };
-

@@ -13,6 +13,7 @@ import type {
 } from "../timelineViewModel";
 
 const WEEKDAY_SHORT_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "short" });
+const WEEKDAY_NARROW_FORMATTER = new Intl.DateTimeFormat(undefined, { weekday: "narrow" });
 const DAY_NUMBER_FORMATTER = new Intl.DateTimeFormat(undefined, { day: "numeric" });
 
 export function buildTimelineMonthGroups(days: string[]) {
@@ -59,6 +60,7 @@ export function buildTimelineDayHeaderCells(
     return {
       day,
       weekdayLabel: WEEKDAY_SHORT_FORMATTER.format(dayDate),
+      weekdayNarrowLabel: WEEKDAY_NARROW_FORMATTER.format(dayDate),
       dayNumberLabel: DAY_NUMBER_FORMATTER.format(dayDate),
       milestonesOnDay,
       dayStyle,
@@ -130,4 +132,3 @@ export function filterTimelineMilestonesByPersonSelection({
 
   return milestones.filter((milestone) => matchingMilestoneIds.has(milestone.id));
 }
-

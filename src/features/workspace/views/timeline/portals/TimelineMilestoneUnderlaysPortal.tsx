@@ -6,11 +6,15 @@ import type { TimelineDayMilestoneUnderlay } from "../timelineViewModel";
 interface TimelineMilestoneUnderlaysPortalProps {
   portalTarget: HTMLElement | null;
   onOpenMilestoneDetails: (milestone: MilestoneRecord) => void;
+  onShowMilestonePopup: (target: HTMLElement, milestone: MilestoneRecord) => void;
+  onHideMilestonePopup: () => void;
   underlays: TimelineDayMilestoneUnderlay[];
 }
 
 export const TimelineMilestoneUnderlaysPortal: React.FC<TimelineMilestoneUnderlaysPortalProps> = ({
+  onHideMilestonePopup,
   onOpenMilestoneDetails,
+  onShowMilestonePopup,
   portalTarget,
   underlays,
 }) => {
@@ -25,6 +29,8 @@ export const TimelineMilestoneUnderlaysPortal: React.FC<TimelineMilestoneUnderla
           key={`timeline-underlay-${underlay.id}`}
           className="timeline-day-milestone-underlay"
           aria-label={`Open milestone ${underlay.milestone.title}`}
+          onMouseEnter={(event) => onShowMilestonePopup(event.currentTarget, underlay.milestone)}
+          onMouseLeave={onHideMilestonePopup}
           onClick={() => onOpenMilestoneDetails(underlay.milestone)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {

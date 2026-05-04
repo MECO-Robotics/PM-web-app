@@ -119,6 +119,7 @@ describe("TimelineView", () => {
           {
             day: "2026-04-06",
             weekdayLabel: "Mon",
+            weekdayNarrowLabel: "M",
             dayNumberLabel: "6",
             milestonesOnDay: [],
             dayStyle: null,
@@ -128,6 +129,7 @@ describe("TimelineView", () => {
           {
             day: "2026-04-07",
             weekdayLabel: "Tue",
+            weekdayNarrowLabel: "T",
             dayNumberLabel: "7",
             milestonesOnDay: [],
             dayStyle: null,
@@ -208,6 +210,7 @@ describe("TimelineView", () => {
           {
             day: "2026-04-06",
             weekdayLabel: "Mon",
+            weekdayNarrowLabel: "M",
             dayNumberLabel: "6",
             milestonesOnDay: [],
             dayStyle: null,
@@ -217,6 +220,7 @@ describe("TimelineView", () => {
           {
             day: "2026-04-07",
             weekdayLabel: "Tue",
+            weekdayNarrowLabel: "T",
             dayNumberLabel: "7",
             milestonesOnDay: [],
             dayStyle: null,

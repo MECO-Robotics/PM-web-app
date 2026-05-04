@@ -14,7 +14,6 @@ import {
 import {
   formatTimelineZoomLabel,
   TIMELINE_ZOOM_MAX,
-  TIMELINE_ZOOM_MIN,
 } from "@/features/workspace/shared/timeline";
 import type { TimelineViewInterval } from "@/features/workspace/shared/timeline";
 
@@ -33,6 +32,7 @@ interface TimelineToolbarProps {
   onShiftPeriod: (direction: -1 | 1) => void;
   timelinePeriodLabel: string;
   timelineZoom: number;
+  timelineZoomMin: number;
   viewInterval: TimelineViewInterval;
 }
 
@@ -46,6 +46,7 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
   onShiftPeriod,
   timelinePeriodLabel,
   timelineZoom,
+  timelineZoomMin,
   viewInterval,
 }) => {
   const timelineIntervalValue: FilterSelection = viewInterval === "all" ? [] : [viewInterval];
@@ -117,7 +118,7 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
           <button
             aria-label="Zoom out timeline"
             className="icon-button timeline-zoom-button"
-            disabled={timelineZoom <= TIMELINE_ZOOM_MIN}
+            disabled={timelineZoom <= timelineZoomMin}
             onClick={() => onAdjustZoom(-1)}
             title="Zoom out timeline"
             type="button"

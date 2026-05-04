@@ -3,8 +3,14 @@ import * as React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { monthEndFromDay } from "@/features/workspace/shared/timeline";
-import { clampTimelineZoom, formatTimelineZoomLabel, getTimelineDayTrackSize, getTimelineGridMinWidth } from "@/features/workspace/shared/timeline";
+import {
+  clampTimelineZoom,
+  formatTimelineZoomLabel,
+  getTimelineDayTrackSize,
+  getTimelineGridMinWidth,
+  getTimelineMinimumZoomForWidth,
+  monthEndFromDay,
+} from "@/features/workspace/shared/timeline";
 import { TimelineView } from "@/features/workspace/views/timeline/TimelineView";
 import { createBootstrap, createBootstrapWithEmptySubsystem, createBootstrapWithoutTasks, readAppCss, membersById } from "./timelineTestFixtures";
 
@@ -239,6 +245,64 @@ describe("TimelineView", () => {
     expect(markup).toContain('class="timeline-grid-motion"');
   });
 
+  it("raises the minimum zoom when the shell is wide enough to show extra whitespace at 60%", () => {
+    expect(
+      getTimelineMinimumZoomForWidth({
+        dayCount: 30,
+        fixedColumnWidth: 276,
+        shellWidth: 1200,
+        viewInterval: "month",
+      }),
+    ).toBe(1.1);
+  });
+
+  it("scales task fragments and milestone text with timeline zoom", () => {
+    const css = readAppCss();
+    const taskTrackRowListSource = readFileSync(
+      join(
+        process.cwd(),
+        "src/features/workspace/views/timeline/components/TimelineTaskTrackRowList.tsx",
+      ),
+      "utf8",
+    );
+    const headerSource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/timeline/components/TimelineGridHeaderContent.tsx"),
+      "utf8",
+    );
+
+    expect(taskTrackRowListSource).toContain('fontSize: "0.7rem"');
+    expect(css).not.toContain("font-size: calc(0.7rem * var(--timeline-zoom, 1))");
+    expect(css).toContain("font-size: 1rem");
+    expect(css).toContain("gap: calc(0.35rem + 0.35rem * var(--timeline-zoom, 1))");
+    expect(css).toContain("font-size: inherit");
+    expect(headerSource).toContain('width: "100%"');
+    expect(headerSource).toContain('"--timeline-zoom": timelineZoom');
+  });
+
+  it("abbreviates weekday labels when the day cell gets narrow", () => {
+    const css = readAppCss();
+    const presentationSource = readFileSync(
+      join(
+        process.cwd(),
+        "src/features/workspace/views/timeline/model/timelineViewDataPresentation.ts",
+      ),
+      "utf8",
+    );
+    const headerSource = readFileSync(
+      join(
+        process.cwd(),
+        "src/features/workspace/views/timeline/components/TimelineGridHeaderContent.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(presentationSource).toContain('weekdayNarrowLabel: WEEKDAY_NARROW_FORMATTER.format(dayDate)');
+    expect(headerSource).toContain("timeline-day-weekday-label-full");
+    expect(headerSource).toContain("timeline-day-weekday-label-compact");
+    expect(css).toContain("container-type: inline-size");
+    expect(css).toContain("@container (max-width: 28px)");
+  });
+
   it("exposes timeline zoom controls and uses zoom to widen the grid", () => {
     const markup = renderToStaticMarkup(
       React.createElement(TimelineView, {
@@ -278,6 +342,7 @@ describe("TimelineView", () => {
     expect(getTimelineDayTrackSize("week", 1.6, 388)).toBe(
       "minmax(calc((100vw - var(--shell-sidebar-width) - 388px) / 7 * 1.6), 1fr)",
     );
+    expect(css).toContain("gap: calc(0.35rem + 0.35rem * var(--timeline-zoom, 1))");
     expect(
       getTimelineGridMinWidth({
         dayCount: 10,
