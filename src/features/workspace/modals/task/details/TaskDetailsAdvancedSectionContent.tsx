@@ -8,6 +8,8 @@ interface TaskDetailsAdvancedSectionProps {
   bootstrap: BootstrapPayload;
   advancedSectionOpen: boolean;
   canInlineEdit: boolean;
+  collapsibleOpen?: boolean;
+  onCollapsibleToggle?: (open: boolean) => void;
   editingField: TaskDetailsEditableField | null;
   openTaskEditModal: () => void;
   setAdvancedSectionOpen: Dispatch<SetStateAction<boolean>>;

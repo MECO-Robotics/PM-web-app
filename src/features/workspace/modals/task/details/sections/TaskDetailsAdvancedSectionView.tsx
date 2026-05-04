@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { BootstrapPayload, TaskPayload, TaskRecord } from "@/types";
 import { EditableHoverIndicator, FilterDropdown } from "../../../../shared/WorkspaceViewShared";
 import { IconManufacturing, IconPlus, IconTrash } from "@/components/shared/Icons";
@@ -11,6 +11,8 @@ interface TaskDetailsAdvancedSectionViewProps {
   bootstrap: BootstrapPayload;
   advancedSectionOpen: boolean;
   canInlineEdit: boolean;
+  collapsibleOpen?: boolean;
+  onCollapsibleToggle?: (open: boolean) => void;
   editingField: TaskDetailsEditableField | null;
   openTaskEditModal: () => void;
   setAdvancedSectionOpen: Dispatch<SetStateAction<boolean>>;
@@ -25,6 +27,8 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
     bootstrap,
     advancedSectionOpen,
     canInlineEdit,
+    collapsibleOpen,
+    onCollapsibleToggle,
     editingField,
     openTaskEditModal,
     setAdvancedSectionOpen,
@@ -42,6 +46,7 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
   const editableTask = model.editableTask;
   const [mechanismAddMenuKey, setMechanismAddMenuKey] = useState(0);
   const [partAddMenuKey, setPartAddMenuKey] = useState(0);
+  const [linkedDetailsOpen, setLinkedDetailsOpen] = useState(true);
   const mechanismAddOptions = model.projectMechanisms
     .filter((mechanism) => !model.selectedMechanismIds.includes(mechanism.id))
     .map((mechanism) => ({
@@ -54,6 +59,12 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
       id: partInstance.id,
       name: `${partInstance.name}`,
     }));
+
+  useEffect(() => {
+    setLinkedDetailsOpen(true);
+  }, [activeTask.id]);
+
+  const isMechanismAndPartsOpen = collapsibleOpen ?? linkedDetailsOpen;
 
   return (
     <details
@@ -147,7 +158,16 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
           )}
         </label>
         <label className="field task-detail-row task-detail-collapsible-field">
-          <details className="task-detail-collapsible" onDoubleClick={canInlineEdit ? undefined : openTaskEditModal}>
+          <details
+            className="task-detail-collapsible"
+            open={isMechanismAndPartsOpen}
+            onDoubleClick={canInlineEdit ? undefined : openTaskEditModal}
+            onToggle={(milestone) => {
+              const nextOpen = milestone.currentTarget.open;
+              setLinkedDetailsOpen(nextOpen);
+              onCollapsibleToggle?.(nextOpen);
+            }}
+          >
             <summary className="task-detail-collapsible-summary">
               <span className="task-detail-collapsible-summary-main">
                 <span className="task-detail-collapsible-icon" aria-hidden="true"></span>
@@ -225,7 +245,16 @@ export function TaskDetailsAdvancedSectionView(props: TaskDetailsAdvancedSection
           </details>
         </label>
         <label className="field task-detail-row task-detail-collapsible-field">
-          <details className="task-detail-collapsible" onDoubleClick={canInlineEdit ? undefined : openTaskEditModal}>
+          <details
+            className="task-detail-collapsible"
+            open={isMechanismAndPartsOpen}
+            onDoubleClick={canInlineEdit ? undefined : openTaskEditModal}
+            onToggle={(milestone) => {
+              const nextOpen = milestone.currentTarget.open;
+              setLinkedDetailsOpen(nextOpen);
+              onCollapsibleToggle?.(nextOpen);
+            }}
+          >
             <summary className="task-detail-collapsible-summary">
               <span className="task-detail-collapsible-summary-main">
                 <span className="task-detail-collapsible-icon" aria-hidden="true"></span>

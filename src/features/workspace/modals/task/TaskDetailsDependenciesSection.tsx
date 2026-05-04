@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type {
   BootstrapPayload,
   TaskDependencyKind,
@@ -24,6 +24,8 @@ interface TaskDetailsDependenciesSectionProps {
   activeTask: TaskRecord;
   bootstrap: BootstrapPayload;
   canInlineEdit: boolean;
+  collapsibleOpen?: boolean;
+  onCollapsibleToggle?: (open: boolean) => void;
   setTaskDraft?: Dispatch<SetStateAction<TaskPayload>>;
   taskDraft?: TaskPayload;
 }
@@ -40,10 +42,17 @@ export function TaskDetailsDependenciesSection({
   activeTask,
   bootstrap,
   canInlineEdit,
+  collapsibleOpen,
+  onCollapsibleToggle,
   setTaskDraft,
   taskDraft,
 }: TaskDetailsDependenciesSectionProps) {
   const [editingDependencyKey, setEditingDependencyKey] = useState<string | null>(null);
+  const [internalOpen, setInternalOpen] = useState(true);
+
+  useEffect(() => {
+    setInternalOpen(true);
+  }, [activeTask.id]);
 
   const tasksById = Object.fromEntries(bootstrap.tasks.map((task) => [task.id, task] as const));
   const milestonesById = Object.fromEntries(
@@ -82,6 +91,7 @@ export function TaskDetailsDependenciesSection({
       partDefinitionsById,
       formatIterationVersion,
     });
+  const isOpen = collapsibleOpen ?? internalOpen;
 
   const updateDependencyDraft = (
     dependencyKey: string,
@@ -147,7 +157,15 @@ export function TaskDetailsDependenciesSection({
 
   return (
     <div className="task-detail-blocker-split-column task-detail-collapsible-field">
-      <details className="task-detail-collapsible" open>
+      <details
+        className="task-detail-collapsible"
+        open={isOpen}
+        onToggle={(milestone) => {
+          const nextOpen = milestone.currentTarget.open;
+          setInternalOpen(nextOpen);
+          onCollapsibleToggle?.(nextOpen);
+        }}
+      >
         <summary className="task-detail-collapsible-summary task-detail-collapsible-summary-inline">
           <span className="task-detail-collapsible-summary-main">
             <span className="task-detail-collapsible-icon" aria-hidden="true"></span>

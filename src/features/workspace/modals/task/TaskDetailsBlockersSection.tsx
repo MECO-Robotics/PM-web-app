@@ -6,6 +6,8 @@ interface TaskDetailsBlockersSectionProps {
   activeTaskId: string;
   bootstrap: BootstrapPayload;
   canInlineEdit: boolean;
+  collapsibleOpen?: boolean;
+  onCollapsibleToggle?: (open: boolean) => void;
   onResolveTaskBlocker: (blockerId: string) => Promise<void>;
   setTaskDraft?: Dispatch<SetStateAction<TaskPayload>>;
   taskDraft?: TaskPayload;
@@ -15,6 +17,8 @@ export function TaskDetailsBlockersSection({
   activeTaskId,
   bootstrap,
   canInlineEdit,
+  collapsibleOpen,
+  onCollapsibleToggle,
   onResolveTaskBlocker,
   setTaskDraft,
   taskDraft,
@@ -24,6 +28,8 @@ export function TaskDetailsBlockersSection({
       activeTaskId={activeTaskId}
       bootstrap={bootstrap}
       canInlineEdit={canInlineEdit}
+      collapsibleOpen={collapsibleOpen}
+      onCollapsibleToggle={onCollapsibleToggle}
       onResolveTaskBlocker={onResolveTaskBlocker}
       setTaskDraft={setTaskDraft}
       taskDraft={taskDraft}

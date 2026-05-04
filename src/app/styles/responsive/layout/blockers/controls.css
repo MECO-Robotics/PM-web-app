@@ -12,6 +12,39 @@
   min-width: 0;
 }
 
+.task-details-dependency-add-menu-shell {
+  position: relative;
+  display: inline-flex;
+  flex-direction: row-reverse;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: max-content;
+  max-width: min(36rem, calc(100vw - 1.5rem));
+  overflow: visible;
+}
+
+.task-details-dependency-menu-panel {
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: 11.5rem;
+}
+
+.task-details-dependency-add-menu-shell > .task-details-dependency-menu-popup.table-column-filter-menu.task-details-dependency-menu-panel {
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+}
+
+.task-details-dependency-kind-panel {
+  z-index: 2;
+}
+
+.task-details-dependency-target-panel {
+  z-index: 1;
+}
+
 .task-details-dependency-kind-menu .toolbar-filter-menu-button,
 .task-details-dependency-target-menu .toolbar-filter-menu-button,
 .task-details-dependency-type-menu .toolbar-filter-menu-button,

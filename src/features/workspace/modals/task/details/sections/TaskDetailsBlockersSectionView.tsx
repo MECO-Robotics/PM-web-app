@@ -9,6 +9,8 @@ interface TaskDetailsBlockersSectionViewProps {
   activeTaskId: string;
   bootstrap: BootstrapPayload;
   canInlineEdit: boolean;
+  collapsibleOpen?: boolean;
+  onCollapsibleToggle?: (open: boolean) => void;
   onResolveTaskBlocker: (blockerId: string) => Promise<void>;
   setTaskDraft?: Dispatch<SetStateAction<TaskPayload>>;
   taskDraft?: TaskPayload;
@@ -19,11 +21,14 @@ export function TaskDetailsBlockersSectionView(props: TaskDetailsBlockersSection
     activeTaskId,
     bootstrap,
     canInlineEdit,
+    collapsibleOpen,
+    onCollapsibleToggle,
     onResolveTaskBlocker,
     setTaskDraft,
     taskDraft,
   } = props;
   const [editingBlockerKey, setEditingBlockerKey] = useState<string | null>(null);
+  const [internalOpen, setInternalOpen] = useState(true);
   const model = useTaskDetailsBlockersSectionModel({
     activeTaskId,
     bootstrap,
@@ -36,9 +41,23 @@ export function TaskDetailsBlockersSectionView(props: TaskDetailsBlockersSection
     setEditingBlockerKey(null);
   }, [activeTaskId]);
 
+  useEffect(() => {
+    setInternalOpen(true);
+  }, [activeTaskId]);
+
+  const isOpen = collapsibleOpen ?? internalOpen;
+
   return (
     <div className="task-detail-blocker-split-column task-detail-collapsible-field">
-      <details className="task-detail-collapsible" open>
+      <details
+        className="task-detail-collapsible"
+        open={isOpen}
+        onToggle={(milestone) => {
+          const nextOpen = milestone.currentTarget.open;
+          setInternalOpen(nextOpen);
+          onCollapsibleToggle?.(nextOpen);
+        }}
+      >
         <summary className="task-detail-collapsible-summary task-detail-collapsible-summary-inline">
           <span className="task-detail-collapsible-summary-main">
             <span className="task-detail-collapsible-icon" aria-hidden="true"></span>

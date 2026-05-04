@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { BootstrapPayload, TaskPayload, TaskRecord } from "@/types";
 import { TaskDetailsBlockersSection } from "./TaskDetailsBlockersSection";
 import { TaskDetailsDependenciesSection } from "./TaskDetailsDependenciesSection";
@@ -20,6 +20,12 @@ export function TaskDetailsDependencyBlockersSection({
   setTaskDraft,
   taskDraft,
 }: TaskDetailsDependencyBlockersSectionProps) {
+  const [sharedCollapsibleOpen, setSharedCollapsibleOpen] = useState(true);
+
+  useEffect(() => {
+    setSharedCollapsibleOpen(true);
+  }, [activeTask.id]);
+
   return (
     <div className="field modal-wide task-detail-list-shell">
       <div className="task-details-dependency-blocker-grid">
@@ -27,6 +33,8 @@ export function TaskDetailsDependencyBlockersSection({
           activeTask={activeTask}
           bootstrap={bootstrap}
           canInlineEdit={canInlineEdit}
+          collapsibleOpen={sharedCollapsibleOpen}
+          onCollapsibleToggle={setSharedCollapsibleOpen}
           taskDraft={taskDraft}
           setTaskDraft={setTaskDraft}
         />
@@ -34,6 +42,8 @@ export function TaskDetailsDependencyBlockersSection({
           activeTaskId={activeTask.id}
           bootstrap={bootstrap}
           canInlineEdit={canInlineEdit}
+          collapsibleOpen={sharedCollapsibleOpen}
+          onCollapsibleToggle={setSharedCollapsibleOpen}
           onResolveTaskBlocker={onResolveTaskBlocker}
           setTaskDraft={setTaskDraft}
           taskDraft={taskDraft}

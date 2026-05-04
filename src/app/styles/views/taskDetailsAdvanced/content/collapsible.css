@@ -123,6 +123,11 @@
   margin: 0;
 }
 
+.task-detail-collapsible:not([open]) .task-details-section-add-menu,
+.task-detail-collapsible:not([open]) .task-details-blocker-add-menu {
+  display: none !important;
+}
+
 .task-detail-collapsible-summary {
   display: flex;
   align-items: center;
