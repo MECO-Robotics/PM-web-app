@@ -64,8 +64,6 @@ export function useAppWorkspaceState() {
   useAppWorkspaceGlobalEffects({
     isDarkMode,
     pageShellStyle,
-    taskEditNotice,
-    setTaskEditNotice,
     isSidebarOverlay,
     toggleSidebar,
     isAddSeasonPopupOpen: workspaceUiState.isAddSeasonPopupOpen,

@@ -14,8 +14,6 @@ function isBrowserZoomShortcut(milestone: KeyboardEvent) {
 interface UseAppWorkspaceGlobalEffectsOptions {
   isDarkMode: boolean;
   pageShellStyle: Record<string, string | number | undefined>;
-  taskEditNotice: string | null;
-  setTaskEditNotice: Dispatch<SetStateAction<string | null>>;
   isSidebarOverlay: boolean;
   toggleSidebar: () => void;
   isAddSeasonPopupOpen: boolean;
@@ -27,8 +25,6 @@ interface UseAppWorkspaceGlobalEffectsOptions {
 export function useAppWorkspaceGlobalEffects({
   isDarkMode,
   pageShellStyle,
-  taskEditNotice,
-  setTaskEditNotice,
   isSidebarOverlay,
   toggleSidebar,
   isAddSeasonPopupOpen,
@@ -92,18 +88,6 @@ export function useAppWorkspaceGlobalEffects({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
-
-  useEffect(() => {
-    if (!taskEditNotice) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setTaskEditNotice(null);
-    }, 4500);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [setTaskEditNotice, taskEditNotice]);
 
   useEffect(() => {
     if (!isSidebarOverlay) {

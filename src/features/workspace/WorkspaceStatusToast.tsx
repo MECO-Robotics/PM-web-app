@@ -1,36 +1,74 @@
+import { createElement, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+
+import { createPausableTimeout, type PausableTimeoutController } from "./taskEditNoticeTimer";
+
+const TASK_EDIT_NOTICE_TIMEOUT_MS = 4500;
 
 export function WorkspaceInfoToast({
   message,
+  title = "Changes Canceled",
   onDismiss,
 }: {
   message: string;
+  title?: string;
   onDismiss: () => void;
 }) {
-  const toast = (
-    <aside className="workspace-info-toast" role="status" aria-live="polite">
-      <section className="workspace-info-toast-card">
-        <div className="workspace-info-toast-header">
-          <div>
-            <p className="eyebrow" style={{ color: "var(--official-blue)" }}>
-              Info
-            </p>
-            <h2>Task edit canceled</h2>
-          </div>
-          <button className="icon-button" onClick={onDismiss} type="button">
-            Dismiss
-          </button>
-        </div>
+  const dismissTimerRef = useRef<PausableTimeoutController | null>(null);
 
-        <p className="workspace-info-toast-message">{message}</p>
-        <div className="workspace-info-toast-timer" aria-hidden="true">
-          <span />
-        </div>
-      </section>
-    </aside>
+  useEffect(() => {
+    const timer = createPausableTimeout(onDismiss, TASK_EDIT_NOTICE_TIMEOUT_MS);
+    dismissTimerRef.current = timer;
+
+    return () => {
+      timer.cancel();
+      if (dismissTimerRef.current === timer) {
+        dismissTimerRef.current = null;
+      }
+    };
+  }, [message, onDismiss]);
+
+  const pauseDismissTimer = () => {
+    dismissTimerRef.current?.pause();
+  };
+
+  const resumeDismissTimer = () => {
+    dismissTimerRef.current?.resume();
+  };
+
+  const toast = createElement(
+    "aside",
+    { className: "workspace-info-toast", role: "status", "aria-live": "polite" },
+    createElement(
+      "section",
+      {
+        className: "workspace-info-toast-card",
+        onMouseEnter: pauseDismissTimer,
+        onMouseLeave: resumeDismissTimer,
+      },
+      createElement(
+        "div",
+        { className: "workspace-info-toast-header" },
+        createElement(
+          "div",
+          null,
+          createElement("p", { className: "eyebrow", style: { color: "var(--official-blue)" } }, "Info"),
+          createElement("h2", null, title),
+        ),
+        createElement("button", { className: "icon-button", onClick: onDismiss, type: "button" }, "Dismiss"),
+      ),
+      createElement("p", { className: "workspace-info-toast-message" }, message),
+      createElement(
+        "div",
+        { className: "workspace-info-toast-timer", "aria-hidden": "true" },
+        createElement("span"),
+      ),
+    ),
   );
 
-  return typeof document !== "undefined" ? createPortal(toast, document.body) : toast;
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
+
+  return portalTarget ? createPortal(toast, portalTarget) : toast;
 }
 
 export function WorkspaceErrorPopup({
@@ -40,5 +78,5 @@ export function WorkspaceErrorPopup({
   message: string;
   onDismiss: () => void;
 }) {
-  return <WorkspaceInfoToast message={message} onDismiss={onDismiss} />;
+  return createElement(WorkspaceInfoToast, { message, onDismiss, title: "Something went wrong" });
 }
