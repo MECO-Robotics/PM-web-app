@@ -91,7 +91,7 @@ export function TaskQueueToolbar({
   return (
     <div className="panel-header compact-header">
       <div className="queue-section-header">
-        <h2>Task kanban</h2>
+        <h2>Tasks</h2>
         <p className="section-copy filter-copy">
           {activePersonFilterLabel === "All roster"
             ? "All tasks in kanban."
