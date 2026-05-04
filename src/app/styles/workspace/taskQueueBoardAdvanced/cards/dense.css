@@ -11,8 +11,18 @@
 }
 
 .task-queue-board-card-meta .task-queue-board-card-person .profile-avatar {
-  width: 1.85rem;
-  height: 1.85rem;
+  width: calc(1.85rem * var(--task-queue-zoom, 1));
+  height: calc(1.85rem * var(--task-queue-zoom, 1));
+}
+
+.task-queue-board-card-meta .task-queue-board-card-person .profile-avatar-fallback {
+  font-size: calc(1.1rem * var(--task-queue-zoom, 1));
+}
+
+.task-queue-board-card-meta > span:not(.task-queue-board-card-person) {
+  min-height: calc(1.15rem * var(--task-queue-zoom, 1));
+  padding: calc(0.1rem * var(--task-queue-zoom, 1)) calc(0.36rem * var(--task-queue-zoom, 1));
+  font-size: calc(0.63rem * var(--task-queue-zoom, 1));
 }
 
 .task-queue-board-card-person {

@@ -38,6 +38,24 @@ export const SORT_DIRECTION_OPTIONS: DropdownOption[] = [
   { id: "desc", name: "Descending" },
 ];
 
+export const TASK_QUEUE_ZOOM_MIN = 0.6;
+export const TASK_QUEUE_ZOOM_MAX = 1.6;
+export const TASK_QUEUE_ZOOM_STEP = 0.1;
+export const TASK_QUEUE_COMPACT_ZOOM_THRESHOLD = 0.9;
+
+export function clampTaskQueueZoom(value: number) {
+  const normalizedValue = Math.round(value * 10) / 10;
+  return Math.min(TASK_QUEUE_ZOOM_MAX, Math.max(TASK_QUEUE_ZOOM_MIN, normalizedValue));
+}
+
+export function formatTaskQueueZoomLabel(zoom: number) {
+  return `${Math.round(zoom * 100)}%`;
+}
+
+export function shouldHideTaskQueueSummary(zoom: number) {
+  return zoom <= TASK_QUEUE_COMPACT_ZOOM_THRESHOLD;
+}
+
 const FILTER_TONE_CLASSES = [
   "filter-tone-info",
   "filter-tone-success",
@@ -109,6 +127,7 @@ export interface TaskQueueViewState {
   setStatusFilter: Dispatch<SetStateAction<FilterSelection>>;
   setSubsystemFilter: Dispatch<SetStateAction<FilterSelection>>;
   setSubsystemIterationFilter: Dispatch<SetStateAction<FilterSelection>>;
+  setTaskQueueZoom: Dispatch<SetStateAction<number>>;
   setVisibleTaskCount: Dispatch<SetStateAction<number>>;
   sortField: TaskSortField;
   sortOrder: "asc" | "desc";
@@ -119,6 +138,7 @@ export interface TaskQueueViewState {
   subsystemIterationOptions: DropdownOption[];
   taskFilterMotionClass: string;
   taskSortIsDefault: boolean;
+  taskQueueZoom: number;
   visibleTaskCount: number;
   workstreamsById: Record<string, BootstrapPayload["workstreams"][number]>;
   showProjectContextOnCards: boolean;
@@ -146,6 +166,7 @@ export function useTaskQueueViewState({
   const [searchFilter, setSearchFilter] = useState("");
   const [focusedBoardState, setFocusedBoardState] = useState<TaskQueueBoardState | null>(null);
   const [visibleTaskCount, setVisibleTaskCount] = useState(TASK_QUEUE_LAZY_LOAD_BATCH_SIZE);
+  const [taskQueueZoom, setTaskQueueZoom] = useState(1);
 
   const derived = useTaskQueueViewStateLogic({
     activePersonFilter,
@@ -190,12 +211,14 @@ export function useTaskQueueViewState({
     setStatusFilter,
     setSubsystemFilter,
     setSubsystemIterationFilter,
+    setTaskQueueZoom,
     setVisibleTaskCount,
     sortField,
     sortOrder,
     statusFilter,
     subsystemFilter,
     subsystemIterationFilter,
+    taskQueueZoom,
     visibleTaskCount,
   };
 }

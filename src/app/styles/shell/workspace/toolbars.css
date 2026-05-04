@@ -34,6 +34,52 @@
   justify-self: end;
 }
 
+.task-queue-toolbar-inline-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  width: auto;
+  min-width: 0;
+}
+
+.task-queue-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+  min-height: 2.2rem;
+  padding: 0.12rem 0.18rem;
+  border: 1px solid var(--border-base);
+  border-radius: 999px;
+  background: var(--bg-row-alt);
+}
+
+.task-queue-zoom-button.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  min-width: 1.9rem;
+  padding: 0;
+  box-shadow: none;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.task-queue-zoom-label {
+  min-width: 4.9rem;
+  padding: 0 0.35rem;
+  color: var(--text-title);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .materials-toolbar {
   width: 100%;
   grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(150px, 0.9fr)) auto;

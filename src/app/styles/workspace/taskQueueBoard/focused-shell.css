@@ -37,10 +37,10 @@
 }
 
 .task-queue-board-focused-title .status-pill {
-  gap: 0.45rem;
-  padding-block: 0.34rem;
-  padding-inline: 0.8rem;
-  font-size: 0.9rem;
+  gap: calc(0.45rem * var(--task-queue-zoom, 1));
+  padding-block: calc(0.34rem * var(--task-queue-zoom, 1));
+  padding-inline: calc(0.8rem * var(--task-queue-zoom, 1));
+  font-size: calc(0.9rem * var(--task-queue-zoom, 1));
   line-height: 1;
 }
 
@@ -54,8 +54,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: calc(1.15rem * var(--task-queue-zoom, 1));
+  height: calc(1.15rem * var(--task-queue-zoom, 1));
   flex: 0 0 auto;
   line-height: 0;
 }
@@ -73,11 +73,13 @@
 }
 
 .task-queue-board-focused-title-icon .timeline-task-status-logo svg {
-  width: 0.76rem;
-  height: 0.76rem;
+  width: calc(0.76rem * var(--task-queue-zoom, 1));
+  height: calc(0.76rem * var(--task-queue-zoom, 1));
 }
 
 .task-queue-board-focused-title-label {
+  font-size: calc(0.9rem * var(--task-queue-zoom, 1));
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -85,13 +87,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 1.8rem;
-  height: 1.45rem;
-  padding: 0 0.45rem;
+  min-width: calc(1.8rem * var(--task-queue-zoom, 1));
+  height: calc(1.45rem * var(--task-queue-zoom, 1));
+  padding: 0 calc(0.45rem * var(--task-queue-zoom, 1));
   border-radius: 999px;
   background: rgba(22, 71, 142, 0.1);
   color: var(--official-blue);
-  font-size: 0.8rem;
+  font-size: calc(0.8rem * var(--task-queue-zoom, 1));
   font-weight: 800;
   line-height: 1;
   flex: 0 0 auto;

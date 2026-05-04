@@ -33,8 +33,8 @@
 .task-queue-board-priority-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
+  gap: calc(0.35rem * var(--task-queue-zoom, 1));
+  font-size: calc(0.75rem * var(--task-queue-zoom, 1));
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -61,17 +61,25 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0.95rem;
-  height: 0.95rem;
+  width: calc(0.95rem * var(--task-queue-zoom, 1));
+  height: calc(0.95rem * var(--task-queue-zoom, 1));
   flex: 0 0 auto;
   line-height: 0;
 }
 
 .task-queue-board-priority-label-icon .task-queue-board-card-priority {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: calc(0.95rem * var(--task-queue-zoom, 1));
+  height: calc(0.95rem * var(--task-queue-zoom, 1));
+}
+
+.task-queue-board-priority-label-count {
+  min-width: calc(1.5rem * var(--task-queue-zoom, 1));
+  height: calc(1.25rem * var(--task-queue-zoom, 1));
+  padding: 0 calc(0.35rem * var(--task-queue-zoom, 1));
+  font-size: calc(0.7rem * var(--task-queue-zoom, 1));
 }
 
 .task-queue-board-priority-label-text {
+  font-size: calc(0.75rem * var(--task-queue-zoom, 1));
   white-space: nowrap;
 }

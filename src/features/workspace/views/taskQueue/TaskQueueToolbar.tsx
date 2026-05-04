@@ -8,7 +8,16 @@ import type { FilterSelection } from "@/features/workspace/shared/filters";
 import type { DropdownOption } from "@/features/workspace/shared/model";
 
 import { TaskQueueCompactFilterMenu } from "./TaskQueueCompactFilterMenu";
-import { SORT_DIRECTION_OPTIONS, TASK_SORT_OPTIONS, type TaskSortField } from "./taskQueueViewState";
+import {
+  clampTaskQueueZoom,
+  formatTaskQueueZoomLabel,
+  SORT_DIRECTION_OPTIONS,
+  TASK_QUEUE_ZOOM_MAX,
+  TASK_QUEUE_ZOOM_MIN,
+  TASK_QUEUE_ZOOM_STEP,
+  TASK_SORT_OPTIONS,
+  type TaskSortField,
+} from "./taskQueueViewState";
 
 interface TaskQueueToolbarProps {
   activeFilterCount: number;
@@ -32,6 +41,7 @@ interface TaskQueueToolbarProps {
   setStatusFilter: Dispatch<SetStateAction<FilterSelection>>;
   setSubsystemFilter: Dispatch<SetStateAction<FilterSelection>>;
   setSubsystemIterationFilter: Dispatch<SetStateAction<FilterSelection>>;
+  setTaskQueueZoom: Dispatch<SetStateAction<number>>;
   showSubsystemIterationFilter: boolean;
   sortField: TaskSortField;
   sortOrder: "asc" | "desc";
@@ -41,6 +51,7 @@ interface TaskQueueToolbarProps {
   subsystemIterationFilter: FilterSelection;
   subsystemIterationOptions: DropdownOption[];
   taskSortIsDefault: boolean;
+  taskQueueZoom: number;
 }
 
 export function TaskQueueToolbar({
@@ -65,6 +76,7 @@ export function TaskQueueToolbar({
   setStatusFilter,
   setSubsystemFilter,
   setSubsystemIterationFilter,
+  setTaskQueueZoom,
   showSubsystemIterationFilter,
   sortField,
   sortOrder,
@@ -74,6 +86,7 @@ export function TaskQueueToolbar({
   subsystemIterationFilter,
   subsystemIterationOptions,
   taskSortIsDefault,
+  taskQueueZoom,
 }: TaskQueueToolbarProps) {
   return (
     <div className="panel-header compact-header">
@@ -119,60 +132,90 @@ export function TaskQueueToolbar({
           subsystemIterationOptions={subsystemIterationOptions}
         />
 
-        <CompactFilterMenu
-          activeCount={taskSortIsDefault ? 0 : 1}
-          ariaLabel="Sort tasks"
-          buttonLabel="Sort"
-          className="task-queue-sort-menu"
-          icon={<IconSort />}
-          items={[
-            {
-              label: "Sort by",
-              content: (
-                <select
-                  aria-label="Sort tasks by"
-                  className="task-queue-sort-menu-select"
-                  onChange={(milestone) => setSortField(milestone.target.value as TaskSortField)}
-                  value={sortField}
-                >
-                  {TASK_SORT_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
-              ),
-            },
-            {
-              label: "Direction",
-              content: (
-                <select
-                  aria-label="Sort direction"
-                  className="task-queue-sort-menu-select"
-                  onChange={(milestone) => setSortOrder(milestone.target.value as "asc" | "desc")}
-                  value={sortOrder}
-                >
-                  {SORT_DIRECTION_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
-              ),
-            },
-          ]}
-        />
+        <div className="task-queue-toolbar-inline-actions">
+          <CompactFilterMenu
+            activeCount={taskSortIsDefault ? 0 : 1}
+            ariaLabel="Sort tasks"
+            buttonLabel="Sort"
+            className="task-queue-sort-menu"
+            icon={<IconSort />}
+            items={[
+              {
+                label: "Sort by",
+                content: (
+                  <select
+                    aria-label="Sort tasks by"
+                    className="task-queue-sort-menu-select"
+                    onChange={(milestone) => setSortField(milestone.target.value as TaskSortField)}
+                    value={sortField}
+                  >
+                    {TASK_SORT_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              },
+              {
+                label: "Direction",
+                content: (
+                  <select
+                    aria-label="Sort direction"
+                    className="task-queue-sort-menu-select"
+                    onChange={(milestone) => setSortOrder(milestone.target.value as "asc" | "desc")}
+                    value={sortOrder}
+                  >
+                    {SORT_DIRECTION_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              },
+            ]}
+          />
 
-        <button
-          aria-label="Add task"
-          className="primary-action queue-toolbar-action"
-          data-tutorial-target="create-task-button"
-          onClick={openCreateTaskModal}
-          title="Add task"
-          type="button"
-        >
-          Add
-        </button>
+          <div aria-label="Task queue zoom" className="task-queue-zoom-controls" role="group">
+            <button
+              aria-label="Zoom out task queue"
+              className="icon-button task-queue-zoom-button"
+              disabled={taskQueueZoom <= TASK_QUEUE_ZOOM_MIN}
+              onClick={() =>
+                setTaskQueueZoom((current) => clampTaskQueueZoom(current - TASK_QUEUE_ZOOM_STEP))
+              }
+              title="Zoom out task queue"
+              type="button"
+            >
+              -
+            </button>
+            <span className="task-queue-zoom-label">{formatTaskQueueZoomLabel(taskQueueZoom)}</span>
+            <button
+              aria-label="Zoom in task queue"
+              className="icon-button task-queue-zoom-button"
+              disabled={taskQueueZoom >= TASK_QUEUE_ZOOM_MAX}
+              onClick={() =>
+                setTaskQueueZoom((current) => clampTaskQueueZoom(current + TASK_QUEUE_ZOOM_STEP))
+              }
+              title="Zoom in task queue"
+              type="button"
+            >
+              +
+            </button>
+          </div>
+
+          <button
+            aria-label="Add task"
+            className="primary-action queue-toolbar-action"
+            data-tutorial-target="create-task-button"
+            onClick={openCreateTaskModal}
+            title="Add task"
+            type="button"
+          >
+            Add
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,11 +1,16 @@
-import { useEffect, useRef, useState } from "react";
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CSSProperties, Dispatch, RefObject, SetStateAction } from "react";
 
 import type { BootstrapPayload, TaskRecord } from "@/types";
 import { IconChevronLeft, IconChevronRight } from "@/components/shared";
-import type { TaskQueueBoardState } from "./taskQueueKanban";
 import { TASK_QUEUE_LAZY_LOAD_BATCH_SIZE } from "./taskQueueKanban";
 import { TaskQueueKanbanBoard } from "./TaskQueueKanbanBoard";
+import {
+  clampTaskQueueZoom,
+  shouldHideTaskQueueSummary,
+  TASK_QUEUE_ZOOM_STEP,
+} from "./taskQueueViewState";
+import type { TaskQueueBoardState } from "./taskQueueKanbanBoardState";
 
 interface TaskQueueBoardSectionProps {
   bootstrap: BootstrapPayload;
@@ -17,11 +22,13 @@ interface TaskQueueBoardSectionProps {
   processedTasks: TaskRecord[];
   projectsById: Record<string, BootstrapPayload["projects"][number]>;
   setFocusedBoardState: Dispatch<SetStateAction<TaskQueueBoardState | null>>;
+  setTaskQueueZoom: Dispatch<SetStateAction<number>>;
   setVisibleTaskCount: Dispatch<SetStateAction<number>>;
   showProjectContextOnCards: boolean;
   showProjectOnCards: boolean;
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
   taskFilterMotionClass: string;
+  taskQueueZoom: number;
   visibleTaskCount: number;
   workstreamsById: Record<string, BootstrapPayload["workstreams"][number]>;
 }
@@ -107,21 +114,81 @@ export function TaskQueueBoardSection({
   processedTasks,
   projectsById,
   setFocusedBoardState,
+  setTaskQueueZoom,
   setVisibleTaskCount,
   showProjectContextOnCards,
   showProjectOnCards,
   subsystemsById,
   taskFilterMotionClass,
+  taskQueueZoom,
   visibleTaskCount,
   workstreamsById,
 }: TaskQueueBoardSectionProps) {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const taskQueueBoardShellRef = useRef<HTMLDivElement>(null);
   const scrollState = useTaskQueueBoardScrollState(taskQueueBoardShellRef);
+  const zoomBoard = useCallback(
+    (direction: 1 | -1) => {
+      setTaskQueueZoom((current) => clampTaskQueueZoom(current + direction * TASK_QUEUE_ZOOM_STEP));
+    },
+    [setTaskQueueZoom],
+  );
   const isFocused = focusedBoardState !== null;
   const boardTasks = isFocused ? processedTasks : processedTasks.slice(0, visibleTaskCount);
   const hasMoreTasks = !isFocused && visibleTaskCount < processedTasks.length;
   const loadedTaskLabel = `${Math.min(visibleTaskCount, processedTasks.length)} of ${processedTasks.length}`;
+  const isCompactZoom = shouldHideTaskQueueSummary(taskQueueZoom);
+  const boardStyle = {
+    "--task-queue-zoom": taskQueueZoom,
+    "--task-queue-board-column-width": `calc(15.5rem * ${taskQueueZoom})`,
+    "--task-queue-board-focused-card-width": `calc(16rem * ${taskQueueZoom})`,
+  } as CSSProperties;
+
+  useEffect(() => {
+    const shell = taskQueueBoardShellRef.current;
+    if (!shell) {
+      return;
+    }
+
+    const handleWheel = (milestone: WheelEvent) => {
+      if (!(milestone.ctrlKey || milestone.metaKey) || milestone.deltaY === 0) {
+        return;
+      }
+
+      milestone.preventDefault();
+      zoomBoard(milestone.deltaY > 0 ? -1 : 1);
+    };
+
+    const gestureScale = { current: 1 };
+
+    const handleGestureStart = (milestone: Event) => {
+      milestone.preventDefault();
+      const gesture = milestone as Event & { scale?: number };
+      gestureScale.current = gesture.scale ?? 1;
+    };
+
+    const handleGestureChange = (milestone: Event) => {
+      milestone.preventDefault();
+      const gesture = milestone as Event & { scale?: number };
+      const nextScale = gesture.scale ?? 1;
+      if (Math.abs(nextScale - gestureScale.current) < 0.08) {
+        return;
+      }
+
+      zoomBoard(nextScale > gestureScale.current ? 1 : -1);
+      gestureScale.current = nextScale;
+    };
+
+    shell.addEventListener("wheel", handleWheel, { passive: false });
+    shell.addEventListener("gesturestart", handleGestureStart, { passive: false } as AddEventListenerOptions);
+    shell.addEventListener("gesturechange", handleGestureChange, { passive: false } as AddEventListenerOptions);
+
+    return () => {
+      shell.removeEventListener("wheel", handleWheel);
+      shell.removeEventListener("gesturestart", handleGestureStart);
+      shell.removeEventListener("gesturechange", handleGestureChange);
+    };
+  }, [zoomBoard]);
 
   useEffect(() => {
     if (
@@ -202,7 +269,9 @@ export function TaskQueueBoardSection({
       ) : null}
       <div
         className={`table-shell task-queue-board-shell${isFocused ? " is-focused-column" : ""}`}
+        data-task-queue-zoom-compact={isCompactZoom ? "true" : "false"}
         ref={taskQueueBoardShellRef}
+        style={boardStyle}
       >
         {boardTasks.length > 0 ? (
           <TaskQueueKanbanBoard
@@ -213,6 +282,7 @@ export function TaskQueueBoardSection({
             membersById={membersById}
             openEditTaskModal={openEditTaskModal}
             projectsById={projectsById}
+            taskQueueZoom={taskQueueZoom}
             showProjectContextOnCards={showProjectContextOnCards}
             showProjectOnCards={showProjectOnCards}
             onClearFocus={() => setFocusedBoardState(null)}

@@ -36,6 +36,7 @@ interface TaskQueueKanbanBoardProps {
   membersById: Record<string, BootstrapPayload["members"][number]>;
   openEditTaskModal: (task: TaskRecord) => void;
   projectsById: Record<string, BootstrapPayload["projects"][number]>;
+  taskQueueZoom: number;
   showProjectContextOnCards: boolean;
   showProjectOnCards: boolean;
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
@@ -53,6 +54,7 @@ export function TaskQueueKanbanBoard({
   membersById,
   openEditTaskModal,
   projectsById,
+  taskQueueZoom,
   showProjectContextOnCards,
   showProjectOnCards,
   subsystemsById,
@@ -141,6 +143,7 @@ export function TaskQueueKanbanBoard({
                         membersById={membersById}
                         openEditTaskModal={openEditTaskModal}
                         projectsById={projectsById}
+                        taskQueueZoom={taskQueueZoom}
                         showPriorityBadge={false}
                         showProjectContextOnCards={showProjectContextOnCards}
                         showProjectOnCards={showProjectOnCards}
@@ -199,6 +202,7 @@ export function TaskQueueKanbanBoard({
           membersById={membersById}
           openEditTaskModal={openEditTaskModal}
           projectsById={projectsById}
+          taskQueueZoom={taskQueueZoom}
           showPriorityBadge
           showProjectContextOnCards={showProjectContextOnCards}
           showProjectOnCards={showProjectOnCards}

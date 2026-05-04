@@ -6,10 +6,10 @@
 
 .task-queue-board {
   display: grid;
-  grid-template-columns: repeat(6, minmax(15.5rem, 1fr));
-  min-width: calc((15.5rem * 6) + (0.7rem * 5));
+  grid-template-columns: repeat(6, minmax(var(--task-queue-board-column-width, 15.5rem), 1fr));
+  min-width: calc((var(--task-queue-board-column-width, 15.5rem) * 6) + (0.7rem * 5));
   width: 100%;
-  gap: 0.7rem;
+  gap: calc(0.7rem * var(--task-queue-zoom, 1));
   align-items: start;
 }
 

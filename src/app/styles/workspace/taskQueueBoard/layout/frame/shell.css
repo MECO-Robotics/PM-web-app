@@ -55,16 +55,16 @@
 .task-queue-board-scroll-hint {
   display: inline-flex;
   align-items: center;
-  gap: 0.28rem;
-  min-height: 1.65rem;
+  gap: calc(0.28rem * var(--task-queue-zoom, 1));
+  min-height: calc(1.65rem * var(--task-queue-zoom, 1));
   pointer-events: auto;
-  padding: 0.22rem 0.5rem;
+  padding: calc(0.22rem * var(--task-queue-zoom, 1)) calc(0.5rem * var(--task-queue-zoom, 1));
   border: 1px solid color-mix(in srgb, var(--border-base) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg-panel) 88%, transparent);
   box-shadow: 0 8px 18px rgba(15, 28, 52, 0.14);
   color: var(--text-title);
-  font-size: 0.62rem;
+  font-size: calc(0.62rem * var(--task-queue-zoom, 1));
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1;
@@ -82,6 +82,7 @@
   display: inline-block;
   overflow: hidden;
   max-width: 0;
+  font-size: inherit;
   opacity: 0;
   transform: translateX(-0.2rem);
   transition:

@@ -8,6 +8,7 @@ import { TaskQueueView } from "@/features/workspace/views";
 import { TaskQueueKanbanBoard } from "@/features/workspace/views/taskQueue/TaskQueueKanbanBoard";
 import { getTaskQueueCardContextLabel } from "@/features/workspace/views/taskQueue/taskQueueKanban";
 import { TASK_QUEUE_LAZY_LOAD_BATCH_SIZE } from "@/features/workspace/views/taskQueue/taskQueueKanban";
+import { shouldHideTaskQueueSummary } from "@/features/workspace/views/taskQueue/taskQueueViewState";
 import type { BootstrapPayload } from "@/types";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
@@ -209,6 +210,7 @@ describe("TaskQueueView", () => {
         onFocusState: jest.fn(),
         openEditTaskModal: jest.fn(),
         projectsById: { "project-1": bootstrap.projects[0] },
+        taskQueueZoom: 1,
         showProjectContextOnCards: true,
         showProjectOnCards: false,
         subsystemsById: { "subsystem-1": bootstrap.subsystems[0] },
@@ -218,6 +220,7 @@ describe("TaskQueueView", () => {
     );
 
     expect(markup).toContain("task-queue-board-card-context-chip");
+    expect(markup).toContain("task-queue-board-card-context-chip-due-style");
     expect(markup).toContain("--task-queue-board-card-context-accent:#224466");
     expect(markup).toContain("color-mix(in srgb, #224466 24%, transparent)");
     expect(markup).toContain("Drive (v1)");
@@ -246,6 +249,10 @@ describe("TaskQueueView", () => {
     expect(markup).toContain("task-queue-board-load-status");
     expect(markup).toContain("task-queue-board-load-sentinel");
     expect(markup).toContain("task-queue-board-card-due");
+    expect(markup).toContain("task-queue-zoom-controls");
+    expect(markup).toContain("task-queue-zoom-label");
+    expect(markup).toContain("100%");
+    expect(markup).toContain("task-queue-toolbar-inline-actions");
     expect(markup).toContain("task-queue-board-column-header-icon");
     expect(markup).toContain("timeline-task-status-logo-signal-not-started");
     expect(markup).toContain("timeline-task-status-logo-signal-in-progress");
@@ -280,6 +287,12 @@ describe("TaskQueueView", () => {
     expect(markup).not.toContain("Task 16");
   });
 
+  it("hides task summaries once zoom is compact enough", () => {
+    expect(shouldHideTaskQueueSummary(1)).toBe(false);
+    expect(shouldHideTaskQueueSummary(0.9)).toBe(true);
+    expect(shouldHideTaskQueueSummary(0.8)).toBe(true);
+  });
+
   it("keeps the focused kanban view in the same order passed in by filters and sort", () => {
     const bootstrap = createBootstrap();
     const markup = renderToStaticMarkup(
@@ -296,6 +309,7 @@ describe("TaskQueueView", () => {
         onFocusState: jest.fn(),
         openEditTaskModal: jest.fn(),
         projectsById: { "project-1": bootstrap.projects[0] },
+        taskQueueZoom: 1,
         showProjectContextOnCards: true,
         showProjectOnCards: true,
         subsystemsById: { "subsystem-1": bootstrap.subsystems[0] },

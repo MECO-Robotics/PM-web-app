@@ -42,6 +42,7 @@ export function TaskQueueView({
     projectFilter,
     projectsById,
     searchFilter,
+    setTaskQueueZoom,
     setDisciplineFilter,
     setFocusedBoardState,
     setOwnerFilter,
@@ -61,6 +62,7 @@ export function TaskQueueView({
     subsystemFilterOptions,
     subsystemIterationFilter,
     subsystemIterationOptions,
+    taskQueueZoom,
     taskFilterMotionClass,
     taskSortIsDefault,
     visibleTaskCount,
@@ -101,6 +103,7 @@ export function TaskQueueView({
         setStatusFilter={setStatusFilter}
         setSubsystemFilter={setSubsystemFilter}
         setSubsystemIterationFilter={setSubsystemIterationFilter}
+        setTaskQueueZoom={setTaskQueueZoom}
         showSubsystemIterationFilter={showSubsystemIterationFilter}
         sortField={sortField}
         sortOrder={sortOrder}
@@ -110,6 +113,7 @@ export function TaskQueueView({
         subsystemIterationFilter={subsystemIterationFilter}
         subsystemIterationOptions={subsystemIterationOptions}
         taskSortIsDefault={taskSortIsDefault}
+        taskQueueZoom={taskQueueZoom}
       />
 
       <TaskQueueBoardSection
@@ -121,7 +125,9 @@ export function TaskQueueView({
         openEditTaskModal={openEditTaskModal}
         processedTasks={processedTasks}
         projectsById={projectsById}
+        taskQueueZoom={taskQueueZoom}
         setFocusedBoardState={setFocusedBoardState}
+        setTaskQueueZoom={setTaskQueueZoom}
         setVisibleTaskCount={setVisibleTaskCount}
         showProjectContextOnCards={showProjectContextOnCards}
         showProjectOnCards={showProjectOnCards}

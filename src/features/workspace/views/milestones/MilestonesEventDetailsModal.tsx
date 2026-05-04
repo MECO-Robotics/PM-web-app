@@ -36,6 +36,28 @@ function MilestoneDetailValue({
   );
 }
 
+function MilestoneDetailInlineValue({
+  children,
+  onOpenEditMilestone,
+}: {
+  children: ReactNode;
+  onOpenEditMilestone: () => void;
+}) {
+  return (
+    <span className="task-detail-inline-edit-shell task-detail-inline-edit-shell-inline milestone-detail-inline-value">
+      <button
+        className="task-detail-inline-edit-trigger task-detail-inline-edit-trigger-inline"
+        onClick={onOpenEditMilestone}
+        onDoubleClick={onOpenEditMilestone}
+        type="button"
+      >
+        {children}
+        <EditableHoverIndicator className="editable-hover-indicator-inline task-detail-inline-edit-indicator" />
+      </button>
+    </span>
+  );
+}
+
 function MilestoneDetailsStatusIcon({
   label,
   state,
@@ -149,18 +171,27 @@ export function MilestonesEventDetailsModal({
                   <h2 style={{ color: "var(--text-title)" }}>{activeMilestone.title}</h2>
                 </div>
                 <div className="task-detail-copy task-detail-header-meta-line">
-                  <MilestoneDetailValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
+                  <MilestoneDetailInlineValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
                     <span className="pill status-pill status-pill-neutral">
                       {formatMilestoneDateTime(activeMilestone.startDateTime)}
                     </span>
-                  </MilestoneDetailValue>
+                  </MilestoneDetailInlineValue>
                   <span style={{ color: "var(--text-copy)" }}> {"->"} </span>
-                  <MilestoneDetailValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
+                  <MilestoneDetailInlineValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
                     <span className="pill status-pill status-pill-neutral">
                       {activeMilestone.endDateTime ? formatMilestoneDateTime(activeMilestone.endDateTime) : "No end date"}
                     </span>
-                  </MilestoneDetailValue>
+                  </MilestoneDetailInlineValue>
                 </div>
+              </div>
+              <div className="task-detail-header-side-stack">
+                <MilestoneDetailsStatusIcon label={statusText} state={milestoneTaskState} />
+                <span className="task-detail-header-hours-inline task-detail-header-hours-right">
+                  <span className="task-detail-header-hours-label">Logged:</span>
+                  <span className={milestoneLoggedHoursClassName}>{milestoneActualHours}h</span>
+                  <span className="task-detail-hour-separator">/</span>
+                  <span className="task-detail-hours-estimate">{milestoneEstimatedHours}h</span>
+                </span>
               </div>
             </div>
           </div>
@@ -168,21 +199,16 @@ export function MilestonesEventDetailsModal({
             <button className="icon-button task-details-close-button" onClick={onClose} type="button">
               {"\u00D7"}
             </button>
-            <div className="task-detail-header-side-stack">
-              <div className="task-detail-copy task-detail-header-meta-line">
-                <span className="pill status-pill milestone-type-pill" style={milestoneTypeStyleVariables}>
-                  {milestoneTypeStyle.label}
-                </span>
-              </div>
-              <MilestoneDetailsStatusIcon label={statusText} state={milestoneTaskState} />
-              <span className="task-detail-header-hours-inline task-detail-header-hours-right">
-                <span className="task-detail-header-hours-label">Logged:</span>
-                <span className={milestoneLoggedHoursClassName}>{milestoneActualHours}h</span>
-                <span className="task-detail-hour-separator">/</span>
-                <span className="task-detail-hours-estimate">{milestoneEstimatedHours}h</span>
-              </span>
-            </div>
           </div>
+        </div>
+
+        <div className="task-detail-copy modal-wide milestone-detail-type-line">
+          <span style={{ color: "var(--text-title)" }}>Type</span>
+          <MilestoneDetailValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
+            <span className="pill status-pill milestone-type-pill" style={milestoneTypeStyleVariables}>
+              {milestoneTypeStyle.label}
+            </span>
+          </MilestoneDetailValue>
         </div>
 
         <div className="modal-form task-details-grid" style={{ color: "var(--text-copy)" }}>

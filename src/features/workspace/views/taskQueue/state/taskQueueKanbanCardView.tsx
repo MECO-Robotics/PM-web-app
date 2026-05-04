@@ -13,6 +13,7 @@ import {
   TaskPriorityBadge,
 } from "../taskQueueKanbanCard";
 import { getTaskQueueBoardState } from "../taskQueueKanbanBoardState";
+import { shouldHideTaskQueueSummary } from "../taskQueueViewState";
 
 function isTaskCardDateOverdue(dateValue: string): boolean {
   if (!dateValue) {
@@ -73,6 +74,7 @@ interface TaskQueueCardProps {
   membersById: Record<string, BootstrapPayload["members"][number]>;
   openEditTaskModal: (task: TaskRecord) => void;
   projectsById: Record<string, BootstrapPayload["projects"][number]>;
+  taskQueueZoom: number;
   showProjectContextOnCards: boolean;
   showProjectOnCards: boolean;
   subsystemsById: Record<string, BootstrapPayload["subsystems"][number]>;
@@ -88,6 +90,7 @@ export function TaskQueueCard({
   membersById,
   openEditTaskModal,
   projectsById,
+  taskQueueZoom,
   showPriorityBadge = true,
   showProjectContextOnCards,
   showProjectOnCards,
@@ -124,6 +127,7 @@ export function TaskQueueCard({
     "--task-queue-board-card-context-bg": `color-mix(in srgb, ${taskContextAccentColor} 24%, transparent)`,
     "--task-queue-board-card-context-border": `color-mix(in srgb, ${taskContextAccentColor} 54%, transparent)`,
   } as CSSProperties;
+  const hideSummary = shouldHideTaskQueueSummary(taskQueueZoom);
 
   return (
     <button
@@ -143,7 +147,11 @@ export function TaskQueueCard({
         <strong>{task.title}</strong>
         <span className={`task-queue-board-card-due ${dueDatePillClassName}`}>{dueDateText}</span>
       </div>
-      <small className="task-queue-board-card-summary">{task.summary}</small>
+      {!hideSummary ? (
+        <small className="task-queue-board-card-summary task-queue-board-card-summary-task">
+          {task.summary}
+        </small>
+      ) : null}
       <div
         className={`task-queue-board-card-meta${showProjectOnCards ? "" : " task-queue-board-card-meta-person-only"}`}
       >
@@ -151,7 +159,7 @@ export function TaskQueueCard({
           <span>{projectsById[task.projectId]?.name ?? "Unknown project"}</span>
         ) : showProjectContextOnCards ? (
           <span
-            className="task-queue-board-card-context-chip"
+            className="task-queue-board-card-context-chip task-queue-board-card-context-chip-due-style"
             style={taskContextStyle}
             title={taskContextLabel}
           >
