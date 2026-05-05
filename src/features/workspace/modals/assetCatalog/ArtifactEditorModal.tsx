@@ -255,4 +255,3 @@ export function ArtifactEditorModal({
     </div>
   );
 }
-

@@ -32,4 +32,3 @@ describe("milestone project helpers", () => {
     expect(getMilestoneProjectIds(createMilestone({}))).toEqual([]);
   });
 });
-

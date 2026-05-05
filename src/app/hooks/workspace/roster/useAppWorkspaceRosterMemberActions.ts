@@ -158,4 +158,3 @@ export function useAppWorkspaceRosterMemberActions(model: AppWorkspaceModel) {
     handleUpdateMember,
   };
 }
-

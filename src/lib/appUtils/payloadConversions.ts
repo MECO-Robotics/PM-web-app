@@ -94,4 +94,3 @@ export const partInstanceToPayload = (item: PartInstanceRecord): PartInstancePay
   mechanismId: item.mechanismId ?? null,
   photoUrl: item.photoUrl ?? "",
 });
-

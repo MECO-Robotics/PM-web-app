@@ -222,5 +222,3 @@ export function useTimelineMilestoneOverlaySync({
     tooltipPortalTarget,
   };
 }
-
-

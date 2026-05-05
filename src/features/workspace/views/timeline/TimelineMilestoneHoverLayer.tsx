@@ -93,4 +93,3 @@ const TimelineMilestoneHoverLayerComponent: React.FC<TimelineMilestoneHoverLayer
 TimelineMilestoneHoverLayerComponent.displayName = "TimelineMilestoneHoverLayer";
 
 export const TimelineMilestoneHoverLayer = React.memo(TimelineMilestoneHoverLayerComponent);
-

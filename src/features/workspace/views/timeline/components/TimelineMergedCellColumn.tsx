@@ -116,4 +116,3 @@ export const TimelineMergedCellColumn: React.FC<TimelineMergedCellColumnProps> =
     {children}
   </div>
 );
-

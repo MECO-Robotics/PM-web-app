@@ -175,4 +175,3 @@ export const RosterAddPersonModal: React.FC<RosterAddPersonModalProps> = ({
     </div>
   );
 };
-

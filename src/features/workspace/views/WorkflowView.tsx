@@ -232,4 +232,3 @@ export function WorkflowView({
     </section>
   );
 }
-

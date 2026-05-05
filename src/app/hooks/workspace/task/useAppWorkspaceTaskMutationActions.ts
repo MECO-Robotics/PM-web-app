@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { toErrorMessage } from "@/lib/appUtils";

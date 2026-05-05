@@ -239,4 +239,3 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
     </TimelineGridHeader>
   );
 };
-

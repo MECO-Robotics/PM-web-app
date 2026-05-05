@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { AppWorkspaceModel } from "@/app/hooks/useAppWorkspaceModel";
 import { createTaskBlockerRecord, createTaskDependencyRecord, deleteTaskBlockerRecord, deleteTaskDependencyRecord, updateTaskBlockerRecord, updateTaskDependencyRecord } from "@/lib/auth";
 import type {

@@ -55,4 +55,3 @@ export function useAppWorkspaceRosterSeasonActions(model: AppWorkspaceModel) {
     handleCreateSeasonSubmit,
   };
 }
-

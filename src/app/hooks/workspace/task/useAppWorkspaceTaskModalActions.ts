@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptyTaskPayload, taskToPayload } from "@/lib/appUtils";
@@ -9,7 +8,7 @@ export type AppWorkspaceTaskModalActions = ReturnType<typeof useAppWorkspaceTask
 
 export function useAppWorkspaceTaskModalActions(model: AppWorkspaceModel) {
   const openCreateTaskModal = useCallback(() => {
-    model.suppressNextAutoWorkspaceLoadRef.current = true;
+    model.suppressNextAutoWorkspaceLoad();
     model.setShowTimelineCreateToggleInTaskModal(false);
     model.setActiveTimelineTaskDetailId(null);
     model.setActiveTaskId(null);
@@ -18,7 +17,7 @@ export function useAppWorkspaceTaskModalActions(model: AppWorkspaceModel) {
   }, [model]);
 
   const openCreateTaskModalFromTimeline = useCallback(() => {
-    model.suppressNextAutoWorkspaceLoadRef.current = true;
+    model.suppressNextAutoWorkspaceLoad();
     model.setShowTimelineCreateToggleInTaskModal(true);
     model.setActiveTimelineTaskDetailId(null);
     model.setActiveTaskId(null);
@@ -27,7 +26,7 @@ export function useAppWorkspaceTaskModalActions(model: AppWorkspaceModel) {
   }, [model]);
 
   const openEditTaskModal = useCallback((task: TaskRecord) => {
-    model.suppressNextAutoWorkspaceLoadRef.current = true;
+    model.suppressNextAutoWorkspaceLoad();
     model.setShowTimelineCreateToggleInTaskModal(false);
     model.setActiveTimelineTaskDetailId(null);
     model.setActiveTaskId(task.id);
@@ -36,25 +35,25 @@ export function useAppWorkspaceTaskModalActions(model: AppWorkspaceModel) {
   }, [model]);
 
   const openTimelineTaskDetailsModal = useCallback((task: TaskRecord) => {
-    model.suppressNextAutoWorkspaceLoadRef.current = true;
+    model.suppressNextAutoWorkspaceLoad();
     model.setShowTimelineCreateToggleInTaskModal(false);
     model.setActiveTimelineTaskDetailId(task.id);
   }, [model]);
 
   const closeTimelineTaskDetailsModal = useCallback(() => {
-    model.suppressNextAutoWorkspaceLoadRef.current = true;
+    model.suppressNextAutoWorkspaceLoad();
     model.setActiveTimelineTaskDetailId(null);
   }, [model]);
 
   const closeTaskModal = useCallback(() => {
-    model.suppressNextAutoWorkspaceLoadRef.current = true;
+    model.suppressNextAutoWorkspaceLoad();
     model.setShowTimelineCreateToggleInTaskModal(false);
     model.setTaskModalMode(null);
     model.setActiveTaskId(null);
   }, [model]);
 
   const switchTaskCreateToMilestone = useCallback(() => {
-    model.suppressNextAutoWorkspaceLoadRef.current = true;
+    model.suppressNextAutoWorkspaceLoad();
     closeTaskModal();
     model.setTimelineMilestoneCreateSignal((current) => current + 1);
   }, [closeTaskModal, model]);

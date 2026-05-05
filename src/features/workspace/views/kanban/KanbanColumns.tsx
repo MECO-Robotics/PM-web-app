@@ -77,4 +77,3 @@ export function KanbanColumns<TState extends string, TItem>({
     </div>
   );
 }
-

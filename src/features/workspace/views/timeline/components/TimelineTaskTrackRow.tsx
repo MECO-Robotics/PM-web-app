@@ -134,4 +134,3 @@ export const TimelineTaskTrackRow: React.FC<TimelineTaskTrackRowProps> = ({
     </>
   );
 };
-

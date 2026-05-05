@@ -247,4 +247,3 @@ export const RosterView: React.FC<RosterViewProps> = ({
     </section>
   );
 };
-

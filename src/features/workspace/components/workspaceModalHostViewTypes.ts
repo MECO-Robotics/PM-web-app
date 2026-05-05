@@ -158,4 +158,3 @@ export interface WorkspaceModalHostViewProps {
   taskDraft: TaskPayload;
   taskModalMode: TaskModalMode;
 }
-

@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { useEffect, type CSSProperties, type Dispatch, type SetStateAction } from "react";
 
 const BROWSER_ZOOM_SHORTCUT_KEYS = new Set(["+", "=", "-", "0", "add", "subtract"]);
 
@@ -13,7 +13,7 @@ function isBrowserZoomShortcut(milestone: KeyboardEvent) {
 
 interface UseAppWorkspaceGlobalEffectsOptions {
   isDarkMode: boolean;
-  pageShellStyle: Record<string, string | number | undefined>;
+  pageShellStyle: CSSProperties;
   isSidebarOverlay: boolean;
   toggleSidebar: () => void;
   setDataMessage: (message: string | null) => void;
@@ -164,4 +164,3 @@ export function useAppWorkspaceGlobalEffects({
     };
   }, [robotProjectModalMode, setRobotProjectModalMode]);
 }
-

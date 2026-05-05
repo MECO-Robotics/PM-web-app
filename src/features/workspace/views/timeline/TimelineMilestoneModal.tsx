@@ -90,4 +90,3 @@ export const TimelineMilestoneModal: React.FC<TimelineMilestoneModalProps> = ({
     portalTarget,
   );
 };
-

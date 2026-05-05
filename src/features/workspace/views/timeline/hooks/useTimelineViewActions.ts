@@ -50,4 +50,3 @@ export function useTimelineViewActions({
 
   return { handleTimelineHeaderDayClick, openTaskDetailAndSelectTask };
 }
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useRef, useState } from "react";
 
 import "@/app/App.css";
@@ -53,6 +52,9 @@ export function useAppWorkspaceState() {
   } = useAppShell();
   const workspaceUiState = useAppWorkspaceUiState();
   const suppressNextAutoWorkspaceLoadRef = useRef(false);
+  const suppressNextAutoWorkspaceLoad = () => {
+    suppressNextAutoWorkspaceLoadRef.current = true;
+  };
 
   const enqueueTaskEditNotice = (notice: WorkspaceEditToastNotice) => {
     const id = `task-edit-notice-${nextTaskEditNoticeIdRef.current++}`;
@@ -142,8 +144,8 @@ export function useAppWorkspaceState() {
     toggleSidebar,
     worklogsView,
     suppressNextAutoWorkspaceLoadRef,
+    suppressNextAutoWorkspaceLoad,
     enforcedAuthConfig,
     clearTaskEditNotices,
   };
 }
-

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useAppWorkspaceReportModalActions } from "@/app/hooks/workspace/report/useAppWorkspaceReportModalActions";
 import { useAppWorkspaceReportRiskActions } from "@/app/hooks/workspace/report/useAppWorkspaceReportRiskActions";
 import { useAppWorkspaceReportSubmitActions } from "@/app/hooks/workspace/report/useAppWorkspaceReportSubmitActions";

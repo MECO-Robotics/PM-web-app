@@ -189,4 +189,3 @@ export const TimelineSubsystemRowGroup: React.FC<TimelineSubsystemRowGroupProps>
     </div>
   );
 };
-

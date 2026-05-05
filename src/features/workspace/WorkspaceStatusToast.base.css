@@ -1,0 +1,161 @@
+/* Split WorkspaceStatusToast styles by concern: base, tone, and dark-mode overrides. */
+.workspace-toast-layer {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 2147483647;
+  width: min(332px, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
+.workspace-toast-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7rem;
+  width: 100%;
+}
+
+.workspace-toast-card {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: start;
+  width: 100%;
+  padding: 0.82rem 0.9rem 0.84rem 0.78rem;
+  border-radius: 4px;
+  border: 1px solid var(--toast-border);
+  background: var(--toast-surface);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.workspace-toast-card--iconless {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-left: 0.9rem;
+}
+
+.workspace-toast-accent-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--toast-accent);
+  opacity: 0.74;
+  transform-origin: bottom center;
+  z-index: 1;
+  animation: workspace-toast-accent-countdown 4500ms linear forwards;
+}
+
+.workspace-toast-accent-foot {
+  position: absolute;
+  left: 0;
+  inset: 0 auto 0 0;
+  width: 4px;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--toast-accent) 62%, white 38%);
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--toast-accent) 8%, white 92%);
+  opacity: 0.22;
+  z-index: 0;
+}
+
+.workspace-toast-icon {
+  width: 1.6rem;
+  height: 1.6rem;
+  color: #fff;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--toast-accent);
+}
+
+.workspace-toast-icon svg {
+  display: block;
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.workspace-toast-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.workspace-toast-title {
+  margin: 0;
+  color: var(--toast-title);
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.workspace-toast-message {
+  margin: 0;
+  color: var(--toast-copy);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.workspace-toast-dismiss {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--toast-dismiss);
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  margin-top: 0.05rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.workspace-toast-dismiss svg {
+  display: block;
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.workspace-toast-dismiss:hover,
+.workspace-toast-dismiss:focus-visible {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* Keep the card interactive without showing a separate progress bar. */
+.workspace-toast-card:hover,
+.workspace-toast-card:focus-within {
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+}
+
+.workspace-toast-card:hover .workspace-toast-accent-bar,
+.workspace-toast-card:focus-within .workspace-toast-accent-bar {
+  animation-play-state: paused;
+}
+
+.workspace-toast-dismiss:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--toast-accent) 42%, white);
+  outline-offset: 1px;
+}
+
+.workspace-toast-card .workspace-toast-copy,
+.workspace-toast-card .workspace-toast-message {
+  min-width: 0;
+}
+
+@keyframes workspace-toast-accent-countdown {
+  from {
+    transform: scaleY(1);
+  }
+
+  to {
+    transform: scaleY(0);
+  }
+}

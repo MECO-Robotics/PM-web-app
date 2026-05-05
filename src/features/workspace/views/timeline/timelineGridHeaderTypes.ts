@@ -36,4 +36,3 @@ export interface TimelineGridHeaderProps {
   toggleSubsystemColumn: () => void;
   children?: React.ReactNode;
 }
-

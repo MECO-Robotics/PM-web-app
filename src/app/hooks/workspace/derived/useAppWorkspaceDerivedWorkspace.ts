@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useMemo } from "react";
 
 import { useWorkspaceDerivedData } from "@/features/workspace/useWorkspaceDerivedData";
