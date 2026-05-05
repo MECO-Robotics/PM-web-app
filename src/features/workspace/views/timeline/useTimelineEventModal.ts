@@ -170,12 +170,13 @@ export function useTimelineMilestoneModal({
         return;
       }
 
-      const startDateTime = buildDateTime(milestoneStartDate, milestoneStartTime || "12:00");
+      const normalizedStartTime = milestoneStartTime.trim().length > 0 ? milestoneStartTime : "12:00";
+      const startDateTime = buildDateTime(milestoneStartDate, normalizedStartTime);
       const includeEndDate = milestoneEndDate.trim().length > 0 || milestoneEndTime.trim().length > 0;
       const endDateTime = includeEndDate
         ? buildDateTime(
             milestoneEndDate.trim().length > 0 ? milestoneEndDate : milestoneStartDate,
-            milestoneEndTime.trim().length > 0 ? milestoneEndTime : milestoneStartTime,
+            milestoneEndTime.trim().length > 0 ? milestoneEndTime : normalizedStartTime,
           )
         : null;
 

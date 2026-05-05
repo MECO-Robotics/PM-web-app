@@ -99,10 +99,9 @@ export function MilestonesMilestoneModalFields({
       </label>
 
       <label className="field">
-        <span style={LABEL_STYLE}>Start time</span>
+        <span style={LABEL_STYLE}>Start time (optional)</span>
         <input
           onChange={(milestone) => setMilestoneStartTime(milestone.target.value)}
-          required
           style={FIELD_STYLE}
           type="time"
           value={milestoneStartTime}

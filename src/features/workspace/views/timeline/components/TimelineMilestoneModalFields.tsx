@@ -92,10 +92,9 @@ export function TimelineMilestoneModalFields({
       </label>
 
       <label className="field">
-        <span style={{ color: "var(--text-title)" }}>Start time</span>
+        <span style={{ color: "var(--text-title)" }}>Start time (optional)</span>
         <input
           onChange={(milestone) => setMilestoneStartTime(milestone.target.value)}
-          required
           style={FIELD_INPUT_STYLE}
           type="time"
           value={milestoneStartTime}

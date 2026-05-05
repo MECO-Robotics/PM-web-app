@@ -173,7 +173,6 @@ export function MilestoneEditScheduleField({
           aria-label="Start time"
           className="task-detail-inline-edit-input task-detail-inline-edit-input-date"
           onChange={(milestone) => setMilestoneStartTime(milestone.target.value)}
-          required
           type="time"
           value={milestoneStartTime}
         />
