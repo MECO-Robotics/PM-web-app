@@ -247,6 +247,19 @@ describe("TaskQueueView", () => {
     expect((getTaskQueueDisciplineIcon("assembly") as { type?: unknown } | null)?.type).toBe(IconParts);
   });
 
+  it("renders scouting as a simple binocular-style discipline icon", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(React.Fragment, null, getTaskQueueDisciplineIcon("scouting")),
+    );
+
+    expect(markup).toContain('viewBox="0 0 24 24"');
+    expect(markup).toContain('cx="7" cy="12" r="4.8"');
+    expect(markup).toContain('cx="17" cy="12" r="4.8"');
+    expect(markup).toContain('stroke-opacity="0.6"');
+    expect(markup).toContain('M5.6 10.3c.7-.5 1.4-.8 2.1-.8');
+    expect(markup).toContain('M9.8 7.9h3.8');
+  });
+
   it("renders the first lazy-load batch and groups blocked tasks into the blocked column", () => {
     const bootstrap = createBootstrap();
     const markup = renderToStaticMarkup(

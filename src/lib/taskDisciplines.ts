@@ -75,7 +75,6 @@ export const TASK_DISCIPLINE_DEFINITIONS: DisciplineRecord[] = [
     !["documentation", "planning"].includes(discipline.id),
   ),
   { id: "documentation", code: "documentation", name: "Documentation" },
-  { id: "planning", code: "planning", name: "Planning" },
 ];
 
 export function getTaskDisciplineBucketForProject(
