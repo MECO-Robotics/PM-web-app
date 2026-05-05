@@ -19,7 +19,7 @@ export const WorkspaceContent = lazy(() =>
 );
 
 export const WorkspaceModalHost = lazy(() =>
-  import("@/features/workspace/WorkspaceModalHost").then((module) => ({
+  import("@/features/workspace/components/WorkspaceModalHostView").then((module) => ({
     default: module.WorkspaceModalHost,
   })),
 );
