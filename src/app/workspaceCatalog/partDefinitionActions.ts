@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptyPartDefinitionPayload, partDefinitionToPayload, toErrorMessage } from "@/lib/appUtils";
 import { createPartDefinitionRecord, deletePartDefinitionRecord, updatePartDefinitionRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { PartDefinitionRecord } from "@/types";
 
 export type PartDefinitionActions = ReturnType<typeof usePartDefinitionActions>;
@@ -116,4 +115,3 @@ export function usePartDefinitionActions(model: AppWorkspaceModel) {
     openEditPartDefinitionModal,
   };
 }
-

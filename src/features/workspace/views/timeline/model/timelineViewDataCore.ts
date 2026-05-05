@@ -204,4 +204,3 @@ export function buildTimelineData({
 
   return { days, dayMilestones, subsystemRows };
 }
-

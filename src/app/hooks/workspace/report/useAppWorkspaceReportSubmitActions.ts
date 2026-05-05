@@ -169,4 +169,3 @@ export function useAppWorkspaceReportSubmitActions(model: AppWorkspaceModel) {
     handleWorkLogSubmit,
   };
 }
-

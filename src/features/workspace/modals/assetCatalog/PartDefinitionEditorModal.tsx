@@ -21,6 +21,28 @@ interface PartDefinitionEditorModalProps {
   setPartDefinitionDraft: Dispatch<SetStateAction<PartDefinitionPayload>>;
 }
 
+const modalCardStyle = {
+  background: "var(--bg-panel)",
+  border: "1px solid var(--border-base)",
+} as const;
+
+const fieldInputStyle = {
+  background: "var(--bg-row-alt)",
+  color: "var(--text-title)",
+  border: "1px solid var(--border-base)",
+} as const;
+
+const checkboxLabelStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.5rem",
+  color: "var(--text-title)",
+} as const;
+
+const cancelButtonStyle = {
+  ...fieldInputStyle,
+} as const;
+
 export function PartDefinitionEditorModal({
   bootstrap,
   activePartDefinitionId,
@@ -47,7 +69,7 @@ export function PartDefinitionEditorModal({
         aria-modal="true"
         className="modal-card"
         role="dialog"
-        style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}
+        style={modalCardStyle}
       >
         <div className="panel-header compact-header">
           <div>
@@ -81,11 +103,7 @@ export function PartDefinitionEditorModal({
                 setPartDefinitionDraft((current) => ({ ...current, name: milestone.target.value }))
               }
               required
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
+              style={fieldInputStyle}
               value={partDefinitionDraft.name}
             />
           </label>
@@ -99,11 +117,7 @@ export function PartDefinitionEditorModal({
                 }))
               }
               required
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
+              style={fieldInputStyle}
               value={partDefinitionDraft.partNumber}
             />
           </label>
@@ -114,11 +128,7 @@ export function PartDefinitionEditorModal({
                 setPartDefinitionDraft((current) => ({ ...current, revision: milestone.target.value }))
               }
               required
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
+              style={fieldInputStyle}
               value={partDefinitionDraft.revision}
             />
           </label>
@@ -132,11 +142,7 @@ export function PartDefinitionEditorModal({
                     iteration: Number(milestone.target.value),
                   }))
                 }
-                style={{
-                  background: "var(--bg-row-alt)",
-                  color: "var(--text-title)",
-                  border: "1px solid var(--border-base)",
-                }}
+                style={fieldInputStyle}
                 value={partDefinitionDraft.iteration ?? 1}
               >
                 {partDefinitionIterationOptions.map((iteration) => (
@@ -154,11 +160,7 @@ export function PartDefinitionEditorModal({
                 setPartDefinitionDraft((current) => ({ ...current, type: milestone.target.value }))
               }
               required
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
+              style={fieldInputStyle}
               value={partDefinitionDraft.type}
             />
           </label>
@@ -168,11 +170,7 @@ export function PartDefinitionEditorModal({
               onChange={(milestone) =>
                 setPartDefinitionDraft((current) => ({ ...current, source: milestone.target.value }))
               }
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
+              style={fieldInputStyle}
               value={partDefinitionDraft.source}
             />
           </label>
@@ -180,12 +178,7 @@ export function PartDefinitionEditorModal({
             <span style={{ color: "var(--text-title)" }}>Part type</span>
             <div>
               <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  color: "var(--text-title)",
-                }}
+                style={checkboxLabelStyle}
               >
                 <input
                   checked={partDefinitionDraft.isHardware}
@@ -210,11 +203,7 @@ export function PartDefinitionEditorModal({
                   materialId: milestone.target.value || null,
                 }))
               }
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
+              style={fieldInputStyle}
               value={partDefinitionDraft.materialId ?? ""}
             >
               <option value="">No material</option>
@@ -235,11 +224,7 @@ export function PartDefinitionEditorModal({
                 }))
               }
               rows={3}
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
+              style={fieldInputStyle}
               value={partDefinitionDraft.description}
             />
           </label>
@@ -283,11 +268,7 @@ export function PartDefinitionEditorModal({
             <button
               className="secondary-action"
               onClick={closePartDefinitionModal}
-              style={{
-                background: "var(--bg-row-alt)",
-                color: "var(--text-title)",
-                border: "1px solid var(--border-base)",
-              }}
+              style={cancelButtonStyle}
               type="button"
             >
               Cancel
@@ -309,5 +290,3 @@ export function PartDefinitionEditorModal({
     </div>
   );
 }
-
-

@@ -113,4 +113,3 @@ export const TimelineSubsystemHeaderCell: React.FC<TimelineSubsystemHeaderCellPr
     </TimelineMergedCellColumn>
   );
 };
-

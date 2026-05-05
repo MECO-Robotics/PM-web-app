@@ -1,7 +1,6 @@
 import {
   startTransition,
   useCallback,
-  useEffectEvent,
   type RefObject,
   type Dispatch,
   type SetStateAction,
@@ -80,7 +79,7 @@ export function useAppAuthSessionActions({
     [resetWorkspaceRef, setAuthMessage, setSessionUser],
   );
 
-  const handleGoogleCredential = useEffectEvent(
+  const handleGoogleCredential = useCallback(
     async (response: GoogleCredentialResponse) => {
       if (!response.credential) {
         setAuthMessage("Google did not return a credential to verify.");
@@ -100,6 +99,7 @@ export function useAppAuthSessionActions({
         setIsSigningIn(false);
       }
     },
+    [setAuthMessage, setIsSigningIn, setSessionUser],
   );
 
   const handleRequestEmailCode = useCallback(
@@ -174,4 +174,3 @@ export function useAppAuthSessionActions({
     setAuthMessage: setAuthMessageNow,
   };
 }
-

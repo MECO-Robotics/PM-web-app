@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptyPurchasePayload, purchaseToPayload, toErrorMessage } from "@/lib/appUtils";
 import { createPurchaseItemRecord, updatePurchaseItemRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { PurchaseItemPayload, PurchaseItemRecord } from "@/types";
 
 export type PurchaseActions = ReturnType<typeof usePurchaseActions>;
@@ -72,4 +71,3 @@ export function usePurchaseActions(model: AppWorkspaceModel) {
     openEditPurchaseModal,
   };
 }
-

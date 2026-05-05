@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptySubsystemPayload, splitList, subsystemToPayload, toErrorMessage } from "@/lib/appUtils";
 import { createSubsystemRecord, updateSubsystemRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { SubsystemPayload, SubsystemRecord } from "@/types";
 
 export type SubsystemActions = ReturnType<typeof useSubsystemActions>;
@@ -93,4 +92,3 @@ export function useSubsystemActions(model: AppWorkspaceModel) {
     openEditSubsystemModal,
   };
 }
-

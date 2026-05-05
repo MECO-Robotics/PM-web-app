@@ -158,4 +158,3 @@ export function TaskEditorModal(props: TaskEditorModalProps) {
     </div>
   );
 }
-

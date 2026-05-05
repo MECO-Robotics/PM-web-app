@@ -41,4 +41,3 @@ describe("PhotoUploadField", () => {
     expect(markup).toContain("controls");
   });
 });
-

@@ -179,4 +179,3 @@ export function useFilterDropdownMenuState({
 
   return { menuOffsetX, menuPosition };
 }
-

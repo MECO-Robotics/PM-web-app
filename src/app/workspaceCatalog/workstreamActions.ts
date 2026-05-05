@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptyWorkstreamPayload, toErrorMessage, workstreamToPayload } from "@/lib/appUtils";
 import { createWorkstreamRecord, updateWorkstreamRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { WorkstreamPayload, WorkstreamRecord } from "@/types";
 
 export type WorkstreamActions = ReturnType<typeof useWorkstreamActions>;
@@ -93,4 +92,3 @@ export function useWorkstreamActions(model: AppWorkspaceModel) {
     openEditWorkstreamModal,
   };
 }
-

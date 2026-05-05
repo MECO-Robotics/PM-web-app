@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useAppWorkspaceDerivedSelection } from "@/app/hooks/workspace/derived/useAppWorkspaceDerivedSelection";
 import { useAppWorkspaceDerivedWorkspace } from "@/app/hooks/workspace/derived/useAppWorkspaceDerivedWorkspace";
 import { buildAppWorkspaceDerivedStateSlice } from "@/app/hooks/workspace/derived/buildAppWorkspaceDerivedStateSlice";
@@ -20,15 +19,16 @@ export function useAppWorkspaceDerived(state: AppWorkspaceState) {
       stateSlice.activePersonFilter.length === 1 &&
       stateSlice.activePersonFilter[0] === selection.signedInMember?.id,
     toggleMyView: () => {
-      if (!selection.signedInMember) {
+      const signedInMemberId = selection.signedInMember?.id;
+      if (!signedInMemberId) {
         return;
       }
 
       stateSlice.setDataMessage(null);
       stateSlice.setActivePersonFilter((current) =>
-        current.length === 1 && current[0] === selection.signedInMember?.id
+        current.length === 1 && current[0] === signedInMemberId
           ? []
-          : [selection.signedInMember.id],
+          : [signedInMemberId],
       );
     },
   };

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { AppWorkspaceState } from "@/app/hooks/useAppWorkspaceState";
 
 export function buildAppWorkspaceDerivedStateSlice(state: AppWorkspaceState) {

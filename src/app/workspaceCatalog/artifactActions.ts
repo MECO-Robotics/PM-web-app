@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { artifactToPayload, buildEmptyArtifactPayload, toErrorMessage } from "@/lib/appUtils";
 import { createArtifactRecord, deleteArtifactRecord, updateArtifactRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { ArtifactKind, ArtifactPayload, ArtifactRecord } from "@/types";
 
 export type ArtifactActions = ReturnType<typeof useArtifactActions>;
@@ -114,4 +113,3 @@ export function useArtifactActions(model: AppWorkspaceModel) {
     openEditArtifactModal,
   };
 }
-

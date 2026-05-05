@@ -208,4 +208,3 @@ export function MechanismEditorModal({
     </StructureModalShell>
   );
 }
-

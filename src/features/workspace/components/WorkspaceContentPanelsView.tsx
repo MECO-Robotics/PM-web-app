@@ -74,4 +74,3 @@ export function WorkspaceContentPanelsView(props: WorkspaceContentPanelsViewProp
     </div>
   );
 }
-

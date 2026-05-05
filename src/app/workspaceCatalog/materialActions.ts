@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptyMaterialPayload, materialToPayload, toErrorMessage } from "@/lib/appUtils";
 import { createMaterialRecord, deleteMaterialRecord, updateMaterialRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { MaterialPayload, MaterialRecord } from "@/types";
 
 export type MaterialActions = ReturnType<typeof useMaterialActions>;
@@ -80,4 +79,3 @@ export function useMaterialActions(model: AppWorkspaceModel) {
     openEditMaterialModal,
   };
 }
-

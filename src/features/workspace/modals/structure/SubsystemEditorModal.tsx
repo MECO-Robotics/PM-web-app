@@ -71,4 +71,3 @@ export function SubsystemEditorModal({
     </StructureModalShell>
   );
 }
-

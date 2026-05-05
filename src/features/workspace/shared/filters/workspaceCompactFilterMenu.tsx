@@ -101,5 +101,3 @@ export function CompactFilterMenu({
     </span>
   );
 }
-
-

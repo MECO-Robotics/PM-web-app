@@ -65,4 +65,3 @@ export function PurchaseEditorModal(props: PurchaseEditorModalProps) {
     </div>
   );
 }
-

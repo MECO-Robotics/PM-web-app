@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptyMechanismPayload, toErrorMessage } from "@/lib/appUtils";
 import { createMechanismRecord, deleteMechanismRecord, updateMechanismRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { MechanismPayload, MechanismRecord } from "@/types";
 
 export type MechanismActions = ReturnType<typeof useMechanismActions>;
@@ -98,4 +97,3 @@ export function useMechanismActions(model: AppWorkspaceModel) {
     openEditMechanismModal,
   };
 }
-

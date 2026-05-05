@@ -151,4 +151,3 @@ export function loadGoogleIdentityScript() {
 
   return googleScriptPromise;
 }
-

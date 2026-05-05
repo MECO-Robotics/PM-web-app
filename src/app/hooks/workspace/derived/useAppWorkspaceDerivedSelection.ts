@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useMemo } from "react";
 
 import { findMemberForSessionUser } from "@/lib/appUtils";

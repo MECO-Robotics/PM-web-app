@@ -58,4 +58,3 @@ export const TimelineGridDaySlots: React.FC<TimelineGridDaySlotsProps> = ({
       }}
     />
   ));
-

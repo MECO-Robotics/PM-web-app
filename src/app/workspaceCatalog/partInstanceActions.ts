@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptyPartInstancePayload, partInstanceToPayload, toErrorMessage } from "@/lib/appUtils";
 import { createPartInstanceRecord, updatePartInstanceRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { MechanismRecord, PartInstancePayload, PartInstanceRecord } from "@/types";
 
 export type PartInstanceActions = ReturnType<typeof usePartInstanceActions>;
@@ -82,4 +81,3 @@ export function usePartInstanceActions(model: AppWorkspaceModel) {
     openEditPartInstanceModal,
   };
 }
-

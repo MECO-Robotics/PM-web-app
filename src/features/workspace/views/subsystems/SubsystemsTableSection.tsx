@@ -264,4 +264,3 @@ export function SubsystemsTableSection({
     </div>
   );
 }
-

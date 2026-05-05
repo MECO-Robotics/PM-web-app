@@ -28,4 +28,3 @@ export interface TimelineMilestoneModalProps {
   setMilestoneStartDate: React.Dispatch<React.SetStateAction<string>>;
   setMilestoneStartTime: React.Dispatch<React.SetStateAction<string>>;
 }
-

@@ -1,9 +1,8 @@
-// @ts-nocheck
 import { useCallback } from "react";
 
 import { buildEmptyManufacturingPayload, manufacturingToPayload, toErrorMessage } from "@/lib/appUtils";
 import { createManufacturingItemRecord, updateManufacturingItemRecord } from "@/lib/auth";
-import type { AppWorkspaceModel } from "../useAppWorkspaceModel";
+import type { AppWorkspaceModel } from "../hooks/useAppWorkspaceModel";
 import type { ManufacturingItemPayload, ManufacturingItemRecord } from "@/types";
 
 export type ManufacturingActions = ReturnType<typeof useManufacturingActions>;
@@ -141,4 +140,3 @@ export function useManufacturingActions(model: AppWorkspaceModel) {
     openEditManufacturingModal,
   };
 }
-
