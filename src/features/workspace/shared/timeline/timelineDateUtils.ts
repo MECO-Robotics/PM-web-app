@@ -1,6 +1,7 @@
 import {
   addDaysToLocalDate,
   addMonthsToLocalDate,
+  formatLocalDate,
   localTodayDate,
 } from "@/lib/dateUtils";
 
@@ -60,6 +61,28 @@ export function addDaysToDay(day: string, dayCount: number) {
 
 export function addMonthsToDay(day: string, monthCount: number) {
   return addMonthsToLocalDate(day, monthCount);
+}
+
+export function startOfTimelineWeek(day: string) {
+  const weekStart = new Date(`${day}T12:00:00`);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  return formatLocalDate(weekStart);
+}
+
+export function endOfTimelineWeek(day: string) {
+  return addDaysToDay(startOfTimelineWeek(day), 6);
+}
+
+export function midpointOfTimelineWeek(day: string) {
+  return addDaysToDay(startOfTimelineWeek(day), 3);
+}
+
+export function midpointOfTimelineDays(days: string[]) {
+  if (days.length === 0) {
+    return null;
+  }
+
+  return days[Math.floor(days.length / 2)] ?? null;
 }
 
 export function monthStartFromDay(day: string) {

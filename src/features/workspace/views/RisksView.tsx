@@ -52,11 +52,6 @@ export function RisksView({
           <h2 style={{ color: "var(--text-title)" }}>
             {view === "metrics" ? "Operations metrics" : "Risk management"}
           </h2>
-          <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
-            {view === "metrics"
-              ? "Track planning, triage, subsystem health, and mechanism health from one view."
-              : "Track active risk exposure, evidence source, and mitigation ownership in one place."}
-          </p>
         </div>
       </div>
 

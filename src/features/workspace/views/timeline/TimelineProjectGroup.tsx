@@ -41,6 +41,7 @@ interface TimelineProjectGroupProps {
   taskStatusSignalsById: Record<string, TimelineTaskStatusSignal>;
   timelineDayHeaderCells: TimelineDayHeaderCell[];
   timelineGridTemplate: string;
+  isWeekView?: boolean;
   toggleProject: (id: string) => void;
   toggleSubsystem: (id: string) => void;
   openTaskDetailModal: (task: TaskRecord) => void;
@@ -77,6 +78,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
   taskStatusSignalsById,
   timelineDayHeaderCells,
   timelineGridTemplate,
+  isWeekView = false,
   toggleProject,
   toggleSubsystem,
   openTaskDetailModal,
@@ -92,6 +94,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
   const collapsedSummaryStart = subsystemColumnIndex;
   const collapsedSummaryStickyLeft = subsystemStickyLeft;
   const projectBackground = projectIndex % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
+  void isWeekView;
 
   return (
     <div

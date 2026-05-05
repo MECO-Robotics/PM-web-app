@@ -39,13 +39,6 @@ export function WorkLogsView({
       <div className="panel-header compact-header">
         <div className="queue-section-header">
           <h2>{view === "summary" ? "Work log summary" : "Work logs"}</h2>
-          <p className="section-copy filter-copy">
-            {view === "summary"
-              ? "Snapshot of logged execution against planned effort."
-              : activePersonFilter.length === 0
-                ? "All logged work tied back to tasks."
-                : `Only logs involving ${workLogsView.activePersonFilterLabel}.`}
-          </p>
         </div>
 
         {view === "logs" ? (

@@ -79,6 +79,4 @@ export {
 } from "./WorkspaceViewShared";
 export { PhotoUploadField } from "./media";
 export {
-  SUBVIEW_INTERACTION_GUIDANCE,
-  type WorkspaceSubviewTab,
 } from "./ui";

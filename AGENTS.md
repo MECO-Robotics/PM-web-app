@@ -3,6 +3,8 @@
 * Prefer small, cohesive files and directories.
 * Optimize for separation of responsibilities, not just size limits.
 * Use numeric thresholds to trigger refactoring, not just hard caps.
+* Never ask to show the implementation when you can just implement the requested change.
+* Do not stop to recommend changes unless you were explicitly asked to recommend options; implement the requested change instead.
 
 ---
 

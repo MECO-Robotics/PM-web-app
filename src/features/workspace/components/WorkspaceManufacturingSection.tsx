@@ -1,4 +1,3 @@
-import { SUBVIEW_INTERACTION_GUIDANCE } from "@/features/workspace/shared/ui";
 import { CncView, FabricationView, PrintsView } from "@/features/workspace/views";
 import { WorkspaceSectionPanel, WorkspaceSubPanel } from "../WorkspaceContentPanelShells";
 import type { WorkspaceContentPanelsViewProps } from "./workspaceContentPanelsViewTypes";
@@ -28,7 +27,6 @@ export function WorkspaceManufacturingSection(props: WorkspaceContentPanelsViewP
     >
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={SUBVIEW_INTERACTION_GUIDANCE.cnc}
         isActive={manufacturingView === "cnc"}
         swipeDirection={manufacturingSwipeDirection}
       >
@@ -47,7 +45,6 @@ export function WorkspaceManufacturingSection(props: WorkspaceContentPanelsViewP
 
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={SUBVIEW_INTERACTION_GUIDANCE.prints}
         isActive={manufacturingView === "prints"}
         swipeDirection={manufacturingSwipeDirection}
       >
@@ -64,7 +61,6 @@ export function WorkspaceManufacturingSection(props: WorkspaceContentPanelsViewP
 
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={SUBVIEW_INTERACTION_GUIDANCE.fabrication}
         isActive={manufacturingView === "fabrication"}
         swipeDirection={manufacturingSwipeDirection}
       >

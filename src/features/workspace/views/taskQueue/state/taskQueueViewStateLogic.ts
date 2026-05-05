@@ -4,7 +4,6 @@ import type { Dispatch, SetStateAction } from "react";
 import type { BootstrapPayload, TaskRecord } from "@/types";
 import { formatIterationVersion } from "@/lib/appUtils";
 import {
-  formatFilterSelectionLabel,
   type FilterSelection,
   useFilterChangeMotionClass,
 } from "@/features/workspace/shared/filters";
@@ -15,6 +14,7 @@ import {
   formatTaskQueueAssignees,
   readTaskSubsystemIds,
 } from "../taskQueueKanbanCard";
+import { getTaskQueueDisciplineIcon } from "../taskQueueDisciplineBadge";
 import {
   TASK_QUEUE_LAZY_LOAD_BATCH_SIZE,
   getTaskQueueBoardState,
@@ -118,6 +118,7 @@ export function useTaskQueueViewStateLogic({
       bootstrap.disciplines.map((discipline) => ({
         id: discipline.id,
         name: discipline.name,
+        icon: getTaskQueueDisciplineIcon(discipline.code),
       })),
     [bootstrap.disciplines],
   );
@@ -207,12 +208,6 @@ export function useTaskQueueViewStateLogic({
       document.removeEventListener("keydown", handleEscape);
     };
   }, [focusedBoardState, setFocusedBoardState]);
-
-  const activePersonFilterLabel = formatFilterSelectionLabel(
-    "All roster",
-    bootstrap.members,
-    activePersonFilter,
-  );
 
   const processedTasks = useMemo(() => {
     const filteredTasks = filterTaskQueueTasks(bootstrap.tasks, bootstrap, {
@@ -317,7 +312,6 @@ export function useTaskQueueViewStateLogic({
 
   return {
     activeFilterCount,
-    activePersonFilterLabel,
     disciplineOptions,
     processedTasks,
     projectsById,

@@ -19,6 +19,7 @@ export const TimelineMilestoneModal: React.FC<TimelineMilestoneModalProps> = ({
   isSavingMilestone,
   mode,
   onClose,
+  onCancelEdit,
   onDelete,
   onSubmit,
   onSwitchToTask,
@@ -33,10 +34,12 @@ export const TimelineMilestoneModal: React.FC<TimelineMilestoneModalProps> = ({
     return null;
   }
 
+  const handleClose = mode === "edit" ? onCancelEdit : onClose;
+
   return createPortal(
     <div
       className="modal-scrim"
-      onClick={onClose}
+      onClick={handleClose}
       role="presentation"
       style={{ zIndex: 2050 }}
     >
@@ -54,7 +57,7 @@ export const TimelineMilestoneModal: React.FC<TimelineMilestoneModalProps> = ({
         <TimelineMilestoneModalHeader
           activeMilestoneDay={activeMilestoneDay}
           mode={mode}
-          onClose={onClose}
+          onClose={handleClose}
           onSwitchToTask={onSwitchToTask}
         />
         <form className="modal-form" onSubmit={onSubmit}>
@@ -78,7 +81,7 @@ export const TimelineMilestoneModal: React.FC<TimelineMilestoneModalProps> = ({
             isDeletingMilestone={isDeletingMilestone}
             isSavingMilestone={isSavingMilestone}
             mode={mode}
-            onClose={onClose}
+            onClose={handleClose}
             onDelete={onDelete}
           />
         </form>

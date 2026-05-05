@@ -62,9 +62,10 @@ describe("TimelineView", () => {
         selectSubsystemRow: jest.fn(),
         selectTaskRow: jest.fn(),
         selectedSubsystemId: null,
+        isWeekView: true,
         showProjectCol: true,
         showSubsystemCol: true,
-        statusIconColumnIndex: 5,
+        statusIconColumnIndex: 3,
         statusIconColumnWidth: 36,
         statusIconStickyRight: 0,
         subsystemColumnIndex: 2,
@@ -83,13 +84,14 @@ describe("TimelineView", () => {
             primaryMilestoneEndDay: "",
           },
         ],
-        timelineGridTemplate: "112px 128px repeat(1, 24px) 36px",
+        timelineGridTemplate: "112px 128px repeat(1, 24px)",
         toggleProject: jest.fn(),
         toggleSubsystem: jest.fn(),
       }),
     );
 
     expect(markup).toContain('data-timeline-column="project"');
+    expect(markup).toContain("width:100%");
     expect(markup).toContain("overflow:visible");
     expect(markup).toContain("5 subsystems / 5 tasks");
   });

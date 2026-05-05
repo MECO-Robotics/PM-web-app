@@ -199,18 +199,30 @@ export function TaskQueueBoardSection({
       return;
     }
 
+    const shell = taskQueueBoardShellRef.current;
+    const sentinel = loadMoreRef.current;
+    if (!shell || !sentinel) {
+      return;
+    }
+
     const loadMore = () => {
       setVisibleTaskCount((current) =>
         Math.min(current + TASK_QUEUE_LAZY_LOAD_BATCH_SIZE, processedTasks.length),
       );
     };
 
-    const maybeLoadMore = () => {
-      const sentinel = loadMoreRef.current;
-      if (!sentinel) {
+    const maybeFillViewport = () => {
+      if (window.scrollY > 4) {
         return;
       }
 
+      const shellRect = shell.getBoundingClientRect();
+      if (shellRect.bottom < window.innerHeight) {
+        loadMore();
+      }
+    };
+
+    const maybePrefetchMore = () => {
       const sentinelRect = sentinel.getBoundingClientRect();
       if (sentinelRect.top <= window.innerHeight + 240) {
         loadMore();
@@ -225,13 +237,13 @@ export function TaskQueueBoardSection({
 
       rafId = window.requestAnimationFrame(() => {
         rafId = undefined;
-        maybeLoadMore();
+        maybePrefetchMore();
       });
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll);
-    maybeLoadMore();
+    window.addEventListener("resize", maybeFillViewport);
+    maybeFillViewport();
 
     return () => {
       if (rafId !== undefined) {
@@ -239,7 +251,7 @@ export function TaskQueueBoardSection({
       }
 
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
+      window.removeEventListener("resize", maybeFillViewport);
     };
   }, [isFocused, processedTasks.length, setVisibleTaskCount, visibleTaskCount]);
 

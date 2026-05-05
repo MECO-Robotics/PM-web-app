@@ -131,7 +131,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
 
   const rowChildren = hasProjectColumn
     ? projectRows.map((project, projectIndex) => (
-      <TimelineProjectGroup
+        <TimelineProjectGroup
           clearHoveredMilestonePopup={clearHoveredMilestonePopup}
           collapsedProjects={collapsedProjects}
           collapsedSubsystems={collapsedSubsystems}
@@ -158,6 +158,7 @@ export const TimelineGridBody: React.FC<TimelineGridBodyProps> = ({
           selectTaskRow={selectTaskRow}
           showProjectCol={showProjectCol}
           showSubsystemCol={showSubsystemCol}
+          isWeekView={isWeekView}
           subsystemColumnIndex={subsystemColumnIndex}
           subsystemStickyLeft={subsystemStickyLeft}
           taskDependencyCountsById={taskDependencyCountsById}

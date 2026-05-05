@@ -27,6 +27,7 @@ export function buildTimelineGridLayout({
   isAllProjectsView,
   isProjectColumnVisible,
   isSubsystemColumnVisible,
+  timelineShellWidth,
   timelineZoom,
   viewInterval,
 }: {
@@ -34,6 +35,7 @@ export function buildTimelineGridLayout({
   isAllProjectsView: boolean;
   isProjectColumnVisible: boolean;
   isSubsystemColumnVisible: boolean;
+  timelineShellWidth?: number;
   timelineZoom: number;
   viewInterval: "all" | "month" | "week";
 }): TimelineGridLayout {
@@ -42,13 +44,20 @@ export function buildTimelineGridLayout({
   const showSubsystemCol = isSubsystemColumnVisible;
   const projectColumnWidth = hasProjectColumn && showProjectCol ? PROJECT_COLUMN_WIDTH : 0;
   const subsystemColumnWidth = showSubsystemCol ? SUBSYSTEM_COLUMN_WIDTH : 0;
+  const statusIconColumnWidth = STATUS_ICON_COLUMN_WIDTH;
   const subsystemColumnIndex = hasProjectColumn ? 2 : 1;
   const firstDayGridColumn = hasProjectColumn ? 3 : 2;
   const statusIconColumnIndex = firstDayGridColumn + Math.max(0, dayCount - 1);
   const fixedTimelineColumnWidth = projectColumnWidth + subsystemColumnWidth;
   const statusIconStickyRight = 0;
   const subsystemStickyLeft = hasProjectColumn ? projectColumnWidth : 0;
-  const dayTrackSize = getTimelineDayTrackSize(viewInterval, timelineZoom, fixedTimelineColumnWidth);
+  const dayTrackSize = getTimelineDayTrackSize(
+    viewInterval,
+    timelineZoom,
+    fixedTimelineColumnWidth,
+    timelineShellWidth ?? 0,
+    statusIconColumnWidth,
+  );
   const timelineGridTemplate = `${hasProjectColumn ? `${projectColumnWidth}px ` : ""}${subsystemColumnWidth}px repeat(${dayCount}, ${dayTrackSize})`;
   const gridMinWidth = getTimelineGridMinWidth({
     dayCount,
@@ -56,6 +65,7 @@ export function buildTimelineGridLayout({
     projectColumnWidth,
     subsystemColumnWidth,
     taskColumnWidth: 0,
+    statusIconColumnWidth: 0,
     viewInterval,
     zoom: timelineZoom,
   });
@@ -70,7 +80,7 @@ export function buildTimelineGridLayout({
     showProjectCol,
     showSubsystemCol,
     statusIconColumnIndex,
-    statusIconColumnWidth: STATUS_ICON_COLUMN_WIDTH,
+    statusIconColumnWidth,
     statusIconStickyRight,
     subsystemColumnIndex,
     subsystemColumnWidth,

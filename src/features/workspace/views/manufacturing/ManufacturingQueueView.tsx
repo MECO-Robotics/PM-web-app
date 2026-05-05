@@ -22,7 +22,6 @@ interface ManufacturingQueueViewProps {
   addButtonAriaLabel: string;
   bootstrap: BootstrapPayload;
   emptyStateMessage: string;
-  filteredDescription: string;
   items: ManufacturingItemRecord[];
   membersById: MembersById;
   onCreate: () => void;
@@ -43,7 +42,6 @@ export function ManufacturingQueueView({
   addButtonAriaLabel,
   bootstrap,
   emptyStateMessage,
-  filteredDescription,
   items,
   membersById,
   onCreate,
@@ -110,9 +108,6 @@ export function ManufacturingQueueView({
       <div className="panel-header compact-header">
         <div className="queue-section-header">
           <h2>{title}</h2>
-          <p className="section-copy filter-copy">
-            {filteredDescription}
-          </p>
         </div>
         <div className="panel-actions filter-toolbar queue-toolbar">
           <div data-tutorial-target={tutorialTarget("search-input")}>

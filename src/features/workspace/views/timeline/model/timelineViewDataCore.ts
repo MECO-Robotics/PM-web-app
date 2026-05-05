@@ -2,8 +2,10 @@ import type { BootstrapPayload, MilestoneRecord, TaskRecord } from "@/types";
 import { dateDiffInDays } from "@/lib/appUtils";
 import {
   datePortion,
+  endOfTimelineWeek,
   monthEndFromDay,
   monthStartFromDay,
+  startOfTimelineWeek,
   type TimelineViewInterval,
 } from "@/features/workspace/shared/timeline";
 import type {
@@ -97,9 +99,8 @@ function buildTimelineDateRange({
     let end: Date;
 
     if (viewInterval === "week") {
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay(), 12);
-      end = new Date(start);
-      end.setDate(start.getDate() + 6);
+      start = new Date(`${startOfTimelineWeek(viewAnchorDate)}T12:00:00`);
+      end = new Date(`${endOfTimelineWeek(viewAnchorDate)}T12:00:00`);
     } else {
       start = new Date(now.getFullYear(), now.getMonth(), 1, 12);
       end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 12);

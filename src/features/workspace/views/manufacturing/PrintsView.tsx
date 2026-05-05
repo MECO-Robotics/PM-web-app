@@ -1,6 +1,5 @@
 import type { BootstrapPayload, ManufacturingItemRecord } from "@/types";
 import {
-  formatFilterSelectionLabel,
   type FilterSelection,
   type MembersById,
   type SubsystemsById,
@@ -26,23 +25,12 @@ export function PrintsView({
   onEdit,
   subsystemsById,
 }: PrintsViewProps) {
-  const personFilterLabel = formatFilterSelectionLabel(
-    "All roster",
-    bootstrap.members,
-    activePersonFilter,
-  );
-  const filteredDescription =
-    activePersonFilter.length === 0
-      ? "All 3D print jobs."
-      : `Only print jobs submitted by ${personFilterLabel}.`;
-
   return (
     <ManufacturingQueueView
       activePersonFilter={activePersonFilter}
       addButtonAriaLabel="Add print job"
       bootstrap={bootstrap}
       emptyStateMessage="No 3D print jobs match the current filters."
-      filteredDescription={filteredDescription}
       items={items}
       membersById={membersById}
       onCreate={onCreate}

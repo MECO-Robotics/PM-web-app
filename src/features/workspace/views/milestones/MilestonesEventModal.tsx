@@ -23,6 +23,7 @@ interface MilestonesMilestoneModalProps {
   milestoneDraft: TimelineMilestoneDraft;
   modalPortalTarget: HTMLElement | null;
   onClose: () => void;
+  onCancelEdit: () => void;
   onDelete: () => void;
   onEditMilestone: (milestone: MilestoneRecord) => void;
   onSubmit: (milestone: FormEvent<HTMLFormElement>) => void;
@@ -48,6 +49,7 @@ export function MilestonesMilestoneModal({
   milestoneDraft,
   modalPortalTarget,
   onClose,
+  onCancelEdit,
   onDelete,
   onEditMilestone,
   onSubmit,
@@ -62,15 +64,32 @@ export function MilestonesMilestoneModal({
     return null;
   }
 
-  if (milestoneModalMode === "detail") {
+  if (milestoneModalMode === "detail" || milestoneModalMode === "edit") {
     return activeMilestone ? (
       <MilestonesEventDetailsModal
         activeMilestone={activeMilestone}
         bootstrap={bootstrap}
+        isDeletingMilestone={isDeletingMilestone}
+        isSavingMilestone={isSavingMilestone}
+        milestoneDraft={milestoneDraft}
+        milestoneEndDate={milestoneEndDate}
+        milestoneEndTime={milestoneEndTime}
+        milestoneError={milestoneError}
+        milestoneModalMode={milestoneModalMode}
+        milestoneStartDate={milestoneStartDate}
+        milestoneStartTime={milestoneStartTime}
         modalPortalTarget={modalPortalTarget}
         onClose={onClose}
+        onCancelEdit={onCancelEdit}
+        onDelete={onDelete}
         onEditMilestone={onEditMilestone}
+        onSubmit={onSubmit}
         projectsById={projectsById}
+        setMilestoneDraft={setMilestoneDraft}
+        setMilestoneEndDate={setMilestoneEndDate}
+        setMilestoneEndTime={setMilestoneEndTime}
+        setMilestoneStartDate={setMilestoneStartDate}
+        setMilestoneStartTime={setMilestoneStartTime}
       />
     ) : null;
   }
@@ -85,9 +104,7 @@ export function MilestonesMilestoneModal({
       <section
         aria-modal="true"
         className="modal-card"
-        data-tutorial-target={
-          milestoneModalMode === "create" ? "milestone-create-modal" : "milestone-edit-modal"
-        }
+        data-tutorial-target="milestone-create-modal"
         onClick={(milestone) => milestone.stopPropagation()}
         role="dialog"
         style={{ background: "var(--bg-panel)", border: "1px solid var(--border-base)" }}
@@ -97,9 +114,7 @@ export function MilestonesMilestoneModal({
             <p className="eyebrow" style={{ color: "var(--meco-blue)" }}>
               Timeline milestone
             </p>
-            <h2 style={{ color: "var(--text-title)" }}>
-              {milestoneModalMode === "create" ? "Add milestone" : "Edit milestone"}
-            </h2>
+            <h2 style={{ color: "var(--text-title)" }}>Add milestone</h2>
           </div>
           <button
             className="icon-button"
@@ -146,4 +161,3 @@ export function MilestonesMilestoneModal({
     modalPortalTarget,
   );
 }
-

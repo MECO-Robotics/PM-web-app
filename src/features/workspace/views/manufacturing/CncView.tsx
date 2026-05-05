@@ -1,6 +1,5 @@
 import type { BootstrapPayload, ManufacturingItemRecord } from "@/types";
 import {
-  formatFilterSelectionLabel,
   type FilterSelection,
   type MembersById,
   type SubsystemsById,
@@ -33,23 +32,12 @@ export function CncView({
   showMentorQuickActions = false,
   subsystemsById,
 }: CncViewProps) {
-  const personFilterLabel = formatFilterSelectionLabel(
-    "All roster",
-    bootstrap.members,
-    activePersonFilter,
-  );
-  const filteredDescription =
-    activePersonFilter.length === 0
-      ? "All CNC jobs."
-      : `Only CNC jobs submitted by ${personFilterLabel}.`;
-
   return (
     <ManufacturingQueueView
       activePersonFilter={activePersonFilter}
       addButtonAriaLabel="Add CNC job"
       bootstrap={bootstrap}
       emptyStateMessage="No CNC jobs match the current filters."
-      filteredDescription={filteredDescription}
       items={items}
       membersById={membersById}
       onCreate={onCreate}

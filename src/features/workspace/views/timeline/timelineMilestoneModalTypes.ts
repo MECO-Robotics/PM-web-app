@@ -17,6 +17,7 @@ export interface TimelineMilestoneModalProps {
   isSavingMilestone: boolean;
   mode: "create" | "edit" | null;
   onClose: () => void;
+  onCancelEdit: () => void;
   onDelete: () => void;
   onSubmit: (milestone: React.FormEvent<HTMLFormElement>) => void;
   onSwitchToTask: () => void;

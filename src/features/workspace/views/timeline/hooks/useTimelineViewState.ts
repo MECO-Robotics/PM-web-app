@@ -139,12 +139,15 @@ export function useTimelineViewState() {
   }, [timelineGridMotion.direction]);
 
   const handleTimelineIntervalChange = useCallback(
-    (nextInterval: TimelineViewInterval) => {
+    (nextInterval: TimelineViewInterval, nextAnchorDate?: string) => {
       if (nextInterval === viewInterval) {
         return;
       }
 
       playTimelineGridAnimation("neutral");
+      if (nextAnchorDate) {
+        setViewAnchorDate(nextAnchorDate);
+      }
       setViewInterval(nextInterval);
     },
     [playTimelineGridAnimation, viewInterval],

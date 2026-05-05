@@ -1,6 +1,5 @@
 import { memo } from "react";
 
-import { SUBVIEW_INTERACTION_GUIDANCE } from "@/features/workspace/shared/ui";
 import { TaskQueueView, MilestonesView, TimelineView } from "@/features/workspace/views";
 import { WorkspaceSectionPanel, WorkspaceSubPanel } from "../WorkspaceContentPanelShells";
 import type { WorkspaceContentPanelsViewProps } from "./workspaceContentPanelsViewTypes";
@@ -16,6 +15,8 @@ export function WorkspaceTaskPanelsSection({
   membersById,
   handleTimelineMilestoneDelete,
   handleTimelineMilestoneSave,
+  onTaskEditCanceled,
+  onTaskEditSaved,
   openCreateTaskModal,
   openTimelineTaskDetailsModal,
   setActivePersonFilter,
@@ -35,7 +36,6 @@ export function WorkspaceTaskPanelsSection({
     >
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={SUBVIEW_INTERACTION_GUIDANCE.timeline}
         isActive={taskView === "timeline"}
         swipeDirection={taskSwipeDirection}
       >
@@ -44,6 +44,8 @@ export function WorkspaceTaskPanelsSection({
           bootstrap={bootstrap}
           isAllProjectsView={isAllProjectsView}
           membersById={membersById}
+          onTaskEditCanceled={onTaskEditCanceled}
+          onTaskEditSaved={onTaskEditSaved}
           onDeleteTimelineMilestone={handleTimelineMilestoneDelete}
           onSaveTimelineMilestone={handleTimelineMilestoneSave}
           openCreateTaskModal={openCreateTaskModalFromTimeline}
@@ -55,7 +57,6 @@ export function WorkspaceTaskPanelsSection({
 
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={SUBVIEW_INTERACTION_GUIDANCE.queue}
         isActive={taskView === "queue"}
         swipeDirection={taskSwipeDirection}
       >
@@ -74,15 +75,15 @@ export function WorkspaceTaskPanelsSection({
 
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={SUBVIEW_INTERACTION_GUIDANCE.milestones}
         isActive={taskView === "milestones"}
-        pinInteractionNoteToBottom={false}
         swipeDirection={taskSwipeDirection}
       >
         <MilestonesView
           activePersonFilter={activePersonFilter}
           bootstrap={bootstrap}
           isAllProjectsView={isAllProjectsView}
+          onTaskEditCanceled={onTaskEditCanceled}
+          onTaskEditSaved={onTaskEditSaved}
           onDeleteTimelineMilestone={handleTimelineMilestoneDelete}
           onSaveTimelineMilestone={handleTimelineMilestoneSave}
         />

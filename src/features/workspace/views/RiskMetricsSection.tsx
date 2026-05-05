@@ -60,10 +60,6 @@ export function RiskMetricsSection({
           Ops overview
         </p>
         <h3>Planning, triage, and trend signals in one place</h3>
-        <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
-          Use the summary cards for a whole-workspace pulse check, then drill into subsystem and
-          mechanism pressure to see where work is stacking up.
-        </p>
       </div>
 
       <div className="risk-time-metrics-shell">

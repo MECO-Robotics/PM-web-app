@@ -32,7 +32,6 @@ export function TaskQueueView({
 }: TaskQueueViewProps) {
   const {
     activeFilterCount,
-    activePersonFilterLabel,
     disciplineFilter,
     disciplineOptions,
     focusedBoardState,
@@ -83,7 +82,6 @@ export function TaskQueueView({
     <section className={`panel dense-panel task-queue-view ${WORKSPACE_PANEL_CLASS}`}>
       <TaskQueueToolbar
         activeFilterCount={activeFilterCount}
-        activePersonFilterLabel={activePersonFilterLabel}
         bootstrap={bootstrap}
         disciplineFilter={disciplineFilter}
         disciplineOptions={disciplineOptions}

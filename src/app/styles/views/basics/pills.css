@@ -50,6 +50,10 @@
   background: var(--milestone-type-chip-bg);
   border: 1px solid var(--milestone-type-chip-border);
   color: var(--milestone-type-chip-text);
+  line-height: 1.15;
+  padding-inline: 0.64rem;
+  padding-block: 0.28rem;
+  white-space: nowrap;
 }
 
 .page-shell.dark-mode .milestone-type-pill {

@@ -108,7 +108,7 @@ describe("TimelineView", () => {
         selectedSubsystemId: null,
         showProjectCol: true,
         showSubsystemCol: true,
-        statusIconColumnIndex: 5,
+        statusIconColumnIndex: 4,
         statusIconColumnWidth: 36,
         statusIconStickyRight: 0,
         subsystemColumnIndex: 2,
@@ -137,7 +137,7 @@ describe("TimelineView", () => {
             primaryMilestoneEndDay: "",
           },
         ],
-        timelineGridTemplate: "112px 128px repeat(2, 24px) 36px",
+        timelineGridTemplate: "112px 128px repeat(2, 24px)",
         toggleProject: jest.fn(),
         toggleSubsystem: jest.fn(),
       }),
@@ -184,7 +184,7 @@ describe("TimelineView", () => {
         selectedSubsystemId: null,
         showProjectCol: true,
         showSubsystemCol: true,
-        statusIconColumnIndex: 4,
+        statusIconColumnIndex: 3,
         statusIconColumnWidth: 36,
         statusIconStickyRight: 0,
         subsystem: {
@@ -228,7 +228,7 @@ describe("TimelineView", () => {
             primaryMilestoneEndDay: "",
           },
         ],
-        timelineGridTemplate: "128px repeat(2, 24px) 36px",
+        timelineGridTemplate: "128px repeat(2, 24px)",
         toggleSubsystem: jest.fn(),
       }),
     );
@@ -237,7 +237,9 @@ describe("TimelineView", () => {
     expect(statusIndex).toBeGreaterThanOrEqual(0);
 
     const statusSnippet = markup.slice(statusIndex, statusIndex + 420);
-    expect(statusSnippet).toContain("grid-column:4");
+    expect(statusSnippet).toContain("grid-column:3");
+    expect(statusSnippet).toContain("width:36px");
+    expect(statusSnippet).toContain("justify-content:flex-end");
     expect(statusSnippet).toContain("right:0px");
     expect(statusSnippet).toContain("timeline-task-status-icon-button");
   });
@@ -254,7 +256,7 @@ describe("TimelineView", () => {
         isHighlighted: true,
         onOpenTask: jest.fn(),
         ownerId: "project-1",
-        statusIconColumnIndex: 4,
+        statusIconColumnIndex: 3,
         statusIconColumnWidth: 36,
         statusIconStickyRight: 0,
         task,

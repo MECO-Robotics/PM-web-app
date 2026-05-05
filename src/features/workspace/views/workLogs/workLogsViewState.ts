@@ -6,7 +6,6 @@ import type { DropdownOption, FilterSelection, MembersById, SubsystemsById } fro
 import {
   filterSelectionIncludes,
   filterSelectionIntersects,
-  formatFilterSelectionLabel,
   useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
@@ -70,7 +69,6 @@ export type WorkLogPaginationState = {
 };
 
 export type WorkLogsViewState = {
-  activePersonFilterLabel: string;
   search: string;
   setSearch: Dispatch<SetStateAction<string>>;
   setSortMode: Dispatch<SetStateAction<WorkLogSortMode>>;
@@ -295,14 +293,7 @@ export function useWorkLogsViewState({
     sortMode,
     subsystemFilter,
   ]);
-  const activePersonFilterLabel = formatFilterSelectionLabel(
-    "All roster",
-    bootstrap.members,
-    activePersonFilter,
-  );
-
   return {
-    activePersonFilterLabel,
     search,
     setSearch,
     setSortMode,

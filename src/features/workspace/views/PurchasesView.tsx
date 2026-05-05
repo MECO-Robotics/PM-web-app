@@ -14,7 +14,6 @@ import {
   SearchToolbarInput,
   TableCell,
   filterSelectionIncludes,
-  formatFilterSelectionLabel,
   useFilterChangeMotionClass,
   useWorkspacePagination,
 } from "@/features/workspace/shared";
@@ -97,12 +96,6 @@ export function PurchasesView({
     subsystem,
     vendor,
   ]);
-  const activePersonFilterLabel = formatFilterSelectionLabel(
-    "All roster",
-    bootstrap.members,
-    activePersonFilter,
-  );
-
   const gridTemplate = "minmax(200px, 2.5fr) 1fr 0.6fr 1fr 1fr 1fr 1fr";
 
   return (
@@ -110,11 +103,6 @@ export function PurchasesView({
       <div className="panel-header compact-header">
         <div className="queue-section-header">
           <h2>Purchase list</h2>
-          <p className="section-copy filter-copy">
-            {activePersonFilter.length === 0
-              ? "All purchase requests."
-              : `Only requests submitted by ${activePersonFilterLabel}.`}
-          </p>
         </div>
         <div className="panel-actions filter-toolbar queue-toolbar purchase-toolbar">
           <div data-tutorial-target="purchases-search-input">

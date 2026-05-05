@@ -1,4 +1,3 @@
-import { SUBVIEW_INTERACTION_GUIDANCE } from "@/features/workspace/shared/ui";
 import {
   ArtifactInventoryView,
   MaterialsView,
@@ -46,11 +45,6 @@ export function WorkspaceInventorySection(props: WorkspaceContentPanelsViewProps
     >
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={
-          isNonRobotProject
-            ? SUBVIEW_INTERACTION_GUIDANCE.documents
-            : SUBVIEW_INTERACTION_GUIDANCE.materials
-        }
         isActive={effectiveInventoryView === "materials"}
         swipeDirection={inventorySwipeDirection}
       >
@@ -75,7 +69,6 @@ export function WorkspaceInventorySection(props: WorkspaceContentPanelsViewProps
 
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={SUBVIEW_INTERACTION_GUIDANCE.parts}
         isActive={!isNonRobotProject && effectiveInventoryView === "parts"}
         swipeDirection={inventorySwipeDirection}
       >
@@ -91,7 +84,6 @@ export function WorkspaceInventorySection(props: WorkspaceContentPanelsViewProps
 
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={SUBVIEW_INTERACTION_GUIDANCE.purchases}
         isActive={effectiveInventoryView === "purchases"}
         swipeDirection={inventorySwipeDirection}
       >
@@ -119,11 +111,6 @@ export function WorkspaceSubsystemsSection(props: WorkspaceContentPanelsViewProp
     >
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        description={
-          props.isNonRobotProject
-            ? SUBVIEW_INTERACTION_GUIDANCE.workflow
-            : SUBVIEW_INTERACTION_GUIDANCE.subsystems
-        }
         isActive
       >
         {props.isNonRobotProject ? (
@@ -161,7 +148,6 @@ export function WorkspaceRosterSection(props: WorkspaceContentPanelsViewProps) {
       tabSwitchDirection={tabSwitchDirection}
     >
       <WorkspaceSubPanel
-        description={SUBVIEW_INTERACTION_GUIDANCE.roster}
         disableAnimations={disablePanelAnimations}
         isActive
       >
@@ -206,7 +192,6 @@ export function WorkspaceHelpSection(props: WorkspaceContentPanelsViewProps) {
       tabSwitchDirection={tabSwitchDirection}
     >
       <WorkspaceSubPanel
-        description={SUBVIEW_INTERACTION_GUIDANCE.help}
         disableAnimations={disablePanelAnimations}
         isActive
       >

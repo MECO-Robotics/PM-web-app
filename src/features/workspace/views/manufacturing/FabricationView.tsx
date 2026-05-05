@@ -1,6 +1,5 @@
 import type { BootstrapPayload, ManufacturingItemRecord } from "@/types";
 import {
-  formatFilterSelectionLabel,
   type FilterSelection,
   type MembersById,
   type SubsystemsById,
@@ -26,23 +25,12 @@ export function FabricationView({
   onEdit,
   subsystemsById,
 }: FabricationViewProps) {
-  const personFilterLabel = formatFilterSelectionLabel(
-    "All roster",
-    bootstrap.members,
-    activePersonFilter,
-  );
-  const filteredDescription =
-    activePersonFilter.length === 0
-      ? "All fabrication jobs."
-      : `Only fabrication jobs submitted by ${personFilterLabel}.`;
-
   return (
     <ManufacturingQueueView
       activePersonFilter={activePersonFilter}
       addButtonAriaLabel="Add fabrication job"
       bootstrap={bootstrap}
       emptyStateMessage="No fabrication jobs match the current filters."
-      filteredDescription={filteredDescription}
       items={items}
       membersById={membersById}
       onCreate={onCreate}

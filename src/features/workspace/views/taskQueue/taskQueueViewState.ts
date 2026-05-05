@@ -106,7 +106,6 @@ export interface TaskQueueViewStateArgs {
 
 export interface TaskQueueViewState {
   activeFilterCount: number;
-  activePersonFilterLabel: string;
   disciplineFilter: FilterSelection;
   disciplineOptions: DropdownOption[];
   focusedBoardState: TaskQueueBoardState | null;

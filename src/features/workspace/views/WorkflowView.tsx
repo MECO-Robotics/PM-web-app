@@ -95,9 +95,6 @@ export function WorkflowView({
       <div className="panel-header compact-header">
         <div className="queue-section-header">
           <h2 style={{ color: "var(--text-title)" }}>Workflow manager</h2>
-          <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
-            Workstream-centric view for non-robot project planning.
-          </p>
         </div>
         <div className="panel-actions filter-toolbar subsystem-manager-toolbar">
           <SearchToolbarInput

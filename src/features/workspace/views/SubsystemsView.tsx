@@ -75,9 +75,6 @@ export function SubsystemsView({
       <div className="panel-header compact-header">
         <div className="queue-section-header">
           <h2 style={{ color: "var(--text-title)" }}>Subsystem manager</h2>
-          <p className="section-copy filter-copy" style={{ color: "var(--text-copy)" }}>
-            Review subsystem ownership, risk, and mechanism coverage in one place.
-          </p>
         </div>
 
         <SubsystemsToolbar

@@ -21,7 +21,6 @@ import {
 
 interface TaskQueueToolbarProps {
   activeFilterCount: number;
-  activePersonFilterLabel: string;
   bootstrap: BootstrapPayload;
   disciplineFilter: FilterSelection;
   disciplineOptions: DropdownOption[];
@@ -56,7 +55,6 @@ interface TaskQueueToolbarProps {
 
 export function TaskQueueToolbar({
   activeFilterCount,
-  activePersonFilterLabel,
   bootstrap,
   disciplineFilter,
   disciplineOptions,
@@ -92,11 +90,6 @@ export function TaskQueueToolbar({
     <div className="panel-header compact-header">
       <div className="queue-section-header">
         <h2>Tasks</h2>
-        <p className="section-copy filter-copy">
-          {activePersonFilterLabel === "All roster"
-            ? "All tasks in kanban."
-            : `Only tasks assigned to or mentored by ${activePersonFilterLabel}.`}
-        </p>
       </div>
       <div className="panel-actions filter-toolbar task-queue-toolbar">
         <div data-tutorial-target="task-queue-search-input">

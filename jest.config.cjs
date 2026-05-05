@@ -10,6 +10,7 @@ module.exports = {
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^.+\\.css$": "<rootDir>/src/test/styleMock.js",
   },
   roots: ["<rootDir>/src"],
   testEnvironment: "node",
