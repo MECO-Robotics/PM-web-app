@@ -24,6 +24,10 @@
   * Merge `feature/*` and `fix/*` into `development` by PR only.
   * Merge `hotfix/*` into `development` or `main` by PR only.
   * Merge into `main` only from `development` or `hotfix/*` by PR only.
+* PRs into `development` must come from branches named only:
+  * `feature/*`
+  * `fix/*`
+  * `hotfix/*`
 * Protected branch requirements:
   * `development`: required checks `ci-validate` and `snapshot-validate`, at least 1 approval.
   * `main`: required checks `ci-validate`, `snapshot-validate`, and `cross-repo-production-gate`, at least 2 approvals.
