@@ -68,7 +68,7 @@ function formatMilestoneStartDateTime(startDateTime: string) {
 
 function formatMilestoneEndDateTime(startDateTime: string, endDateTime: string | null) {
   if (!endDateTime) {
-    return "No end date";
+    return null;
   }
 
   if (shouldRenderDateOnly(endDateTime)) {
@@ -155,11 +155,8 @@ export function MilestoneKanbanBoard({
         const milestoneType = getMilestoneBoardType(milestone);
         const milestoneTypeStyle = getMilestoneTypeStyle(milestoneType);
         const milestoneTypeBadge = MILESTONE_TYPE_BADGE_LABELS[milestoneType];
-        const hasEndDateTime = Boolean(milestone.endDateTime);
         const milestoneStartLabel = formatMilestoneStartDateTime(milestone.startDateTime);
-        const milestoneEndLabel = hasEndDateTime
-          ? formatMilestoneEndDateTime(milestone.startDateTime, milestone.endDateTime)
-          : null;
+        const milestoneEndLabel = formatMilestoneEndDateTime(milestone.startDateTime, milestone.endDateTime);
         const milestoneTypeBadgeStyle = {
           "--milestone-type-chip-bg": milestoneTypeStyle.chipBackground,
           "--milestone-type-chip-border": milestoneTypeStyle.columnBorder,

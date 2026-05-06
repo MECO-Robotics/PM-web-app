@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { BootstrapPayload, MilestoneRecord } from "@/types";
 import type { TimelineMilestoneDraft } from "@/features/workspace/shared/timeline";
+import { TaskDetailReveal } from "@/features/workspace/modals/task/details/TaskDetailReveal";
 import {
   getMilestoneTaskBoardStateForMilestone,
   getMilestoneTaskBoardStateLabel,
@@ -19,7 +20,7 @@ import {
   MilestoneEditScheduleField,
   MilestoneEditTitleField,
 } from "./MilestonesEventDetailsModalParts";
-import { formatMilestoneDateTime } from "./milestonesViewUtils";
+import { formatMilestoneDateTime, formatMilestoneEndDateTime } from "./milestonesViewUtils";
 
 interface MilestonesEventDetailsModalProps {
   activeMilestone: MilestoneRecord;
@@ -118,6 +119,18 @@ export function MilestonesEventDetailsModal({
   const projectNames = activeMilestone.projectIds
     .map((projectId) => projectsById[projectId]?.name)
     .filter((projectName): projectName is string => Boolean(projectName));
+  const relatedProjectItems =
+    projectNames.length > 0
+      ? projectNames.map((projectName, index) => (
+          <div className="task-details-assigned-item" key={`${projectName}-${index}`}>
+            <TaskDetailReveal className="task-detail-ellipsis-reveal" text={projectName} />
+          </div>
+        ))
+      : [
+          <div className="task-details-assigned-empty" key="all-projects">
+            All projects
+          </div>,
+        ];
   const editableMilestoneDraft =
     milestoneDraft ?? {
       title: activeMilestone.title,
@@ -130,6 +143,8 @@ export function MilestonesEventDetailsModal({
   const editableStartTime = milestoneStartTime ?? activeMilestone.startDateTime.slice(11, 16);
   const editableEndDate = milestoneEndDate ?? activeMilestone.endDateTime?.slice(0, 10) ?? "";
   const editableEndTime = milestoneEndTime ?? activeMilestone.endDateTime?.slice(11, 16) ?? "";
+  const milestoneStartLabel = formatMilestoneDateTime(activeMilestone.startDateTime);
+  const milestoneEndLabel = formatMilestoneEndDateTime(activeMilestone.startDateTime, activeMilestone.endDateTime);
 
   return createPortal(
     <div className="modal-scrim" role="presentation" style={{ zIndex: 2050 }}>
@@ -181,8 +196,16 @@ export function MilestonesEventDetailsModal({
                     />
                   ) : (
                     <MilestoneDetailInlineValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
-                      <span className="pill status-pill status-pill-neutral">
-                        {formatMilestoneDateTime(activeMilestone.startDateTime)}
+                      <span style={{ alignItems: "center", display: "inline-flex", gap: "0.25rem", flexWrap: "wrap" }}>
+                        <span className="pill status-pill status-pill-neutral">{milestoneStartLabel}</span>
+                        {milestoneEndLabel ? (
+                          <>
+                            <span style={{ color: "var(--text-copy)", fontSize: "0.65rem", fontWeight: 700 }}>
+                              to
+                            </span>
+                            <span className="pill status-pill status-pill-neutral">{milestoneEndLabel}</span>
+                          </>
+                        ) : null}
                       </span>
                     </MilestoneDetailInlineValue>
                   )}
@@ -223,26 +246,34 @@ export function MilestonesEventDetailsModal({
           />
         ) : (
           <div className="modal-form task-details-grid" style={{ color: "var(--text-copy)" }}>
-            <div className="task-details-section-grid task-details-overview-grid modal-wide">
-              <div className="field modal-wide">
+            <div className="milestone-detail-overview-grid modal-wide">
+              <div className="field modal-wide milestone-detail-description">
                 <span style={{ color: "var(--text-title)" }}>Description</span>
-                <MilestoneDetailValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
+                <MilestoneDetailValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)} showEditIndicator={isEditMode}>
                   <p className="task-detail-copy">{activeMilestone.description || "No description provided."}</p>
                 </MilestoneDetailValue>
               </div>
-              <div className="field modal-wide">
-                <span style={{ color: "var(--text-title)" }}>Type</span>
-                <MilestoneDetailValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
-                  <span className="pill status-pill milestone-type-pill" style={milestoneTypeStyleVariables}>
-                    {milestoneTypeLabel}
-                  </span>
-                </MilestoneDetailValue>
-              </div>
-              <div className="field modal-wide">
-                <span style={{ color: "var(--text-title)" }}>Related projects</span>
-                <MilestoneDetailValue onOpenEditMilestone={() => onEditMilestone(activeMilestone)}>
-                  <p className="task-detail-copy">{projectNames.length > 0 ? projectNames.join(", ") : "All projects"}</p>
-                </MilestoneDetailValue>
+              <div className="milestone-detail-type-row">
+                <div className="field">
+                  <span style={{ color: "var(--text-title)" }}>Type</span>
+                  <MilestoneDetailValue
+                    onOpenEditMilestone={() => onEditMilestone(activeMilestone)}
+                    showEditIndicator={isEditMode}
+                  >
+                    <span className="pill status-pill milestone-type-pill" style={milestoneTypeStyleVariables}>
+                      {milestoneTypeLabel}
+                    </span>
+                  </MilestoneDetailValue>
+                </div>
+                <div className="field">
+                  <span style={{ color: "var(--text-title)" }}>Related projects</span>
+                  <MilestoneDetailValue
+                    onOpenEditMilestone={() => onEditMilestone(activeMilestone)}
+                    showEditIndicator={isEditMode}
+                  >
+                    <div className="task-details-assigned-list">{relatedProjectItems}</div>
+                  </MilestoneDetailValue>
+                </div>
               </div>
             </div>
 
