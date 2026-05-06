@@ -4,15 +4,17 @@ import type { MilestoneRecord } from "@/types";
 import { EditableHoverIndicator } from "@/features/workspace/shared/WorkspaceViewShared";
 import { MilestoneTaskStateIcon } from "@/features/workspace/shared/milestones";
 import type { TaskQueueBoardState } from "@/features/workspace/views/taskQueue/taskQueueKanbanBoardState";
-import { formatMilestoneDateTime } from "./milestonesViewUtils";
+import { formatMilestoneDateTime, formatMilestoneEndDateTime } from "./milestonesViewUtils";
 import type { MilestoneDetailEditableField } from "./sections/MilestonesEventDetailEditor";
 
 export function MilestoneDetailValue({
   children,
   onOpenEditMilestone,
+  showEditIndicator = false,
 }: {
   children: ReactNode;
   onOpenEditMilestone: () => void;
+  showEditIndicator?: boolean;
 }) {
   return (
     <button
@@ -20,9 +22,9 @@ export function MilestoneDetailValue({
       onClick={onOpenEditMilestone}
       onDoubleClick={onOpenEditMilestone}
       type="button"
-    >
+      >
       {children}
-      <EditableHoverIndicator className="editable-hover-indicator-inline task-detail-inline-edit-indicator" />
+      {showEditIndicator ? <EditableHoverIndicator className="editable-hover-indicator-inline task-detail-inline-edit-indicator" /> : null}
     </button>
   );
 }
@@ -30,9 +32,11 @@ export function MilestoneDetailValue({
 export function MilestoneDetailInlineValue({
   children,
   onOpenEditMilestone,
+  showEditIndicator = false,
 }: {
   children: ReactNode;
   onOpenEditMilestone: () => void;
+  showEditIndicator?: boolean;
 }) {
   return (
     <span className="task-detail-inline-edit-shell task-detail-inline-edit-shell-inline milestone-detail-inline-value">
@@ -43,7 +47,7 @@ export function MilestoneDetailInlineValue({
         type="button"
       >
         {children}
-        <EditableHoverIndicator className="editable-hover-indicator-inline task-detail-inline-edit-indicator" />
+        {showEditIndicator ? <EditableHoverIndicator className="editable-hover-indicator-inline task-detail-inline-edit-indicator" /> : null}
       </button>
     </span>
   );
@@ -145,9 +149,7 @@ export function MilestoneEditScheduleField({
   const endValue =
     milestoneEndDate && milestoneEndTime
       ? formatMilestoneDateTime(`${milestoneEndDate}T${milestoneEndTime}:00`)
-      : activeMilestone.endDateTime
-        ? formatMilestoneDateTime(activeMilestone.endDateTime)
-        : "No end date";
+      : formatMilestoneEndDateTime(activeMilestone.startDateTime, activeMilestone.endDateTime);
 
   if (editingField === "schedule") {
     return (
@@ -176,7 +178,7 @@ export function MilestoneEditScheduleField({
           type="time"
           value={milestoneStartTime}
         />
-        <span style={{ color: "var(--text-copy)" }}> {"->"} </span>
+        <span style={{ color: "var(--text-copy)" }}> to </span>
         <input
           aria-label="End date"
           className="task-detail-inline-edit-input task-detail-inline-edit-input-date"
@@ -198,8 +200,12 @@ export function MilestoneEditScheduleField({
   return (
     <MilestoneDetailInlineValue onOpenEditMilestone={() => setEditingField("schedule")}>
       <span className="pill status-pill status-pill-neutral">{startValue}</span>
-      <span style={{ color: "var(--text-copy)" }}> {"->"} </span>
-      <span className="pill status-pill status-pill-neutral">{endValue}</span>
+      {endValue ? (
+        <>
+          <span style={{ color: "var(--text-copy)" }}> to </span>
+          <span className="pill status-pill status-pill-neutral">{endValue}</span>
+        </>
+      ) : null}
     </MilestoneDetailInlineValue>
   );
 }
