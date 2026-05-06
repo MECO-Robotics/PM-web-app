@@ -5,6 +5,7 @@ import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared";
 import { KanbanColumns } from "@/features/workspace/views/kanban/KanbanColumns";
 
 import { RiskEditorModal } from "./RiskEditorModal";
+import { RiskDetailsModal } from "./RiskDetailsModal";
 import { RiskFilterToolbar } from "./RiskFilterToolbar";
 import { RiskMetricsSection } from "./RiskMetricsSection";
 import {
@@ -117,7 +118,7 @@ export function RisksView({
                       <button
                         className="task-queue-board-card editable-hover-target editable-hover-target-row"
                         key={risk.id}
-                        onClick={() => viewModel.openEditEditor(risk)}
+                        onClick={() => viewModel.openRiskDetails(risk)}
                         type="button"
                       >
                         <div className="task-queue-board-card-header">
@@ -155,7 +156,7 @@ export function RisksView({
         attachmentOptions={viewModel.attachmentOptions}
         draft={viewModel.draft}
         editorError={viewModel.editorError}
-        editorMode={viewModel.editorMode}
+        editorMode={viewModel.editorMode === "detail" ? null : viewModel.editorMode}
         getAttachmentOptionsForType={viewModel.getAttachmentOptionsForType}
         getSourceOptionsForType={viewModel.getSourceOptionsForType}
         isDeleting={viewModel.isDeleting}
@@ -167,6 +168,16 @@ export function RisksView({
         setDraft={viewModel.setDraft}
         sourceOptions={viewModel.sourceOptions}
       />
+      {viewModel.editorMode === "detail" && viewModel.activeRisk ? (
+        <RiskDetailsModal
+          activeRisk={viewModel.activeRisk}
+          getAttachmentLabel={viewModel.getAttachmentLabel}
+          getMitigationLabel={viewModel.getMitigationLabel}
+          getSourceLabel={viewModel.getSourceLabel}
+          onClose={viewModel.closeEditor}
+          onEditRisk={() => viewModel.openEditEditor(viewModel.activeRisk)}
+        />
+      ) : null}
     </section>
   );
 }
