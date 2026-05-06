@@ -1,12 +1,11 @@
 import type { CSSProperties } from "react";
 
-import type { BootstrapPayload, MilestoneRecord, MilestoneType } from "@/types";
-import { getStatusPillClassName } from "@/features/workspace/shared";
-import {
-  MilestoneTaskStateIcon,
-  getMilestoneTaskBoardStateForMilestone,
-} from "@/features/workspace/shared/milestones";
-import { EditableHoverIndicator } from "@/features/workspace/shared/WorkspaceViewShared";
+import type { BootstrapPayload } from "@/types/bootstrap";
+import type { MilestoneRecord } from "@/types/recordsExecution";
+import type { MilestoneType } from "@/types/common";
+import { getStatusPillClassName } from "@/features/workspace/shared/model/workspaceUtils";
+import { getMilestoneTaskBoardStateForMilestone, MilestoneTaskStateIcon } from "@/features/workspace/shared/milestones/milestoneTaskState";
+import { EditableHoverIndicator } from "@/features/workspace/shared/table/workspaceTableChrome";
 import {
   DEFAULT_EVENT_TYPE as DEFAULT_MILESTONE_TYPE,
   EVENT_TYPE_STYLES as MILESTONE_TYPE_STYLES,
@@ -40,9 +39,39 @@ function isSameLocalCalendarDay(start: Date, end: Date) {
   );
 }
 
+function readTimePortion(value: string) {
+  const match = value.match(/T(\d{2}:\d{2})/);
+  return match ? match[1] : null;
+}
+
+function shouldRenderDateOnly(value: string) {
+  const timePortion = readTimePortion(value);
+  return timePortion === null || timePortion === "12:00";
+}
+
+function formatMilestoneDate(value: string) {
+  const datePortion = value.slice(0, 10);
+  return new Date(`${datePortion}T00:00:00`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatMilestoneStartDateTime(startDateTime: string) {
+  if (shouldRenderDateOnly(startDateTime)) {
+    return formatMilestoneDate(startDateTime);
+  }
+
+  return formatMilestoneDateTime(startDateTime);
+}
+
 function formatMilestoneEndDateTime(startDateTime: string, endDateTime: string | null) {
   if (!endDateTime) {
-    return "No end date";
+    return null;
+  }
+
+  if (shouldRenderDateOnly(endDateTime)) {
+    return formatMilestoneDate(endDateTime);
   }
 
   const start = new Date(startDateTime);
@@ -125,7 +154,7 @@ export function MilestoneKanbanBoard({
         const milestoneType = getMilestoneBoardType(milestone);
         const milestoneTypeStyle = getMilestoneTypeStyle(milestoneType);
         const milestoneTypeBadge = MILESTONE_TYPE_BADGE_LABELS[milestoneType];
-        const milestoneStartLabel = formatMilestoneDateTime(milestone.startDateTime);
+        const milestoneStartLabel = formatMilestoneStartDateTime(milestone.startDateTime);
         const milestoneEndLabel = formatMilestoneEndDateTime(milestone.startDateTime, milestone.endDateTime);
         const milestoneTypeBadgeStyle = {
           "--milestone-type-chip-bg": milestoneTypeStyle.chipBackground,
@@ -156,10 +185,12 @@ export function MilestoneKanbanBoard({
                 }}
               >
                 <span className="task-queue-board-card-due">{milestoneStartLabel}</span>
-                <span style={{ alignItems: "center", display: "inline-flex", gap: "0.25rem" }}>
-                  <span style={{ color: "var(--text-copy)", fontSize: "0.65rem", fontWeight: 700 }}>to</span>
-                  <span className="task-queue-board-card-due">{milestoneEndLabel}</span>
-                </span>
+                {milestoneEndLabel ? (
+                  <span style={{ alignItems: "center", display: "inline-flex", gap: "0.25rem" }}>
+                    <span style={{ color: "var(--text-copy)", fontSize: "0.65rem", fontWeight: 700 }}>to</span>
+                    <span className="task-queue-board-card-due">{milestoneEndLabel}</span>
+                  </span>
+                ) : null}
               </span>
             </div>
             <small className="task-queue-board-card-summary">

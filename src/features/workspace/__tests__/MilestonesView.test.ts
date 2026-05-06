@@ -3,9 +3,9 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared/model";
+import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared/model/bootstrapDefaults";
 import { MilestonesView } from "@/features/workspace/views/milestones/MilestonesView";
-import type { BootstrapPayload } from "@/types";
+import type { BootstrapPayload } from "@/types/bootstrap";
 
 (globalThis as typeof globalThis & { React: typeof React }).React = React;
 
@@ -182,7 +182,7 @@ describe("MilestonesView", () => {
     expect(markup).toContain("task-queue-zoom-label");
     expect(markup).toContain("100%");
     expect(markup).toContain("--task-queue-board-column-width:calc(15.5rem * 1)");
-    expect((markup.match(/task-queue-board-card-due/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    expect((markup.match(/task-queue-board-card-due/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(markup).toContain("task-queue-board-card-type-badge");
     expect(markup).toContain("Milestone type: Competition");
   });

@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { FilterSelection } from "@/features/workspace/shared";
-import { useFilterChangeMotionClass, useWorkspacePagination } from "@/features/workspace/shared";
-import type { BootstrapPayload, RiskPayload, RiskRecord } from "@/types";
+import type { FilterSelection } from "@/features/workspace/shared/filters/workspaceFilterUtils";
+import { useFilterChangeMotionClass } from "@/features/workspace/shared/filters/workspaceFilterUtils";
+import { useWorkspacePagination } from "@/features/workspace/shared/table/workspaceTableChrome";
+import type { BootstrapPayload } from "@/types/bootstrap";
+import type { RiskPayload } from "@/types/payloads";
+import type { RiskRecord } from "@/types/recordsReporting";
 
 import {
   ATTACHMENT_TYPE_LABELS,
@@ -29,7 +32,7 @@ export {
   getRiskSeverityPillClassName,
 };
 
-export type RiskEditorMode = "create" | "edit" | null;
+export type RiskEditorMode = "create" | "detail" | "edit" | null;
 
 interface UseRisksViewModelArgs {
   activePersonFilter: FilterSelection;
@@ -78,6 +81,10 @@ export function useRisksViewModel({
 
   const sourceOptions = viewData.sourceOptionsForType(draft.sourceType);
   const attachmentOptions = viewData.attachmentOptionsForType(draft.attachmentType);
+  const activeRisk = useMemo(
+    () => bootstrap.risks.find((risk) => risk.id === activeRiskId) ?? null,
+    [activeRiskId, bootstrap.risks],
+  );
 
   const openCreateEditor = useCallback(() => {
     setDraft(
@@ -92,6 +99,13 @@ export function useRisksViewModel({
     setEditorError(null);
     setEditorMode("create");
   }, [bootstrap, viewData.qaSourceOptions, viewData.testSourceOptions, viewData.projectAttachmentOptions]);
+
+  const openRiskDetails = useCallback((risk: RiskRecord) => {
+    setDraft(toRiskPayload(risk));
+    setActiveRiskId(risk.id);
+    setEditorError(null);
+    setEditorMode("detail");
+  }, []);
 
   const openEditEditor = useCallback((risk: RiskRecord) => {
     setDraft(toRiskPayload(risk));
@@ -198,6 +212,7 @@ export function useRisksViewModel({
   ]);
 
   return {
+    activeRisk,
     ...viewData,
     activeRiskId,
     attachmentOptions,
@@ -212,6 +227,7 @@ export function useRisksViewModel({
     isDeleting,
     isSaving,
     openCreateEditor,
+    openRiskDetails,
     openEditEditor,
     pagination,
     riskFilterMotionClass,

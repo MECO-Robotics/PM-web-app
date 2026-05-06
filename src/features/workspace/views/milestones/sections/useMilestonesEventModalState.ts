@@ -1,21 +1,14 @@
 import { useMemo, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 
-import type { BootstrapPayload, MilestonePayload, MilestoneRecord } from "@/types";
-import type { FilterSelection } from "@/features/workspace/shared/WorkspaceViewShared";
-import { getMilestoneTasksForState } from "@/features/workspace/shared/milestones";
-import { DEFAULT_EVENT_TYPE as DEFAULT_MILESTONE_TYPE } from "@/features/workspace/shared/milestones";
-import {
-  buildDateTime,
-  compareDateTimes,
-  datePortion,
-  localTodayDate,
-  timePortion,
-} from "@/features/workspace/shared/timeline";
-import {
-  emptyTimelineMilestoneDraft,
-  timelineMilestoneDraftFromRecord,
-  type TimelineMilestoneDraft,
-} from "@/features/workspace/shared/timeline";
+import type { BootstrapPayload } from "@/types/bootstrap";
+import type { MilestonePayload } from "@/types/payloads";
+import type { MilestoneRecord } from "@/types/recordsExecution";
+import type { FilterSelection } from "@/features/workspace/shared/filters/workspaceFilterUtils";
+import { getMilestoneTasksForState } from "@/features/workspace/shared/milestones/milestoneTaskState";
+import { DEFAULT_EVENT_TYPE as DEFAULT_MILESTONE_TYPE } from "@/features/workspace/shared/events/eventStyles";
+import { buildDateTime, compareDateTimes, datePortion, localTodayDate, timePortion } from "@/features/workspace/shared/timeline/timelineDateUtils";
+import { emptyTimelineMilestoneDraft, timelineMilestoneDraftFromRecord } from "@/features/workspace/shared/timeline/timelineEventHelpers";
+import type { TimelineMilestoneDraft } from "@/features/workspace/shared/timeline/timelineEventHelpers";
 import { groupTasksByPlanningState } from "@/features/workspace/shared/task/taskPlanning";
 
 export const MILESTONE_TASK_ORDER = [
@@ -186,6 +179,13 @@ export function useMilestonesMilestoneModalState({
     const normalizedTitle = milestoneDraft.title.trim();
     if (!normalizedTitle) {
       setMilestoneError("Title is required.");
+      return;
+    }
+
+    const hasStartTime = milestoneStartTime.trim().length > 0;
+    const hasEndTime = milestoneEndTime.trim().length > 0;
+    if (hasStartTime !== hasEndTime) {
+      setMilestoneError("Start time and end time must both be set, or both be empty.");
       return;
     }
 

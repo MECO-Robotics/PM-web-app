@@ -1,13 +1,11 @@
 import { memo } from "react";
 
-import {
-  MilestonesView,
-  RisksView,
-  TaskQueueView,
-  TimelineView,
-  WorkLogsView,
-  ReportsView,
-} from "@/features/workspace/views";
+import { MilestonesView } from "@/features/workspace/views/milestones/MilestonesView";
+import { RisksView } from "@/features/workspace/views/RisksView";
+import { TaskQueueView } from "@/features/workspace/views/taskQueue/TaskQueueView";
+import { TimelineView } from "@/features/workspace/views/timeline/TimelineView";
+import { WorkLogsView } from "@/features/workspace/views/WorkLogsView";
+import { ReportsView } from "@/features/workspace/views/ReportsView";
 import { WorkspaceSectionPanel, WorkspaceSubPanel } from "../WorkspaceContentPanelShells";
 import type { WorkspaceContentPanelsViewProps } from "./workspaceContentPanelsViewTypes";
 
@@ -96,7 +94,17 @@ export function WorkspaceTaskSection(props: WorkspaceContentPanelsViewProps) {
 }
 
 export function WorkspaceRiskSection(props: WorkspaceContentPanelsViewProps) {
-  const { activePersonFilter, bootstrap, disablePanelAnimations = false, onCreateRisk, onDeleteRisk, onUpdateRisk, riskManagementView, tabSwitchDirection } = props;
+  const {
+    activePersonFilter,
+    bootstrap,
+    disablePanelAnimations = false,
+    isAllProjectsView,
+    onCreateRisk,
+    onDeleteRisk,
+    onUpdateRisk,
+    riskManagementView,
+    tabSwitchDirection,
+  } = props;
 
   return (
     <WorkspaceSectionPanel
@@ -111,6 +119,7 @@ export function WorkspaceRiskSection(props: WorkspaceContentPanelsViewProps) {
         <RisksView
           activePersonFilter={activePersonFilter}
           bootstrap={bootstrap}
+          isAllProjectsView={isAllProjectsView}
           onCreateRisk={onCreateRisk}
           onDeleteRisk={onDeleteRisk}
           onUpdateRisk={onUpdateRisk}

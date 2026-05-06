@@ -3,9 +3,10 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared";
+import { EMPTY_BOOTSTRAP } from "@/features/workspace/shared/model/bootstrapDefaults";
 import { MilestonesEventDetailsModal } from "@/features/workspace/views/milestones/MilestonesEventDetailsModal";
-import type { BootstrapPayload, MilestoneRecord } from "@/types";
+import type { BootstrapPayload } from "@/types/bootstrap";
+import type { MilestoneRecord } from "@/types/recordsExecution";
 
 jest.mock("react-dom", () => {
   const actual = jest.requireActual<typeof import("react-dom")>("react-dom");
@@ -126,8 +127,9 @@ describe("MilestonesEventDetailsModal", () => {
       }),
     );
 
-    expect(markup).toContain("Readiness");
-    expect(markup).toContain("Subsystem: Drivebase");
+    expect(markup).toContain("Requirements");
+    expect(markup).toContain("Drivebase");
+    expect(markup).toContain("Subsystem");
     expect(markup).toContain("Required");
     expect(markup).toContain("Complete");
     expect(markup).toContain("Iteration 1");

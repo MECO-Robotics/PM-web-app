@@ -2,7 +2,7 @@ import "@/app/App.css";
 
 import { AppWorkspaceShellView } from "@/app/shell/AppWorkspaceShellView";
 import { useAppWorkspaceController } from "@/app/hooks/useAppWorkspaceController";
-import { AuthStatusScreen, SignInScreen } from "@/features/auth";
+import { AuthStatusScreen, SignInScreen } from "@/features/auth/AuthScreens";
 
 export default function AppWorkspaceCoreImpl() {
   const c = useAppWorkspaceController();
@@ -13,7 +13,7 @@ export default function AppWorkspaceCoreImpl() {
         body="Checking the server-side auth configuration before the workspace opens."
         isDarkMode={c.isDarkMode}
         shellStyle={c.isDarkMode ? c.pageShellStyle : undefined}
-        title="Loading sign-in rules for MECO Robotics."
+        title="Loading sign-in rules for MECO Mission Control."
       />
     );
   }
