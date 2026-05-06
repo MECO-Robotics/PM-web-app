@@ -5,6 +5,7 @@ import { TimelineProjectHeaderCell } from "./components/TimelineProjectHeaderCel
 import { TimelineProjectSummaryCell } from "./components/TimelineProjectSummaryCell";
 import { TimelineSubsystemRowGroup } from "./components/TimelineSubsystemRowGroup";
 import { TimelineTaskTrackRowList } from "./components/TimelineTaskTrackRowList";
+import { buildTimelineSubsystemHighlightStyle } from "./timelineTaskColors";
 import {
   type TimelineTaskDependencyCounts,
   type TimelineTaskStatusSignal,
@@ -167,6 +168,10 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
             rowCursor += subsystemRowCount;
             const groupBackground =
               subsystem.index % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
+            const groupStyle = buildTimelineSubsystemHighlightStyle(subsystem.color, {
+              boxShadow: `inset 3px 0 0 ${subsystem.color}`,
+              gridAutoRows: "38px",
+            });
             return (
               <TimelineSubsystemRowGroup
                 key={subsystem.id}
@@ -195,6 +200,7 @@ export const TimelineProjectGroup: React.FC<TimelineProjectGroupProps> = ({
                 subsystem={subsystem}
                 subsystemColumnIndex={subsystemColumnIndex}
                 subsystemStickyLeft={subsystemStickyLeft}
+                rowStyle={groupStyle}
                 taskDependencyCountsById={taskDependencyCountsById}
                 taskStatusSignalsById={taskStatusSignalsById}
                 timelineDayHeaderCells={timelineDayHeaderCells}

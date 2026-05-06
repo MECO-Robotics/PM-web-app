@@ -167,6 +167,7 @@ function buildTimelineDayMilestones(
 }
 
 export function buildTimelineData({
+  isAllProjectsView,
   milestones,
   projectsById,
   scopedSubsystems,
@@ -174,6 +175,7 @@ export function buildTimelineData({
   viewAnchorDate,
   viewInterval,
 }: {
+  isAllProjectsView: boolean;
   milestones: BootstrapPayload["milestones"];
   projectsById: Record<string, BootstrapPayload["projects"][number]>;
   scopedSubsystems: BootstrapPayload["subsystems"];
@@ -191,6 +193,7 @@ export function buildTimelineData({
   const days = buildTimelineDays(range.startDate, range.endDate);
   const dayMilestones = buildTimelineDayMilestones(range.startDate, range.endDate, milestones);
   const subsystemRows = buildTimelineSubsystemRows({
+    includeEmptySubsystems: !isAllProjectsView,
     projectsById,
     scopedSubsystems,
     scopedTasks,
