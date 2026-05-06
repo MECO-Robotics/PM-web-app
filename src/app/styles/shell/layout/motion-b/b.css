@@ -9,3 +9,30 @@
 .timeline-grid-motion[data-period-motion="neutral"] {
   animation: timeline-period-glide-in 160ms ease-out both;
 }
+
+@keyframes timeline-period-swipe-left-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes timeline-period-swipe-right-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes timeline-period-glide-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

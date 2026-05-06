@@ -231,3 +231,26 @@
   transform-origin: center;
   white-space: nowrap;
 }
+
+@keyframes timeline-column-unfold-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes timeline-row-unfold-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.timeline-merged-cell-text.is-rotated .timeline-merged-cell-title {
+  max-height: 100%;
+}
+

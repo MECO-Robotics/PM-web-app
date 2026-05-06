@@ -1,4 +1,5 @@
 import React from "react";
+import { buildTimelineSubsystemHighlightStyle } from "./timelineTaskColors";
 import type { BootstrapPayload, TaskRecord } from "@/types";
 import type {
   TimelineDayHeaderCell,
@@ -75,6 +76,11 @@ export const TimelineSubsystemGroup: React.FC<TimelineSubsystemGroupProps> = ({
   openTaskDetailModal,
 }) => {
   const groupBackground = subsystemIndex % 2 === 0 ? "var(--bg-panel)" : "var(--bg-row-alt)";
+  const accentColor = subsystem.color;
+  const groupStyle = buildTimelineSubsystemHighlightStyle(accentColor, {
+    boxShadow: `inset 3px 0 0 ${accentColor}`,
+    gridAutoRows: "38px",
+  });
 
   return (
     <TimelineSubsystemRowGroup
@@ -92,6 +98,8 @@ export const TimelineSubsystemGroup: React.FC<TimelineSubsystemGroupProps> = ({
       openTaskDetailModal={openTaskDetailModal}
       rowBackground={groupBackground}
       rowIndex={1}
+      rowStyle={groupStyle}
+      gridAutoRows="38px"
       selectSubsystemRow={selectSubsystemRow}
       selectTaskRow={selectTaskRow}
       selectedSubsystemId={selectedSubsystemId}
