@@ -7,6 +7,7 @@
 * Do not stop to recommend changes unless you were explicitly asked to recommend options; implement the requested change instead.
 * When working in a Git worktree, always audit UI changes against the worktree-hosted app instance (the version rooted at `C:\Users\Brian\.codex\worktrees\331f\meco-mission-control-web`) before finishing.
 * Keep diagnostic and snapshot artifacts out of the repository root. Create and use `/.diagnostics/` (and subfolders) for screenshots, snapshot files, and similar temporary materials.
+* For codex worktrees, prefer `environment.toml` + `scripts/codex-worktree-bootstrap.ps1` for startup enforcement.
 
 ---
 
