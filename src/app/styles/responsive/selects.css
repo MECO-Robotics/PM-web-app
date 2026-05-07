@@ -66,13 +66,15 @@
 
   .filter-toolbar>* {
     width: auto;
+    flex: 0 1 auto;
     min-width: 0;
     max-width: 100%;
   }
 
   .toolbar-search {
-    width: min(100%, 220px);
-    min-width: 150px;
+    width: auto;
+    flex: 0 1 clamp(11.5rem, 24vw, 19rem);
+    min-width: 0;
     max-width: 100%;
   }
 

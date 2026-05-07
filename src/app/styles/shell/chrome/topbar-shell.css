@@ -156,9 +156,9 @@
 
 .app-topbar-brand-icon {
   display: block;
-  width: min(100%, 96px);
+  width: min(100%, 118px);
   height: auto;
-  max-height: 26px;
+  max-height: 34px;
   max-width: 100%;
   object-fit: contain;
   opacity: 1;
@@ -169,7 +169,7 @@
 }
 
 .app-topbar[data-collapsed="true"] .app-topbar-brand-icon {
-  width: min(100%, 34px);
+  width: min(100%, 42px);
 }
 
 .app-topbar[data-collapsed="false"] .app-topbar-brand-icon {
