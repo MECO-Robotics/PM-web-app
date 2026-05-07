@@ -55,7 +55,16 @@ export function WorkspaceTaskSection({
         isActive={taskView === "calendar"}
         swipeDirection={taskSwipeDirection}
       >
-        <TaskCalendarPlaceholderView />
+        <TaskCalendarPlaceholderView
+          activePersonFilter={activePersonFilter}
+          bootstrap={bootstrap}
+          isAllProjectsView={isAllProjectsView}
+          onDeleteTimelineMilestone={handleTimelineMilestoneDelete}
+          onSaveTimelineMilestone={handleTimelineMilestoneSave}
+          onTaskDetailOpen={openTimelineTaskDetailsModal}
+          onTaskEditCanceled={props.onTaskEditCanceled}
+          onTaskEditSaved={props.onTaskEditSaved}
+        />
       </WorkspaceSubPanel>
 
       <WorkspaceSubPanel
@@ -84,7 +93,14 @@ export function WorkspaceTaskSection({
         isActive={taskView === "robot-map"}
         swipeDirection={taskSwipeDirection}
       >
-        <TaskRobotMapPlaceholderView />
+        <TaskRobotMapPlaceholderView
+          bootstrap={bootstrap}
+          openCreateMechanismModal={props.openCreateMechanismModal}
+          openCreatePartInstanceModal={props.openCreatePartInstanceModal}
+          openCreateSubsystemModal={props.openCreateSubsystemModal}
+          openEditMechanismModal={props.openEditMechanismModal}
+          openEditSubsystemModal={props.openEditSubsystemModal}
+        />
       </WorkspaceSubPanel>
 
       <WorkspaceSubPanel
@@ -153,6 +169,7 @@ export function WorkspaceRiskSection(props: WorkspaceContentPanelsViewProps) {
           isAllProjectsView={isAllProjectsView}
           onCreateRisk={onCreateRisk}
           onDeleteRisk={onDeleteRisk}
+          openTaskDetailModal={props.openTimelineTaskDetailsModal}
           onUpdateRisk={onUpdateRisk}
           view={riskManagementView}
         />
