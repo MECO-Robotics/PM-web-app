@@ -36,6 +36,11 @@ export function WorkspaceTaskSection({
     membersById,
     openCreateTaskModal,
     openCreateTaskModalFromTimeline,
+    openCreateMechanismModal,
+    openCreatePartInstanceModal,
+    openCreateSubsystemModal,
+    openEditMechanismModal,
+    openEditSubsystemModal,
     openTimelineTaskDetailsModal,
     setActivePersonFilter,
     subsystemsById,
@@ -62,8 +67,8 @@ export function WorkspaceTaskSection({
           onDeleteTimelineMilestone={handleTimelineMilestoneDelete}
           onSaveTimelineMilestone={handleTimelineMilestoneSave}
           onTaskDetailOpen={openTimelineTaskDetailsModal}
-          onTaskEditCanceled={props.onTaskEditCanceled}
-          onTaskEditSaved={props.onTaskEditSaved}
+          onTaskEditCanceled={shell.onTaskEditCanceled}
+          onTaskEditSaved={shell.onTaskEditSaved}
         />
       </WorkspaceSubPanel>
 
@@ -95,11 +100,11 @@ export function WorkspaceTaskSection({
       >
         <TaskRobotMapPlaceholderView
           bootstrap={bootstrap}
-          openCreateMechanismModal={props.openCreateMechanismModal}
-          openCreatePartInstanceModal={props.openCreatePartInstanceModal}
-          openCreateSubsystemModal={props.openCreateSubsystemModal}
-          openEditMechanismModal={props.openEditMechanismModal}
-          openEditSubsystemModal={props.openEditSubsystemModal}
+          openCreateMechanismModal={openCreateMechanismModal}
+          openCreatePartInstanceModal={openCreatePartInstanceModal}
+          openCreateSubsystemModal={openCreateSubsystemModal}
+          openEditMechanismModal={openEditMechanismModal}
+          openEditSubsystemModal={openEditSubsystemModal}
         />
       </WorkspaceSubPanel>
 
