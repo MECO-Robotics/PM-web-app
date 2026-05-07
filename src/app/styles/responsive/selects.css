@@ -46,6 +46,12 @@
     padding-inline: 0.35rem;
   }
 
+  .app-topbar-search-slot {
+    flex: 1 1 9rem;
+    min-width: 7.5rem;
+    padding-inline: 0.25rem;
+  }
+
   .app-topbar-project-slot {
     padding-inline: 0.3rem 0.2rem;
   }

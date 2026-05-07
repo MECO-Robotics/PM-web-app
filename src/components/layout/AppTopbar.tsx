@@ -7,6 +7,7 @@ import {
 } from "@/lib/branding";
 import type { SessionUser } from "@/lib/auth/types";
 import type { SeasonRecord } from "@/types/recordsOrganization";
+import { Search } from "lucide-react";
 
 import { AppTopbarRightRail } from "./AppTopbarRightRail";
 
@@ -68,6 +69,19 @@ export function AppTopbar({
         <div className="app-topbar-view-title">
           <h1>{activeViewLabel}</h1>
         </div>
+      </div>
+      <div className="app-topbar-search-slot">
+        <label className="app-topbar-search" htmlFor="workspace-topbar-search">
+          <span aria-hidden="true" className="app-topbar-search-icon">
+            <Search size={14} strokeWidth={2} />
+          </span>
+          <input
+            className="app-topbar-search-input"
+            id="workspace-topbar-search"
+            placeholder="Search..."
+            type="search"
+          />
+        </label>
       </div>
 
       <AppTopbarRightRail
