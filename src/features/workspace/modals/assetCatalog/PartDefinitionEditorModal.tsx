@@ -32,6 +32,11 @@ const fieldInputStyle = {
   border: "1px solid var(--border-base)",
 } as const;
 
+const fieldInputMonoStyle = {
+  ...fieldInputStyle,
+  fontFamily: "var(--font-mono)",
+} as const;
+
 const checkboxLabelStyle = {
   display: "inline-flex",
   alignItems: "center",
@@ -117,7 +122,7 @@ export function PartDefinitionEditorModal({
                 }))
               }
               required
-              style={fieldInputStyle}
+              style={fieldInputMonoStyle}
               value={partDefinitionDraft.partNumber}
             />
           </label>
@@ -128,7 +133,7 @@ export function PartDefinitionEditorModal({
                 setPartDefinitionDraft((current) => ({ ...current, revision: milestone.target.value }))
               }
               required
-              style={fieldInputStyle}
+              style={fieldInputMonoStyle}
               value={partDefinitionDraft.revision}
             />
           </label>
