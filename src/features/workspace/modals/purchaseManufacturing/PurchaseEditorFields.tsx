@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import type { BootstrapPayload, PurchaseItemPayload } from "@/types";
+import type { BootstrapPayload } from "@/types/bootstrap";
+import type { PurchaseItemPayload } from "@/types/payloads";
 
 interface PurchaseEditorFieldsProps {
   bootstrap: BootstrapPayload;
@@ -39,7 +40,7 @@ export function PurchaseEditorFields({
             }));
           }}
           required
-          style={{ background: "var(--bg-row-alt)", border: "1px solid var(--border-base)", color: "var(--text-title)" }}
+          style={{ background: "var(--bg-row-alt)", border: "1px solid var(--border-base)", color: "var(--text-title)", fontFamily: "var(--font-mono)" }}
           value={purchaseDraft.partDefinitionId ?? ""}
         >
           <option value="">Select a real part from the Parts tab...</option>

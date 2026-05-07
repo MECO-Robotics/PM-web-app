@@ -1,9 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import type { BootstrapPayload, ManufacturingItemPayload } from "@/types";
-import {
-  inferManufacturingDraftFromPartSelection,
-} from "@/lib/appUtils";
+import type { BootstrapPayload } from "@/types/bootstrap";
+import type { ManufacturingItemPayload } from "@/types/payloads";
+import { inferManufacturingDraftFromPartSelection } from "@/lib/appUtils/manufacturing";
 
 import { ManufacturingPartInstancesSection } from "./ManufacturingPartInstancesSection";
 import { useManufacturingEditorState } from "./useManufacturingEditorState";
@@ -46,7 +45,7 @@ export function ManufacturingEditorFields({
             );
           }}
           required
-          style={{ background: "var(--bg-row-alt)", border: "1px solid var(--border-base)", color: "var(--text-title)" }}
+          style={{ background: "var(--bg-row-alt)", border: "1px solid var(--border-base)", color: "var(--text-title)", fontFamily: "var(--font-mono)" }}
           value={manufacturingDraft.partDefinitionId ?? ""}
         >
           <option value="">Select a real part from the Parts tab...</option>

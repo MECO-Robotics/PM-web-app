@@ -1,7 +1,4 @@
-import {
-  WORKSPACE_COLOR_PALETTE,
-  resolveWorkspaceColor,
-} from "@/features/workspace/shared/model";
+import { resolveWorkspaceColor, WORKSPACE_COLOR_PALETTE } from "@/features/workspace/shared/model/workspaceColors";
 
 export function WorkspaceColorField({
   label,
@@ -53,7 +50,7 @@ export function WorkspaceColorField({
               border: "1px solid var(--border-base)",
               background: "var(--bg-row-alt)",
               color: "var(--text-title)",
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
               letterSpacing: "0.04em",
             }}
           >

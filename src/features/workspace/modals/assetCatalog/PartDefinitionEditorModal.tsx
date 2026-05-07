@@ -1,10 +1,8 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
-import type {
-  BootstrapPayload,
-  PartDefinitionPayload,
-} from "@/types";
-import { buildIterationOptions, formatIterationVersion } from "@/lib/appUtils";
-import { PhotoUploadField } from "@/features/workspace/shared/media";
+import type { BootstrapPayload } from "@/types/bootstrap";
+import type { PartDefinitionPayload } from "@/types/payloads";
+import { buildIterationOptions, formatIterationVersion } from "@/lib/appUtils/common";
+import { PhotoUploadField } from "@/features/workspace/shared/media/PhotoUploadField";
 
 interface PartDefinitionEditorModalProps {
   bootstrap: BootstrapPayload;
@@ -30,6 +28,11 @@ const fieldInputStyle = {
   background: "var(--bg-row-alt)",
   color: "var(--text-title)",
   border: "1px solid var(--border-base)",
+} as const;
+
+const fieldInputMonoStyle = {
+  ...fieldInputStyle,
+  fontFamily: "var(--font-mono)",
 } as const;
 
 const checkboxLabelStyle = {
@@ -117,7 +120,7 @@ export function PartDefinitionEditorModal({
                 }))
               }
               required
-              style={fieldInputStyle}
+              style={fieldInputMonoStyle}
               value={partDefinitionDraft.partNumber}
             />
           </label>
@@ -128,7 +131,7 @@ export function PartDefinitionEditorModal({
                 setPartDefinitionDraft((current) => ({ ...current, revision: milestone.target.value }))
               }
               required
-              style={fieldInputStyle}
+              style={fieldInputMonoStyle}
               value={partDefinitionDraft.revision}
             />
           </label>

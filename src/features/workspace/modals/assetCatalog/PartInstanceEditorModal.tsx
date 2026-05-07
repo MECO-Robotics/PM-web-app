@@ -1,6 +1,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
-import type { BootstrapPayload, PartInstancePayload } from "@/types";
-import { PhotoUploadField } from "@/features/workspace/shared/media";
+import type { BootstrapPayload } from "@/types/bootstrap";
+import type { PartInstancePayload } from "@/types/payloads";
+import { PhotoUploadField } from "@/features/workspace/shared/media/PhotoUploadField";
 
 interface PartInstanceEditorModalProps {
   bootstrap: BootstrapPayload;
@@ -96,6 +97,7 @@ export function PartInstanceEditorModal({
                 background: "var(--bg-row-alt)",
                 color: "var(--text-title)",
                 border: "1px solid var(--border-base)",
+                fontFamily: "var(--font-mono)",
               }}
               value={partInstanceDraft.partDefinitionId}
             >

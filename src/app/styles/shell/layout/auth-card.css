@@ -51,7 +51,7 @@
   margin: 0;
   max-width: none;
   color: var(--official-white);
-  font-family: "Space Grotesk", "Avenir Next", "Trebuchet MS", sans-serif;
+  font-family: var(--font-display, "Space Grotesk", "Avenir Next", "Trebuchet MS", sans-serif);
   font-size: clamp(2.75rem, 12.5cqi, 3.4rem);
   line-height: 0.92;
   letter-spacing: -0.012em;
@@ -63,3 +63,4 @@
   color: rgba(226, 232, 240, 0.86);
   margin: 0;
 }
+
