@@ -50,6 +50,11 @@ export function formatDateKey(date: Date) {
 }
 
 export function toEventDateKey(start: string) {
+  const calendarDateMatch = start.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (calendarDateMatch) {
+    return calendarDateMatch[1];
+  }
+
   if (start.includes("T")) {
     return formatDateKey(new Date(start));
   }

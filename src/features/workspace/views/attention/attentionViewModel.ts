@@ -5,85 +5,76 @@ import {
   filterSelectionMatchesTaskPeople,
 } from "@/features/workspace/shared/filters/workspaceFilterUtils";
 import { isTaskDueSoon } from "@/features/workspace/views/taskCalendar/taskCalendarEvents";
+import {
+  ATTENTION_DUE_SOON_DAYS,
+  isDateOverdue,
+  isWithinRecentWindow,
+} from "./attentionViewHelpers";
+import {
+  buildManufacturingTriageItems,
+  buildPurchaseTriageItems,
+  buildReportTriageItems,
+  buildRiskTriageItems,
+  buildTaskTriageItems,
+} from "./attentionTriageItems";
+import type {
+  AttentionSummaryCard,
+  AttentionTriageGroup,
+  AttentionViewModel,
+} from "./attentionViewTypes";
 
-type AttentionItemKind = "risk" | "task" | "manufacturing" | "purchase" | "report";
-type AttentionActionType = "open-risk" | "open-task" | null;
-
-export interface AttentionSummaryCard {
-  id: string;
-  label: string;
-  value: number;
-}
-
-export interface AttentionTriageItem {
-  actionType: AttentionActionType;
-  contextLabel: string;
-  id: string;
-  kind: AttentionItemKind;
-  ownerLabel: string;
-  recordId: string;
-  severityLabel: string;
-  statusLabel: string;
-  subtitle: string;
-  title: string;
-}
-
-export interface AttentionTriageGroup {
-  emptyLabel: string;
-  id: string;
-  items: AttentionTriageItem[];
-  title: string;
-}
-
-export interface AttentionViewModel {
-  summaryCards: AttentionSummaryCard[];
-  triageGroups: AttentionTriageGroup[];
-}
+export type {
+  AttentionSummaryCard,
+  AttentionTriageGroup,
+  AttentionTriageItem,
+  AttentionViewModel,
+} from "./attentionViewTypes";
 
 interface BuildAttentionViewModelArgs {
   activePersonFilter: FilterSelection;
   bootstrap: BootstrapPayload;
 }
 
-const ATTENTION_DUE_SOON_DAYS = 7;
-const RECENT_FAILURE_WINDOW_DAYS = 14;
-const CALENDAR_MS_PER_DAY = 24 * 60 * 60 * 1000;
+function buildTaskByReportId(
+  bootstrap: BootstrapPayload,
+  tasksById: Record<string, BootstrapPayload["tasks"][number]>,
+) {
+  const taskByReportId = new Map<string, BootstrapPayload["tasks"][number]>();
 
-function formatContextLabel({
-  projectName,
-  subsystemName,
-  workstreamName,
-}: {
-  projectName?: string;
-  subsystemName?: string;
-  workstreamName?: string;
-}) {
-  return [projectName, workstreamName, subsystemName].filter(Boolean).join(" | ") || "Scope unknown";
-}
+  for (const report of bootstrap.reports) {
+    if (!report.taskId) {
+      continue;
+    }
 
-function formatOwnerLabel(name: string | null | undefined) {
-  return name && name.trim().length > 0 ? name : "Unassigned";
-}
-
-function normalizeDateOnly(value: string) {
-  return value.includes("T") ? value.slice(0, 10) : value;
-}
-
-function isDateOverdue(value: string, today = new Date()) {
-  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const dueDate = new Date(normalizeDateOnly(value)).getTime();
-  return dueDate < todayDate;
-}
-
-function isWithinRecentWindow(value: string, today = new Date(), windowDays = RECENT_FAILURE_WINDOW_DAYS) {
-  const target = new Date(value).getTime();
-  if (!Number.isFinite(target)) {
-    return false;
+    const task = tasksById[report.taskId];
+    if (task) {
+      taskByReportId.set(report.id, task);
+    }
   }
 
-  const now = today.getTime();
-  const daysAgo = (now - target) / CALENDAR_MS_PER_DAY;
-  return daysAgo >= 0 && daysAgo <= windowDays;
+  return taskByReportId;
+}
+
+function riskMatchesPersonFilter({
+  activePersonFilter,
+  risk,
+  taskByReportId,
+  tasksById,
+}: {
+  activePersonFilter: FilterSelection;
+  risk: BootstrapPayload["risks"][number];
+  taskByReportId: Map<string, BootstrapPayload["tasks"][number]>;
+  tasksById: Record<string, BootstrapPayload["tasks"][number]>;
+}) {
+  if (activePersonFilter.length === 0) {
+    return true;
+  }
+
+  const mitigationTask = risk.mitigationTaskId ? tasksById[risk.mitigationTaskId] : null;
+  const sourceTask = taskByReportId.get(risk.sourceId);
+  return [mitigationTask, sourceTask]
+    .filter((task): task is BootstrapPayload["tasks"][number] => Boolean(task))
+    .some((task) => filterSelectionMatchesTaskPeople(activePersonFilter, task));
 }
 
 export function buildAttentionViewModel({
@@ -109,45 +100,29 @@ export function buildAttentionViewModel({
       filterSelectionMatchesTaskPeople(activePersonFilter, task) && task.status !== "complete",
   );
 
-  const taskByReportId = new Map<string, BootstrapPayload["tasks"][number]>();
-  for (const report of bootstrap.reports) {
-    if (!report.taskId) {
-      continue;
-    }
-
-    const task = tasksById[report.taskId];
-    if (task) {
-      taskByReportId.set(report.id, task);
-    }
-  }
+  const taskByReportId = buildTaskByReportId(bootstrap, tasksById);
 
   const criticalRisks = bootstrap.risks
     .filter((risk) => risk.severity === "high" && !risk.mitigationTaskId)
-    .filter((risk) => {
-      if (activePersonFilter.length === 0) {
-        return true;
-      }
-
-      const mitigationTask = risk.mitigationTaskId ? tasksById[risk.mitigationTaskId] : null;
-      const sourceTask = taskByReportId.get(risk.sourceId);
-      return [mitigationTask, sourceTask]
-        .filter((task): task is BootstrapPayload["tasks"][number] => Boolean(task))
-        .some((task) => filterSelectionMatchesTaskPeople(activePersonFilter, task));
-    });
+    .filter((risk) =>
+      riskMatchesPersonFilter({
+        activePersonFilter,
+        risk,
+        taskByReportId,
+        tasksById,
+      }),
+    );
 
   const highRisks = bootstrap.risks
     .filter((risk) => risk.severity === "high" && Boolean(risk.mitigationTaskId))
-    .filter((risk) => {
-      if (activePersonFilter.length === 0) {
-        return true;
-      }
-
-      const mitigationTask = risk.mitigationTaskId ? tasksById[risk.mitigationTaskId] : null;
-      const sourceTask = taskByReportId.get(risk.sourceId);
-      return [mitigationTask, sourceTask]
-        .filter((task): task is BootstrapPayload["tasks"][number] => Boolean(task))
-        .some((task) => filterSelectionMatchesTaskPeople(activePersonFilter, task));
-    });
+    .filter((risk) =>
+      riskMatchesPersonFilter({
+        activePersonFilter,
+        risk,
+        taskByReportId,
+        tasksById,
+      }),
+    );
 
   const blockedTasks = filteredTasks.filter(
     (task) =>
@@ -181,7 +156,8 @@ export function buildAttentionViewModel({
   const purchaseDelays = bootstrap.purchaseItems
     .filter(
       (item) =>
-        item.status !== "delivered" && filterSelectionIncludes(activePersonFilter, item.requestedById),
+        item.status !== "delivered" &&
+        filterSelectionIncludes(activePersonFilter, item.requestedById),
     )
     .sort((left, right) => left.status.localeCompare(right.status));
 
@@ -218,143 +194,23 @@ export function buildAttentionViewModel({
     return isWithinRecentWindow(review.reviewedAt);
   });
 
-  const riskItems = (rows: BootstrapPayload["risks"]) =>
-    rows.map<AttentionTriageItem>((risk) => {
-      const mitigationTask = risk.mitigationTaskId ? tasksById[risk.mitigationTaskId] : null;
-      const sourceTask = taskByReportId.get(risk.sourceId);
-      const taskContext = mitigationTask ?? sourceTask;
-      const projectName = taskContext ? projectsById[taskContext.projectId]?.name : undefined;
-      const workstreamId = taskContext?.workstreamId ?? taskContext?.workstreamIds[0] ?? null;
-      const workstreamName = workstreamId ? workstreamsById[workstreamId]?.name : undefined;
-      const subsystemName = taskContext ? subsystemsById[taskContext.subsystemId]?.name : undefined;
+  const lookup = {
+    membersById,
+    projectsById,
+    subsystemsById,
+    tasksById,
+    taskByReportId,
+    workstreamsById,
+  };
 
-      return {
-        actionType: "open-risk",
-        contextLabel: formatContextLabel({ projectName, subsystemName, workstreamName }),
-        id: `risk-${risk.id}`,
-        kind: "risk",
-        ownerLabel: formatOwnerLabel(mitigationTask?.ownerId ? membersById[mitigationTask.ownerId]?.name : null),
-        recordId: risk.id,
-        severityLabel: risk.severity === "high" ? "High" : "Medium",
-        statusLabel: mitigationTask ? "Mitigation linked" : "Needs mitigation",
-        subtitle: risk.detail,
-        title: risk.title,
-      };
-    });
-
-  const taskItems = (rows: BootstrapPayload["tasks"], statusLabel: string) =>
-    rows.map<AttentionTriageItem>((task) => {
-      const workstreamId = task.workstreamId ?? task.workstreamIds[0] ?? null;
-
-      return {
-        actionType: "open-task",
-        contextLabel: formatContextLabel({
-          projectName: projectsById[task.projectId]?.name,
-          subsystemName: subsystemsById[task.subsystemId]?.name,
-          workstreamName: workstreamId ? workstreamsById[workstreamId]?.name : undefined,
-        }),
-        id: `task-${task.id}`,
-        kind: "task",
-        ownerLabel: formatOwnerLabel(task.ownerId ? membersById[task.ownerId]?.name : null),
-        recordId: task.id,
-        severityLabel: task.priority,
-        statusLabel,
-        subtitle: task.summary,
-        title: task.title,
-      };
-    });
-
-  const manufacturingItems = manufacturingBlockers.map<AttentionTriageItem>((item) => ({
-    actionType: null,
-    contextLabel: formatContextLabel({
-      projectName: projectsById[subsystemsById[item.subsystemId]?.projectId]?.name,
-      subsystemName: subsystemsById[item.subsystemId]?.name,
-    }),
-    id: `manufacturing-${item.id}`,
-    kind: "manufacturing",
-    ownerLabel: formatOwnerLabel(
-      item.requestedById ? membersById[item.requestedById]?.name : null,
-    ),
-    recordId: item.id,
-    severityLabel: item.mentorReviewed ? "Watch" : "Needs review",
-    statusLabel: item.status,
-    subtitle: `Due ${normalizeDateOnly(item.dueDate)} | Qty ${item.quantity}`,
-    title: item.title,
-  }));
-
-  const purchaseItems = purchaseDelays.map<AttentionTriageItem>((item) => ({
-    actionType: null,
-    contextLabel: formatContextLabel({
-      projectName: projectsById[subsystemsById[item.subsystemId]?.projectId]?.name,
-      subsystemName: subsystemsById[item.subsystemId]?.name,
-    }),
-    id: `purchase-${item.id}`,
-    kind: "purchase",
-    ownerLabel: formatOwnerLabel(
-      item.requestedById ? membersById[item.requestedById]?.name : null,
-    ),
-    recordId: item.id,
-    severityLabel: "Supply",
-    statusLabel: item.status,
-    subtitle: `${item.vendor || "Vendor unknown"} | Qty ${item.quantity}`,
-    title: item.title,
-  }));
-
-  const reportItems = [
-    ...failedReports.map<AttentionTriageItem>((report) => {
-      const task = report.taskId ? tasksById[report.taskId] : null;
-      const projectName = report.projectId ? projectsById[report.projectId]?.name : undefined;
-      const subsystemName = task ? subsystemsById[task.subsystemId]?.name : undefined;
-
-      return {
-        actionType: task ? "open-task" : null,
-        contextLabel: formatContextLabel({ projectName, subsystemName }),
-        id: `report-${report.id}`,
-        kind: "report",
-        ownerLabel: formatOwnerLabel(
-          report.createdByMemberId ? membersById[report.createdByMemberId]?.name : null,
-        ),
-        recordId: task?.id ?? report.id,
-        severityLabel: report.reportType,
-        statusLabel: report.status ?? "flagged",
-        subtitle: report.summary || report.notes || "Failed report result",
-        title: report.title || "Failed report",
-      };
-    }),
-    ...failedQaReviews.map<AttentionTriageItem>((review) => {
-      const sourceTask = review.subjectType === "task" ? tasksById[review.subjectId] : null;
-      const sourceManufacturing =
-        review.subjectType === "manufacturing"
-          ? bootstrap.manufacturingItems.find((item) => item.id === review.subjectId)
-          : null;
-      const projectName = sourceTask
-        ? projectsById[sourceTask.projectId]?.name
-        : sourceManufacturing
-          ? projectsById[subsystemsById[sourceManufacturing.subsystemId]?.projectId]?.name
-          : undefined;
-      const subsystemName = sourceTask
-        ? subsystemsById[sourceTask.subsystemId]?.name
-        : sourceManufacturing
-          ? subsystemsById[sourceManufacturing.subsystemId]?.name
-          : undefined;
-
-      return {
-        actionType: sourceTask ? "open-task" : null,
-        contextLabel: formatContextLabel({ projectName, subsystemName }),
-        id: `qa-review-${review.id}`,
-        kind: "report",
-        ownerLabel:
-          review.participantIds.length > 0
-            ? formatOwnerLabel(membersById[review.participantIds[0]]?.name)
-            : "Unassigned",
-        recordId: sourceTask?.id ?? review.id,
-        severityLabel: "QA",
-        statusLabel: review.result,
-        subtitle: review.notes,
-        title: review.subjectTitle,
-      };
-    }),
-  ];
+  const manufacturingItems = buildManufacturingTriageItems(manufacturingBlockers, lookup);
+  const purchaseItems = buildPurchaseTriageItems(purchaseDelays, lookup);
+  const reportItems = buildReportTriageItems({
+    bootstrap,
+    failedQaReviews,
+    failedReports,
+    lookup,
+  });
 
   const summaryCards: AttentionSummaryCard[] = [
     { id: "critical-risks", label: "Critical risks", value: criticalRisks.length },
@@ -372,37 +228,37 @@ export function buildAttentionViewModel({
     {
       emptyLabel: "No critical risks in scope.",
       id: "critical-risks",
-      items: riskItems(criticalRisks),
+      items: buildRiskTriageItems(criticalRisks, lookup),
       title: "Critical risks",
     },
     {
       emptyLabel: "No high risks in scope.",
       id: "high-risks",
-      items: riskItems(highRisks),
+      items: buildRiskTriageItems(highRisks, lookup),
       title: "High risks",
     },
     {
       emptyLabel: "No blocked tasks in scope.",
       id: "blocked-tasks",
-      items: taskItems(blockedTasks, "Blocked"),
+      items: buildTaskTriageItems(blockedTasks, "Blocked", lookup),
       title: "Blocked tasks",
     },
     {
       emptyLabel: "No tasks waiting QA in scope.",
       id: "waiting-qa",
-      items: taskItems(waitingQaTasks, "Waiting QA"),
+      items: buildTaskTriageItems(waitingQaTasks, "Waiting QA", lookup),
       title: "Waiting for QA",
     },
     {
       emptyLabel: "No tasks due soon in scope.",
       id: "due-soon",
-      items: taskItems(dueSoonTasks, `Due <= ${ATTENTION_DUE_SOON_DAYS} days`),
+      items: buildTaskTriageItems(dueSoonTasks, `Due <= ${ATTENTION_DUE_SOON_DAYS} days`, lookup),
       title: "Tasks due soon",
     },
     {
       emptyLabel: "No overdue tasks in scope.",
       id: "overdue",
-      items: taskItems(overdueTasks, "Overdue"),
+      items: buildTaskTriageItems(overdueTasks, "Overdue", lookup),
       title: "Overdue tasks",
     },
     {
