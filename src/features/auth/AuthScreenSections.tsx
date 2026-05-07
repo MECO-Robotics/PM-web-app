@@ -34,9 +34,6 @@ export function AuthIntroPanel({
           <span aria-hidden="true" className="auth-theme-toggle-icon">
             {isDarkMode ? "\u2600" : "\u263E"}
           </span>
-          <span className="auth-theme-toggle-label">
-            {isDarkMode ? "Light mode" : "Dark mode"}
-          </span>
         </button>
 
         <div className="auth-intro-mark-wrap">
@@ -52,7 +49,7 @@ export function AuthIntroPanel({
       </div>
 
       <div className="auth-intro-copy">
-        <p className="eyebrow">Mission Control</p>
+        <h1>Mission Control</h1>
         <p className="auth-body auth-intro-description">
           <span>Plan. Build. Verify.</span>
           <span>One system for tasks, parts, and QA.</span>

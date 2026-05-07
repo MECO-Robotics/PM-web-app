@@ -40,48 +40,37 @@
 }
 
 .auth-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 2.25rem;
-  padding: 0.35rem 0.68rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  width: clamp(3.75rem, 5vw, 4.35rem);
+  height: clamp(3.75rem, 5vw, 4.35rem);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: rgba(248, 250, 252, 0.96);
-  font-family: "Space Grotesk", "Avenir Next", "Trebuchet MS", sans-serif;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
   cursor: pointer;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
+    color 0.2s ease,
     transform 0.2s ease;
 }
 
 .auth-theme-toggle:hover {
-  border-color: rgba(255, 255, 255, 0.42);
-  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
 }
 
 .auth-theme-toggle:focus-visible {
-  outline: none;
-  border-color: rgba(191, 219, 254, 0.95);
-  box-shadow: 0 0 0 2px rgba(191, 219, 254, 0.28);
+  outline: 2px solid rgba(191, 219, 254, 0.95);
+  outline-offset: 2px;
 }
 
 .auth-theme-toggle:active {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 
 .auth-theme-toggle-icon {
-  font-size: 0.95rem;
+  font-size: clamp(2.15rem, 2.9vw, 2.65rem);
   line-height: 1;
-}
-
-.auth-theme-toggle-label {
-  white-space: nowrap;
 }
 
 .dense-shell {
