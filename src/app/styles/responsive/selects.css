@@ -108,8 +108,10 @@
     justify-content: center;
   }
 
-.app-topbar-left {
-    width: var(--shell-topbar-brand-width);
+  .app-topbar-left {
+    width: auto;
+    max-width: none;
+    flex: 1 1 auto;
   }
 }
 

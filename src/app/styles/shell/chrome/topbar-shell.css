@@ -39,30 +39,46 @@
 
 .app-topbar-left {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: flex-start;
   height: 100%;
-  width: var(--shell-topbar-brand-width);
+  width: auto;
+  max-width: none;
   min-width: 0;
   position: relative;
-  flex-shrink: 0;
-  border-right: 1px solid var(--border-base);
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex: 1 1 auto;
+  border-right: 0;
+  padding: 0.25rem 0.75rem;
 }
 
-.app-topbar[data-collapsed="false"] .app-topbar-left {
-  border-right-color: transparent;
+.app-topbar-view-title {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-topbar-view-title h1 {
+  margin: 0;
+  color: var(--text-title);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
 }
 
 .app-topbar-brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
+  position: relative;
+  height: 100%;
   width: var(--shell-topbar-brand-width);
   min-width: 0;
+  flex-shrink: 0;
   padding-inline: 0.5rem 0.7rem;
   overflow: hidden;
   opacity: 1;
@@ -71,8 +87,14 @@
   background: var(--bg-panel);
   box-sizing: border-box;
   transition:
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     padding-inline 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.18s ease;
+}
+
+.app-topbar[data-collapsed="true"] .app-topbar-brand {
+  width: var(--shell-sidebar-collapsed-width);
+  padding-inline: 0.3rem;
 }
 
 .app-topbar[data-collapsed="false"] .app-topbar-brand {
@@ -92,6 +114,10 @@
   transition:
     opacity 0.18s ease,
     transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-topbar[data-collapsed="true"] .app-topbar-brand-icon {
+  width: min(100%, 34px);
 }
 
 .app-topbar[data-collapsed="false"] .app-topbar-brand-icon {
