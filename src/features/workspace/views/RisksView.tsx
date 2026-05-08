@@ -83,26 +83,44 @@ export function RisksView({
 
       {view === "metrics" ? (
         <RiskMetricsSection
+          blockerBreakdown={viewModel.blockerBreakdown}
+          buildHealthActions={viewModel.buildHealthActions}
+          buildHealthReasons={viewModel.buildHealthReasons}
+          buildHealthStatus={viewModel.buildHealthStatus}
+          expectedProgressRate={viewModel.expectedProgressRate}
           activeMechanismCount={viewModel.activeMechanismCount}
           activeSubsystemCount={viewModel.activeSubsystemCount}
-          attendanceHours={viewModel.attendanceHours}
-          blockerCount={viewModel.blockerCount}
-          clampedCompletionWidth={viewModel.clampedCompletionWidth}
-          completionRate={viewModel.completionRate}
           completedTaskCount={viewModel.completedTaskCount}
-          deliveredPurchases={viewModel.deliveredPurchases}
+          hoursLoggedRate={viewModel.hoursLoggedRate}
+          clampedCompletionWidth={viewModel.clampedCompletionWidth}
           loggedHours={viewModel.loggedHours}
+          logsThisWeekHours={viewModel.logsThisWeekHours}
           lowStockMaterials={viewModel.lowStockMaterials}
-          maxMetricHours={viewModel.maxMetricHours}
           mechanismMetrics={viewModel.mechanismMetrics}
+          mentorActionRequiredCount={viewModel.mentorActionRequiredCount}
+          oldestBlockerAgeDays={viewModel.oldestBlockerAgeDays}
+          oldestQaWaitingAgeDays={viewModel.oldestQaWaitingAgeDays}
+          ownerlessTaskCount={viewModel.ownerlessTaskCount}
+          pendingPurchaseCount={viewModel.pendingPurchaseCount}
+          planStatus={viewModel.planStatus}
           plannedHours={viewModel.plannedHours}
           qaPassCount={viewModel.qaPassCount}
+          qaWaitingCount={viewModel.qaWaitingCount}
+          remainingPlannedHours={viewModel.remainingPlannedHours}
           scopedTaskCount={viewModel.totalTaskCount}
+          staleSubsystemCount={viewModel.staleSubsystemCount}
+          staleTaskCount={viewModel.staleTaskCount}
+          staleTaskThresholdDays={viewModel.staleTaskThresholdDays}
+          staleTaskUnavailableCount={viewModel.staleTaskUnavailableCount}
+          studentRevisionRequiredCount={viewModel.studentRevisionRequiredCount}
           subsystemMetrics={viewModel.subsystemMetrics}
           supplySignals={viewModel.supplySignals}
+          taskCompletionRate={viewModel.taskCompletionRate}
+          taskCompletionWidth={viewModel.taskCompletionWidth}
           totalMechanismCount={viewModel.totalMechanismCount}
           totalSubsystemCount={viewModel.totalSubsystemCount}
-          waitingForQaCount={viewModel.waitingForQaCount}
+          untouchedMechanismCount={viewModel.untouchedMechanismCount}
+          unresolvedBlockerCount={viewModel.unresolvedBlockerCount}
         />
       ) : null}
 
