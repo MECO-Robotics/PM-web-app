@@ -246,7 +246,9 @@ export function buildRiskViewScopeData({
   const planStatus = buildPlanStatus({
     expectedProgressRate,
     hoursLoggedRate,
+    plannedHours,
     qaWaitingCount,
+    totalTaskCount,
     unresolvedBlockerCount,
   });
   const buildHealthStatus = deriveBuildHealthStatus({

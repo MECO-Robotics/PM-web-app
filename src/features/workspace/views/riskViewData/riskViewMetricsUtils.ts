@@ -99,16 +99,24 @@ export function buildExpectedProgressRate(tasks: BootstrapPayload["tasks"], now 
 export function buildPlanStatus({
   expectedProgressRate,
   hoursLoggedRate,
+  plannedHours,
   qaWaitingCount,
+  totalTaskCount,
   unresolvedBlockerCount,
 }: {
   expectedProgressRate: number | null;
   hoursLoggedRate: number;
+  plannedHours: number;
   qaWaitingCount: number;
+  totalTaskCount: number;
   unresolvedBlockerCount: number;
 }): HealthStatus {
   if (unresolvedBlockerCount >= 8 || qaWaitingCount >= 5) {
     return "At Risk";
+  }
+
+  if (plannedHours <= 0 || totalTaskCount === 0) {
+    return unresolvedBlockerCount === 0 && qaWaitingCount === 0 ? "On Track" : "Behind";
   }
 
   if (expectedProgressRate !== null) {

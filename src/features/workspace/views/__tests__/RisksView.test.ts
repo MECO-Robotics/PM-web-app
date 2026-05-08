@@ -288,4 +288,21 @@ describe("RisksView", () => {
     expect(markup).toContain("Needs Attention");
     expect(markup).toContain("Coverage");
   });
+
+  it("keeps empty filtered metric scopes neutral instead of behind", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(RisksView, {
+        activePersonFilter: ["missing-member"],
+        bootstrap: createMetricsBootstrap(),
+        isAllProjectsView: true,
+        onCreateRisk: jest.fn(),
+        onDeleteRisk: jest.fn(),
+        onUpdateRisk: jest.fn(),
+        view: "metrics",
+      }),
+    );
+
+    expect(markup).toContain("Build Health: On Track");
+    expect(markup).toContain("No tasks in scope");
+  });
 });
