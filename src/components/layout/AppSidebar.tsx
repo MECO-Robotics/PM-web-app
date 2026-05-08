@@ -446,12 +446,28 @@ export function AppSidebar({
       return visibleTabs.has("manufacturing");
     }
 
+    if (subItemId === "tasks-timeline" || subItemId === "tasks-board") {
+      return visibleTabs.has("tasks");
+    }
+
+    if (subItemId === "inventory-materials" || subItemId === "inventory-purchases") {
+      return visibleTabs.has("inventory");
+    }
+
     if (subItemId === "inventory-parts") {
-      return isRobotProject;
+      return visibleTabs.has("inventory") && isRobotProject;
     }
 
     if (subItemId === "reports-work-logs") {
       return visibleTabs.has("worklogs");
+    }
+
+    if (subItemId === "reports-qa-forms" || subItemId === "reports-milestone-results") {
+      return visibleTabs.has("reports");
+    }
+
+    if (subItemId === "roster-workload" || subItemId === "roster-attendance") {
+      return visibleTabs.has("roster");
     }
 
     return true;
@@ -478,12 +494,28 @@ export function AppSidebar({
       isEnabled: isSubItemEnabled(subItem.id),
     }));
 
+  const sectionModels = useMemo(
+    () =>
+      NAVIGATION_SECTION_ORDER.map((section) => {
+        const subItems = getSectionSubItems(section);
+        return {
+          section,
+          subItems,
+          isEnabled: subItems.some((subItem) => subItem.isEnabled),
+        };
+      }),
+    [isRobotProject, visibleTabs],
+  );
+
   const handleSectionClick = (
     section: NavigationSection,
     event: ReactMouseEvent<HTMLButtonElement>,
   ) => {
     const subItems = getSectionSubItems(section);
     const firstEnabledSubItem = subItems.find((subItem) => subItem.isEnabled);
+    if (!firstEnabledSubItem) {
+      return;
+    }
 
     if (isCollapsed) {
       const shellRect = sidebarShellRef.current?.getBoundingClientRect();
@@ -625,16 +657,17 @@ export function AppSidebar({
       >
         {toggleButton}
 
-        {NAVIGATION_SECTION_ORDER.map((section) => {
-            const subItems = getSectionSubItems(section);
-            const isExpanded = !isCollapsed && expandedSection === section;
+        {sectionModels.map(({ section, subItems, isEnabled: isSectionEnabled }) => {
+            const isExpanded = !isCollapsed && isSectionEnabled && expandedSection === section;
 
             return (
               <div className="sidebar-section-group" key={section}>
                 <button
                   className="tab sidebar-section-toggle"
                   data-active={activeSection === section ? "true" : "false"}
+                  data-enabled={isSectionEnabled ? "true" : "false"}
                   data-tutorial-target={`sidebar-tab-${section}`}
+                  disabled={!isSectionEnabled}
                   onClick={(event) => handleSectionClick(section, event)}
                   type="button"
                 >

@@ -260,4 +260,24 @@ describe("AppSidebar", () => {
       /data-enabled="false"[^>]*disabled[^>]*>[\s\S]*?<span class="sidebar-subtab-label">Manufacturing<\/span>/,
     );
   });
+
+  it("renders inapplicable groups as disabled instead of hiding them", () => {
+    const markup = renderSidebar(
+      [
+        {
+          value: "tasks",
+          label: "Tasks",
+          icon: React.createElement("span"),
+          count: 4,
+        },
+      ],
+      "tasks",
+      { taskView: "queue" },
+    );
+
+    expect(markup).toContain("Reports");
+    expect(markup).toMatch(
+      /<button(?=[^>]*data-tutorial-target="sidebar-tab-reports")(?=[^>]*data-enabled="false")(?=[^>]*disabled)[^>]*>/,
+    );
+  });
 });
