@@ -516,9 +516,6 @@ export function AppSidebar({
   ) => {
     const subItems = getSectionSubItems(section);
     const firstEnabledSubItem = subItems.find((subItem) => subItem.isEnabled);
-    if (!firstEnabledSubItem) {
-      return;
-    }
 
     if (isCollapsed) {
       const shellRect = sidebarShellRef.current?.getBoundingClientRect();
@@ -531,9 +528,12 @@ export function AppSidebar({
     }
 
     setExpandedSection(section);
-    if (firstEnabledSubItem) {
-      onSelectTarget(firstEnabledSubItem.target, { keepSidebarOpen: true });
+
+    if (!firstEnabledSubItem) {
+      return;
     }
+
+    onSelectTarget(firstEnabledSubItem.target, { keepSidebarOpen: true });
   };
 
   const handleSubItemSelect = (target: NavigationTarget, isEnabled: boolean) => {
@@ -661,16 +661,16 @@ export function AppSidebar({
         {toggleButton}
 
         {sectionModels.map(({ section, subItems, isEnabled: isSectionEnabled }) => {
-            const isExpanded = !isCollapsed && isSectionEnabled && expandedSection === section;
+            const isExpanded = !isCollapsed && expandedSection === section;
 
             return (
               <div className="sidebar-section-group" key={section}>
                 <button
+                  aria-disabled={!isSectionEnabled}
                   className="tab sidebar-section-toggle"
                   data-active={activeSection === section ? "true" : "false"}
                   data-enabled={isSectionEnabled ? "true" : "false"}
                   data-tutorial-target={`sidebar-tab-${section}`}
-                  disabled={!isSectionEnabled}
                   onClick={(event) => handleSectionClick(section, event)}
                   type="button"
                 >
