@@ -2,39 +2,76 @@ import { memo } from "react";
 
 import { MilestonesView } from "@/features/workspace/views/milestones/MilestonesView";
 import { RisksView } from "@/features/workspace/views/RisksView";
+import { TaskCalendarPlaceholderView } from "@/features/workspace/views/taskQueue/TaskCalendarPlaceholderView";
+import { TaskRobotMapPlaceholderView } from "@/features/workspace/views/taskQueue/TaskRobotMapPlaceholderView";
 import { TaskQueueView } from "@/features/workspace/views/taskQueue/TaskQueueView";
 import { TimelineView } from "@/features/workspace/views/timeline/TimelineView";
 import { WorkLogsView } from "@/features/workspace/views/WorkLogsView";
 import { ReportsView } from "@/features/workspace/views/ReportsView";
 import { WorkspaceSectionPanel, WorkspaceSubPanel } from "../WorkspaceContentPanelShells";
-import type { WorkspaceContentPanelsViewProps } from "./workspaceContentPanelsViewTypes";
+import type {
+  WorkspaceContentPanelsViewProps,
+  WorkspaceShellPanelProps,
+  WorkspaceTaskPanelProps,
+} from "./workspaceContentPanelsViewTypes";
 
 const MemoizedTimelineView = memo(TimelineView);
 
-export function WorkspaceTaskSection(props: WorkspaceContentPanelsViewProps) {
+export function WorkspaceTaskSection({
+  shell,
+  tasks,
+}: {
+  shell: WorkspaceShellPanelProps;
+  tasks: WorkspaceTaskPanelProps;
+}) {
+  const disablePanelAnimations = shell.disablePanelAnimations ?? false;
   const {
     activePersonFilter,
     bootstrap,
-    disablePanelAnimations = false,
+    disciplinesById,
     handleTimelineMilestoneDelete,
     handleTimelineMilestoneSave,
     isAllProjectsView,
+    isNonRobotProject,
     membersById,
+    openCreateTaskModal,
     openCreateTaskModalFromTimeline,
+    openCreateMechanismModal,
+    openCreatePartInstanceModal,
+    openCreateSubsystemModal,
+    openEditMechanismModal,
+    openEditSubsystemModal,
     openTimelineTaskDetailsModal,
     setActivePersonFilter,
-    tabSwitchDirection,
+    subsystemsById,
     taskSwipeDirection,
     taskView,
     timelineMilestoneCreateSignal,
-  } = props;
+  } = tasks;
 
   return (
     <WorkspaceSectionPanel
       disableAnimations={disablePanelAnimations}
-      isActive={props.activeTab === "tasks"}
-      tabSwitchDirection={tabSwitchDirection}
+      isActive={shell.activeTab === "tasks"}
+      tabSwitchDirection={shell.tabSwitchDirection}
     >
+      <WorkspaceSubPanel
+        disableAnimations={disablePanelAnimations}
+        isActive={taskView === "calendar"}
+        swipeDirection={taskSwipeDirection}
+      >
+        <TaskCalendarPlaceholderView
+          activePersonFilter={activePersonFilter}
+          bootstrap={bootstrap}
+          isAllProjectsView={isAllProjectsView}
+          onDeleteTimelineMilestone={handleTimelineMilestoneDelete}
+          onSaveTimelineMilestone={handleTimelineMilestoneSave}
+          onTaskDetailOpen={openTimelineTaskDetailsModal}
+          onTaskEditCanceled={shell.onTaskEditCanceled}
+          onTaskEditSaved={shell.onTaskEditSaved}
+        />
+      </WorkspaceSubPanel>
+
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
         isActive={taskView === "timeline"}
@@ -45,8 +82,8 @@ export function WorkspaceTaskSection(props: WorkspaceContentPanelsViewProps) {
           bootstrap={bootstrap}
           isAllProjectsView={isAllProjectsView}
           membersById={membersById}
-          onTaskEditCanceled={props.onTaskEditCanceled}
-          onTaskEditSaved={props.onTaskEditSaved}
+          onTaskEditCanceled={shell.onTaskEditCanceled}
+          onTaskEditSaved={shell.onTaskEditSaved}
           onDeleteTimelineMilestone={handleTimelineMilestoneDelete}
           onSaveTimelineMilestone={handleTimelineMilestoneSave}
           openCreateTaskModal={openCreateTaskModalFromTimeline}
@@ -58,19 +95,34 @@ export function WorkspaceTaskSection(props: WorkspaceContentPanelsViewProps) {
 
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
+        isActive={taskView === "robot-map"}
+        swipeDirection={taskSwipeDirection}
+      >
+        <TaskRobotMapPlaceholderView
+          bootstrap={bootstrap}
+          openCreateMechanismModal={openCreateMechanismModal}
+          openCreatePartInstanceModal={openCreatePartInstanceModal}
+          openCreateSubsystemModal={openCreateSubsystemModal}
+          openEditMechanismModal={openEditMechanismModal}
+          openEditSubsystemModal={openEditSubsystemModal}
+        />
+      </WorkspaceSubPanel>
+
+      <WorkspaceSubPanel
+        disableAnimations={disablePanelAnimations}
         isActive={taskView === "queue"}
         swipeDirection={taskSwipeDirection}
       >
         <TaskQueueView
           activePersonFilter={activePersonFilter}
           bootstrap={bootstrap}
-          disciplinesById={props.disciplinesById}
+          disciplinesById={disciplinesById}
           isAllProjectsView={isAllProjectsView}
-          isNonRobotProject={props.isNonRobotProject}
+          isNonRobotProject={isNonRobotProject}
           membersById={membersById}
-          openCreateTaskModal={props.openCreateTaskModal}
+          openCreateTaskModal={openCreateTaskModal}
           openEditTaskModal={openTimelineTaskDetailsModal}
-          subsystemsById={props.subsystemsById}
+          subsystemsById={subsystemsById}
         />
       </WorkspaceSubPanel>
 
@@ -83,8 +135,8 @@ export function WorkspaceTaskSection(props: WorkspaceContentPanelsViewProps) {
           activePersonFilter={activePersonFilter}
           bootstrap={bootstrap}
           isAllProjectsView={isAllProjectsView}
-          onTaskEditCanceled={props.onTaskEditCanceled}
-          onTaskEditSaved={props.onTaskEditSaved}
+          onTaskEditCanceled={shell.onTaskEditCanceled}
+          onTaskEditSaved={shell.onTaskEditSaved}
           onDeleteTimelineMilestone={handleTimelineMilestoneDelete}
           onSaveTimelineMilestone={handleTimelineMilestoneSave}
         />
@@ -122,6 +174,7 @@ export function WorkspaceRiskSection(props: WorkspaceContentPanelsViewProps) {
           isAllProjectsView={isAllProjectsView}
           onCreateRisk={onCreateRisk}
           onDeleteRisk={onDeleteRisk}
+          openTaskDetailModal={props.openTimelineTaskDetailsModal}
           onUpdateRisk={onUpdateRisk}
           view={riskManagementView}
         />

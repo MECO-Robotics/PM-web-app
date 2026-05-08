@@ -1,13 +1,20 @@
 import { ArtifactInventoryView } from "@/features/workspace/views/ArtifactInventoryView";
 import { MaterialsView } from "@/features/workspace/views/MaterialsView";
+import { PartMappingsPlaceholderView } from "@/features/workspace/views/PartMappingsPlaceholderView";
 import { PartsView } from "@/features/workspace/views/PartsView";
 import { PurchasesView } from "@/features/workspace/views/PurchasesView";
 import { WorkflowView } from "@/features/workspace/views/WorkflowView";
 import { SubsystemsView } from "@/features/workspace/views/SubsystemsView";
 import { RosterView } from "@/features/workspace/views/RosterView";
 import { HelpView } from "@/features/workspace/views/HelpView";
+import { RosterAttendanceView } from "@/features/workspace/views/roster/RosterAttendanceView";
+import { RosterWorkloadView } from "@/features/workspace/views/roster/RosterWorkloadView";
 import { WorkspaceSectionPanel, WorkspaceSubPanel } from "../WorkspaceContentPanelShells";
-import type { WorkspaceContentPanelsViewProps } from "./workspaceContentPanelsViewTypes";
+import type {
+  WorkspaceContentPanelsViewProps,
+  WorkspaceRosterPanelProps,
+  WorkspaceShellPanelProps,
+} from "./workspaceContentPanelsViewTypes";
 
 const DOCUMENT_ARTIFACT_KINDS: readonly ["document", "nontechnical"] = ["document", "nontechnical"];
 
@@ -24,7 +31,9 @@ export function WorkspaceInventorySection(props: WorkspaceContentPanelsViewProps
     openEditArtifactModal,
     openEditMaterialModal,
     openCreatePartDefinitionModal,
+    openCreatePartInstanceModal,
     openEditPartDefinitionModal,
+    openEditMechanismModal,
     openCreatePurchaseModal,
     openEditPurchaseModal,
     partDefinitionsById,
@@ -77,6 +86,20 @@ export function WorkspaceInventorySection(props: WorkspaceContentPanelsViewProps
           mechanismsById={mechanismsById}
           partDefinitionsById={partDefinitionsById}
           subsystemsById={subsystemsById}
+        />
+      </WorkspaceSubPanel>
+
+      <WorkspaceSubPanel
+        disableAnimations={disablePanelAnimations}
+        isActive={!isNonRobotProject && effectiveInventoryView === "part-mappings"}
+        swipeDirection={inventorySwipeDirection}
+      >
+        <PartMappingsPlaceholderView
+          bootstrap={bootstrap}
+          openCreatePartDefinitionModal={openCreatePartDefinitionModal}
+          openCreatePartInstanceModal={openCreatePartInstanceModal}
+          openEditMechanismModal={openEditMechanismModal}
+          openEditPartDefinitionModal={openEditPartDefinitionModal}
         />
       </WorkspaceSubPanel>
 
@@ -136,18 +159,52 @@ export function WorkspaceSubsystemsSection(props: WorkspaceContentPanelsViewProp
   );
 }
 
-export function WorkspaceRosterSection(props: WorkspaceContentPanelsViewProps) {
-  const { allMembers, bootstrap, disablePanelAnimations = false, externalMembers, handleCreateMember, handleDeleteMember, handleReactivateMemberForSeason, handleUpdateMember, isAddPersonOpen, isDeletingMember, isEditPersonOpen, isSavingMember, memberEditDraft, memberForm, requestMemberPhotoUpload, rosterMentors, selectMember, selectedMemberId, selectedProject, selectedSeasonId, setIsAddPersonOpen, setIsEditPersonOpen, setMemberEditDraft, setMemberForm, students, tabSwitchDirection } = props;
+export function WorkspaceRosterSection({
+  shell,
+  roster,
+}: {
+  shell: WorkspaceShellPanelProps;
+  roster: WorkspaceRosterPanelProps;
+}) {
+  const disablePanelAnimations = shell.disablePanelAnimations ?? false;
+  const {
+    allMembers,
+    bootstrap,
+    externalMembers,
+    handleCreateMember,
+    handleDeleteMember,
+    handleReactivateMemberForSeason,
+    handleUpdateMember,
+    isAddPersonOpen,
+    isDeletingMember,
+    isEditPersonOpen,
+    isSavingMember,
+    memberEditDraft,
+    memberForm,
+    openTimelineTaskDetailsModal,
+    requestMemberPhotoUpload,
+    rosterMentors,
+    rosterView,
+    selectMember,
+    selectedMemberId,
+    selectedProject,
+    selectedSeasonId,
+    setIsAddPersonOpen,
+    setIsEditPersonOpen,
+    setMemberEditDraft,
+    setMemberForm,
+    students,
+  } = roster;
 
   return (
     <WorkspaceSectionPanel
       disableAnimations={disablePanelAnimations}
-      isActive={props.activeTab === "roster"}
-      tabSwitchDirection={tabSwitchDirection}
+      isActive={shell.activeTab === "roster"}
+      tabSwitchDirection={shell.tabSwitchDirection}
     >
       <WorkspaceSubPanel
         disableAnimations={disablePanelAnimations}
-        isActive
+        isActive={rosterView === "directory"}
       >
         <RosterView
           allMembers={allMembers}
@@ -174,6 +231,34 @@ export function WorkspaceRosterSection(props: WorkspaceContentPanelsViewProps) {
           setMemberEditDraft={setMemberEditDraft}
           setMemberForm={setMemberForm}
           students={students}
+        />
+      </WorkspaceSubPanel>
+
+      <WorkspaceSubPanel
+        disableAnimations={disablePanelAnimations}
+        isActive={rosterView === "workload"}
+      >
+        <RosterWorkloadView
+          bootstrap={bootstrap}
+          onOpenTask={(taskId) => {
+            const task = bootstrap.tasks.find((candidate) => candidate.id === taskId);
+            if (task) {
+              openTimelineTaskDetailsModal(task);
+            }
+          }}
+          selectedProject={selectedProject}
+          selectedSeasonId={selectedSeasonId}
+        />
+      </WorkspaceSubPanel>
+
+      <WorkspaceSubPanel
+        disableAnimations={disablePanelAnimations}
+        isActive={rosterView === "attendance"}
+      >
+        <RosterAttendanceView
+          bootstrap={bootstrap}
+          selectedProject={selectedProject}
+          selectedSeasonId={selectedSeasonId}
         />
       </WorkspaceSubPanel>
     </WorkspaceSectionPanel>

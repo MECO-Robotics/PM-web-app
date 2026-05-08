@@ -6,6 +6,7 @@ import type { MembersById, SubsystemsById } from "@/features/workspace/shared/mo
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model/workspaceTypes";
 
 import { useWorkLogsViewState } from "./workLogs/workLogsViewState";
+import { WorkLogsActivitySection } from "./workLogs/WorkLogsActivitySection";
 import { WorkLogsSummarySection } from "./workLogs/WorkLogsSummarySection";
 import { WorkLogsTableSection } from "./workLogs/WorkLogsTableSection";
 import { WorkLogsToolbar } from "./workLogs/WorkLogsToolbar";
@@ -40,7 +41,7 @@ export function WorkLogsView({
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
       <div className="panel-header compact-header">
         <div className="queue-section-header">
-          <h2>{view === "summary" ? "Work log summary" : "Work logs"}</h2>
+          <h2>{view === "activity" ? "Activity" : view === "summary" ? "Work log summary" : "Work logs"}</h2>
         </div>
 
         {view === "logs" ? (
@@ -58,7 +59,16 @@ export function WorkLogsView({
         ) : null}
       </div>
 
-      {view === "summary" ? (
+      {view === "activity" ? (
+        <WorkLogsActivitySection
+          membersById={membersById}
+          openEditTaskModal={openEditTaskModal}
+          subsystemsById={subsystemsById}
+          taskById={workLogsView.taskById}
+          workLogPagination={workLogsView.workLogPagination}
+          workLogs={workLogsView.workLogs}
+        />
+      ) : view === "summary" ? (
         <WorkLogsSummarySection
           onOpenTask={openEditTaskModal}
           summary={workLogsView.summary}

@@ -8,6 +8,7 @@ import type { TaskRecord } from "@/types/recordsExecution";
 import type {
   InventoryViewTab,
   ManufacturingViewTab,
+  RosterViewTab,
   ReportsViewTab,
   RiskManagementViewTab,
   TaskViewTab,
@@ -109,6 +110,7 @@ export interface WorkspaceContentPanelsProps {
   showCncMentorQuickActions: boolean;
   manufacturingView: ManufacturingViewTab;
   inventoryView: InventoryViewTab;
+  rosterView: RosterViewTab;
   riskManagementView: RiskManagementViewTab;
   reportsView: ReportsViewTab;
   taskView: TaskViewTab;
@@ -161,7 +163,9 @@ export function WorkspaceContentPanels({
   const previousInventoryViewRef = useRef(effectiveInventoryView);
 
   const taskSwipeDirection = getSwipeDirection(previousTaskViewRef.current, taskView, [
+    "calendar",
     "timeline",
+    "robot-map",
     "queue",
     "milestones",
   ]);
@@ -177,7 +181,7 @@ export function WorkspaceContentPanels({
   const inventorySwipeDirection = getSwipeDirection(
     previousInventoryViewRef.current,
     effectiveInventoryView,
-    ["materials", "parts", "purchases"],
+    ["materials", "parts", "part-mappings", "purchases"],
   );
 
   useEffect(() => {

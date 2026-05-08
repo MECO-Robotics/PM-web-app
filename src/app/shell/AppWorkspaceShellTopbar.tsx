@@ -1,35 +1,53 @@
-import type { AppWorkspaceController } from "@/app/hooks/useAppWorkspaceController";
+import type { AppWorkspaceShellTopbarController } from "@/app/hooks/useAppWorkspaceController";
+import {
+  BASE_SECTION_LABELS,
+  NAVIGATION_SECTION_LABELS,
+  NAVIGATION_SUB_ITEMS,
+  getActiveNavigationSubItemId,
+  getNavigationSectionFromSubItem,
+} from "@/lib/workspaceNavigation";
 
 import { AppTopbar } from "@/app/shell/workspaceShell";
 
-export function AppWorkspaceShellTopbar({ controller }: { controller: AppWorkspaceController }) {
+export function AppWorkspaceShellTopbar({
+  controller,
+}: {
+  controller: AppWorkspaceShellTopbarController;
+}) {
   const c = controller;
+  const activeSubItemId = getActiveNavigationSubItemId({
+    activeTab: c.activeTab,
+    inventoryView: c.inventoryView,
+    manufacturingView: c.manufacturingView,
+    rosterView: c.rosterView,
+    reportsView: c.reportsView,
+    riskManagementView: c.riskManagementView,
+    taskView: c.taskView,
+    worklogsView: c.worklogsView,
+  });
+  const activeSection = activeSubItemId
+    ? getNavigationSectionFromSubItem(activeSubItemId)
+    : null;
+  const activeSectionLabel = activeSection
+    ? NAVIGATION_SECTION_LABELS[activeSection]
+    : BASE_SECTION_LABELS[c.activeTab];
+  const activeViewLabel =
+    activeSubItemId
+      ? NAVIGATION_SUB_ITEMS.find((subItem) => subItem.id === activeSubItemId)?.label ??
+        activeSectionLabel
+      : activeSectionLabel;
 
   return (
     <AppTopbar
-      activeTab={c.activeTab}
+      activeViewLabel={activeViewLabel}
       handleSignOut={c.handleSignOut}
-      inventoryView={c.inventoryView}
       isLoadingData={c.isLoadingData}
       isMyViewActive={c.isMyViewActive}
-      isNonRobotProject={c.isNonRobotProject}
       loadWorkspace={c.loadWorkspace}
-      manufacturingView={c.manufacturingView}
-      riskManagementView={c.riskManagementView}
-      reportsView={c.reportsView}
       myViewMemberName={c.signedInMember?.name ?? null}
       sessionUser={c.sessionUser}
-      setInventoryView={c.setInventoryView}
-      setManufacturingView={c.setManufacturingView}
-      setRiskManagementView={c.setRiskManagementView}
-      setReportsView={c.setReportsView}
-      setTaskView={c.setTaskView}
-      setWorklogsView={c.setWorklogsView}
-      taskView={c.taskView}
-      worklogsView={c.worklogsView}
       seasons={c.bootstrap.seasons}
       selectedSeasonId={c.selectedSeasonId}
-      subsystemsLabel={c.subsystemsLabel}
       onCreateSeason={c.handleCreateSeason}
       onSelectSeason={c.setSelectedSeasonId}
       onToggleMyView={c.toggleMyView}

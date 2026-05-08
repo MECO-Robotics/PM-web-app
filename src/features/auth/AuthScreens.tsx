@@ -17,6 +17,7 @@ export function SignInScreen({
   isDarkMode = false,
   isSigningIn,
   onDevBypassSignIn,
+  onToggleDarkMode,
   onRequestEmailCode,
   onVerifyEmailCode,
   shellStyle,
@@ -37,7 +38,10 @@ export function SignInScreen({
       <div className="auth-layout">
         <AuthBackdrop className="auth-layout-backdrop" />
 
-        <AuthIntroPanel title="Sign in to the project workspace." />
+        <AuthIntroPanel
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={onToggleDarkMode}
+        />
 
         <section className="auth-card auth-card-wide">
           <div className="auth-card-header">
@@ -76,17 +80,19 @@ export function SignInScreen({
                 {hasGoogleSignIn ? (
                   <GoogleAuthChip googleButtonRef={googleButtonRef} />
                 ) : null}
-
-                {signInConfig.devBypassAvailable ? (
-                  <DevBypassButton
-                    isSigningIn={isSigningIn}
-                    onDevBypassSignIn={onDevBypassSignIn}
-                  />
-                ) : null}
               </>
             )}
           </div>
         </section>
+
+        {signInConfig.devBypassAvailable && !isMobileDevice ? (
+          <div className="auth-layout-dev-bypass-row">
+            <DevBypassButton
+              isSigningIn={isSigningIn}
+              onDevBypassSignIn={onDevBypassSignIn}
+            />
+          </div>
+        ) : null}
       </div>
     </main>
   );

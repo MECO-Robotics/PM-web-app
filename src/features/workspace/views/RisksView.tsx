@@ -4,12 +4,15 @@ import type { CSSProperties } from "react";
 import type { RiskManagementViewTab } from "@/lib/workspaceNavigation";
 import type { BootstrapPayload } from "@/types/bootstrap";
 import type { RiskPayload } from "@/types/payloads";
+import type { TaskRecord } from "@/types/recordsExecution";
 import type { RiskRecord } from "@/types/recordsReporting";
 import { EditableHoverIndicator } from "@/features/workspace/shared/table/workspaceTableChrome";
 import type { FilterSelection } from "@/features/workspace/shared/filters/workspaceFilterUtils";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model/workspaceTypes";
 import { KanbanColumns } from "@/features/workspace/views/kanban/KanbanColumns";
+import { KanbanScrollFrame } from "@/features/workspace/views/kanban/KanbanScrollFrame";
 import { resolveWorkspaceColor } from "@/features/workspace/shared/model/workspaceColors";
+import { AttentionView } from "@/features/workspace/views/attention/AttentionView";
 
 import { RiskEditorModal } from "./RiskEditorModal";
 import { RiskDetailsModal } from "./RiskDetailsModal";
@@ -29,6 +32,7 @@ interface RisksViewProps {
   isAllProjectsView: boolean;
   onCreateRisk: (payload: RiskPayload) => Promise<void>;
   onDeleteRisk: (riskId: string) => Promise<void>;
+  openTaskDetailModal?: (task: TaskRecord) => void;
   onUpdateRisk: (riskId: string, payload: RiskPayload) => Promise<void>;
   view: RiskManagementViewTab;
 }
@@ -39,6 +43,7 @@ export function RisksView({
   isAllProjectsView,
   onCreateRisk,
   onDeleteRisk,
+  openTaskDetailModal,
   onUpdateRisk,
   view,
 }: RisksViewProps) {
@@ -166,13 +171,24 @@ export function RisksView({
 
   return (
     <section className={`panel dense-panel subsystem-manager-shell ${WORKSPACE_PANEL_CLASS}`}>
-      <div className="panel-header compact-header">
-        <div className="queue-section-header">
-          <h2 style={{ color: "var(--text-title)" }}>
-            {view === "metrics" ? "Operations metrics" : "Risk management"}
-          </h2>
-        </div>
-      </div>
+      {view === "attention" ? (
+        <AttentionView
+          activePersonFilter={activePersonFilter}
+          bootstrap={bootstrap}
+          onOpenRisk={(riskId) => {
+            const targetRisk = bootstrap.risks.find((risk) => risk.id === riskId);
+            if (targetRisk) {
+              viewModel.openRiskDetails(targetRisk);
+            }
+          }}
+          onOpenTask={(taskId) => {
+            const task = tasksById[taskId];
+            if (task && openTaskDetailModal) {
+              openTaskDetailModal(task);
+            }
+          }}
+        />
+      ) : null}
 
       {view === "metrics" ? (
         <RiskMetricsSection
@@ -211,10 +227,9 @@ export function RisksView({
             sourceFilter={viewModel.sourceFilter}
           />
 
-          <div className={"task-queue-board-shell-frame " + viewModel.riskFilterMotionClass}>
-            <div className="table-shell task-queue-board-shell">
-        {viewModel.filteredRows.length > 0 ? (
-          <KanbanColumns
+          <KanbanScrollFrame motionClassName={viewModel.riskFilterMotionClass}>
+            {viewModel.filteredRows.length > 0 ? (
+              <KanbanColumns
                   boardClassName="risk-board"
                   columnBodyClassName="task-queue-board-column-body"
                   columnClassName="task-queue-board-column"
@@ -297,11 +312,10 @@ export function RisksView({
                     );
                   }}
                 />
-              ) : (
-                <p className="empty-state">No risks match the current filters.</p>
-              )}
-            </div>
-          </div>
+            ) : (
+              <p className="empty-state">No risks match the current filters.</p>
+            )}
+          </KanbanScrollFrame>
         </>
       ) : null}
 
