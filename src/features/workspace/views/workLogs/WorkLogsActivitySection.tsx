@@ -1,5 +1,4 @@
 import type { TaskRecord } from "@/types/recordsExecution";
-import { formatDate } from "@/lib/appUtils/common";
 import type { MembersById, SubsystemsById } from "@/features/workspace/shared/model/workspaceTypes";
 import { PaginationControls } from "@/features/workspace/shared/table/workspaceTableChrome";
 
@@ -18,10 +17,17 @@ interface WorkLogsActivitySectionProps {
 }
 
 function formatActionTimestamp(timestamp: string) {
-  const day = timestamp.slice(0, 10);
-  const time = timestamp.includes("T") ? timestamp.slice(11, 16) : "";
-  const formattedDay = formatDate(day);
-  return time ? `${formattedDay} ${time}` : formattedDay;
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) {
+    return timestamp;
+  }
+
+  return parsed.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function toTitleCase(value: string) {

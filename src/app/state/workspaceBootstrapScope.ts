@@ -192,7 +192,7 @@ export function scopeBootstrapBySelection(
     ? payload.members.filter((member) => isMemberActiveInSeason(member, selectedSeasonId))
     : payload.members;
   const scopedPartDefinitions = selectedSeasonId
-      ? payload.partDefinitions.filter((partDefinition) =>
+    ? payload.partDefinitions.filter((partDefinition) =>
         isPartDefinitionActiveInSeason(partDefinition, selectedSeasonId),
       )
     : payload.partDefinitions;
@@ -201,11 +201,17 @@ export function scopeBootstrapBySelection(
       return false;
     }
 
-    if (action.taskId && !scopedTaskIds.has(action.taskId)) {
+    const requiresExistingScopeEntities = action.operation !== "delete";
+
+    if (requiresExistingScopeEntities && action.taskId && !scopedTaskIds.has(action.taskId)) {
       return false;
     }
 
-    if (action.subsystemId && !scopedSubsystemIds.has(action.subsystemId)) {
+    if (
+      requiresExistingScopeEntities &&
+      action.subsystemId &&
+      !scopedSubsystemIds.has(action.subsystemId)
+    ) {
       return false;
     }
 
