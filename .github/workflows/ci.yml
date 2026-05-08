@@ -265,23 +265,8 @@ jobs:
               return { headSha, validatedSha: headSha };
             }
 
-            const commits = await gh(`/repos/${owner}/${repo}/commits?sha=${branchRef}&per_page=50`);
-            for (const commit of commits) {
-              const sha = commit?.sha;
-              if (!sha || sha === headSha) {
-                continue;
-              }
-
-              const checkState = await getRequiredCheckState(owner, repo, sha, checksToRequire);
-              const hasAllSuccessfulChecks =
-                checkState.hasAllRequiredCheckRuns && checkState.nonSuccessfulChecks.length === 0;
-              if (hasAllSuccessfulChecks) {
-                return { headSha, validatedSha: sha };
-              }
-            }
-
             throw new Error(
-              `${owner}/${repo}@${headSha} has no recent ${branchRef} commit with successful checks: ${checksToRequire.join(', ')}.`,
+              `${owner}/${repo}@${headSha} is missing required checks at ${branchRef} head: ${checksToRequire.join(', ')}.`,
             );
           }
 
