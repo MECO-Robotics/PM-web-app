@@ -20,15 +20,6 @@
   padding: 0.55rem 0.62rem;
 }
 
-.attention-summary-group h3 {
-  color: var(--text-copy);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  margin: 0;
-  text-transform: uppercase;
-}
-
 .attention-summary-grid {
   display: grid;
   gap: 0.6rem;
@@ -71,10 +62,6 @@
   font-weight: 700;
 }
 
-.attention-now-list {
-  gap: 0.55rem;
-}
-
 .attention-now-item {
   background: color-mix(in srgb, var(--bg-panel) 88%, var(--bg-row-alt));
   border-color: color-mix(in srgb, var(--meco-blue) 14%, var(--border-base));
@@ -91,8 +78,7 @@
   gap: 0.28rem 0.75rem;
 }
 
-.attention-now-why,
-.attention-now-next {
+.attention-now-item p {
   color: var(--text-copy);
   font-size: 0.74rem;
   margin: 0;
@@ -105,8 +91,7 @@
   gap: 0.2rem;
 }
 
-.attention-now-detail-grid strong,
-.attention-now-next strong {
+.attention-now-item strong {
   color: var(--text-title);
 }
 
