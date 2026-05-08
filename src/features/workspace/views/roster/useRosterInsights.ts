@@ -5,6 +5,10 @@ import type { BootstrapPayload } from "@/types/bootstrap";
 import type { RosterInsightsResponse } from "@/types/rosterInsights";
 
 import { buildRosterInsightsFromBootstrap } from "./rosterInsightsFallback";
+import {
+  areRosterInsightsRowsInScope,
+  getScopedRosterMemberIds,
+} from "./rosterInsightsScope";
 
 export function useRosterInsights({
   bootstrap,
@@ -17,6 +21,10 @@ export function useRosterInsights({
 }) {
   const fallbackInsights = useMemo(
     () => buildRosterInsightsFromBootstrap(bootstrap, { projectId, seasonId }),
+    [bootstrap, projectId, seasonId],
+  );
+  const scopedMemberIds = useMemo(
+    () => getScopedRosterMemberIds(bootstrap, { projectId, seasonId }),
     [bootstrap, projectId, seasonId],
   );
   const [remoteInsights, setRemoteInsights] = useState<RosterInsightsResponse | null>(null);
@@ -33,6 +41,14 @@ export function useRosterInsights({
     fetchRosterInsights({ projectId, seasonId })
       .then((response) => {
         if (!disposed) {
+          if (
+            (projectId || seasonId) &&
+            !areRosterInsightsRowsInScope(response, scopedMemberIds)
+          ) {
+            setRemoteInsights(null);
+            setErrorMessage("Scoped roster insights are unavailable right now.");
+            return;
+          }
           setRemoteInsights(response);
         }
       })
@@ -55,7 +71,7 @@ export function useRosterInsights({
     return () => {
       disposed = true;
     };
-  }, [projectId, seasonId]);
+  }, [projectId, scopedMemberIds, seasonId]);
 
   return {
     errorMessage,
