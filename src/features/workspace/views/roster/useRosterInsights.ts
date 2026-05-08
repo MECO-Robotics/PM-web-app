@@ -16,8 +16,8 @@ export function useRosterInsights({
   seasonId: string | null;
 }) {
   const fallbackInsights = useMemo(
-    () => buildRosterInsightsFromBootstrap(bootstrap),
-    [bootstrap],
+    () => buildRosterInsightsFromBootstrap(bootstrap, { projectId, seasonId }),
+    [bootstrap, projectId, seasonId],
   );
   const [remoteInsights, setRemoteInsights] = useState<RosterInsightsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
