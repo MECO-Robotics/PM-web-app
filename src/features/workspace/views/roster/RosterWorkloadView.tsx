@@ -91,7 +91,7 @@ export function RosterWorkloadView({
 
   return (
     <section className={`panel dense-panel roster-layout mc-roster-insights-shell ${WORKSPACE_PANEL_CLASS}`}>
-      <AppTopbarSlotPortal slot="search">
+      <AppTopbarSlotPortal slot="controls">
         <RosterWorkloadTopbarControls
           availabilityFilter={availabilityFilter}
           availabilityOptions={AVAILABILITY_OPTIONS}

@@ -1,5 +1,4 @@
 import type { Dispatch, SetStateAction } from "react";
-import { Plus } from "lucide-react";
 
 import type { BootstrapPayload } from "@/types/bootstrap";
 import { IconSubsystems, IconWorkLogs } from "@/components/shared/Icons";
@@ -13,7 +12,6 @@ import type { WorkLogSortMode } from "./workLogsViewState";
 
 interface WorkLogsToolbarProps {
   bootstrap: BootstrapPayload;
-  openCreateWorkLogModal: () => void;
   renderMode?: "panel" | "topbar";
   search: string;
   setSearch: Dispatch<SetStateAction<string>>;
@@ -26,7 +24,6 @@ interface WorkLogsToolbarProps {
 
 export function WorkLogsToolbar({
   bootstrap,
-  openCreateWorkLogModal,
   renderMode = "panel",
   search,
   setSearch,
@@ -92,16 +89,6 @@ export function WorkLogsToolbar({
         </select>
       </label>
 
-      <button
-        aria-label="Add work log"
-        className="primary-action queue-toolbar-action queue-toolbar-action-round"
-        data-tutorial-target="create-worklog-button"
-        onClick={openCreateWorkLogModal}
-        title="Add work log"
-        type="button"
-      >
-        <Plus size={14} strokeWidth={2} />
-      </button>
     </div>
   );
 }

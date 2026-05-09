@@ -25,7 +25,7 @@ function formatMonthDayShortYearFromDay(day: string) {
 }
 
 function formatMonthDayFromDay(day: string) {
-  const [_year, month, monthDay] = day.split("-");
+  const [, month, monthDay] = day.split("-");
   if (!month || !monthDay) {
     return day;
   }

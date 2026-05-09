@@ -42,9 +42,25 @@
   min-width: 0;
 }
 
+.topbar-responsive-search-full-compact {
+  display: none;
+}
+
 .topbar-responsive-search-compact {
   display: none;
   position: relative;
+}
+
+.topbar-responsive-search-dynamic .topbar-responsive-search-compact {
+  display: inline-flex;
+}
+
+.topbar-responsive-search-dynamic.is-icon-mode {
+  justify-content: flex-end;
+}
+
+.topbar-responsive-search-dynamic.is-icon-mode .topbar-responsive-search-compact {
+  margin-left: auto;
 }
 
 .topbar-responsive-search-toggle.is-active {
@@ -81,6 +97,32 @@
   }
 }
 
+.milestones-toolbar .topbar-responsive-search .toolbar-search {
+  padding-right: 0.3rem;
+}
+
+.milestones-toolbar .milestones-search-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  transition:
+    min-width 0.16s ease,
+    max-width 0.16s ease;
+}
+
+.milestones-toolbar .milestones-search-slot > .topbar-responsive-search {
+  width: 100%;
+  min-width: 0;
+}
+
+.milestones-toolbar .topbar-responsive-search-dynamic .toolbar-search {
+  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding-right: 0.08rem;
+}
+
 .queue-toolbar-action {
   min-width: fit-content;
   width: auto;
@@ -102,6 +144,14 @@
   min-width: 2.2rem;
   padding: 0;
   border-radius: 999px;
+}
+
+.workspace-floating-create-button {
+  position: fixed;
+  right: clamp(1rem, 2vw, 1.6rem);
+  bottom: calc(clamp(1rem, 2vh, 1.3rem) + env(safe-area-inset-bottom, 0px));
+  z-index: 980;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--official-black) 24%, transparent);
 }
 
 .task-queue-toolbar-inline-actions {

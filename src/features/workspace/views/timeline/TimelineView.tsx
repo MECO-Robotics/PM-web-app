@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
 import type { BootstrapPayload } from "@/types/bootstrap";
 import type { MilestonePayload } from "@/types/payloads";
 import type { TaskRecord } from "@/types/recordsExecution";
 import { AppTopbarSlotPortal } from "@/components/layout/AppTopbarSlotPortal";
 import type { FilterSelection } from "@/features/workspace/shared/filters/workspaceFilterUtils";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model/workspaceTypes";
+import { WorkspaceFloatingAddButton } from "@/features/workspace/shared/ui";
 import { getTimelineMinimumZoomForWidth } from "@/features/workspace/shared/timeline/timelineZoom";
 import { midpointOfTimelineDays } from "@/features/workspace/shared/timeline/timelineDateUtils";
 import { buildTimelineGridLayout } from "./model/timelineGridLayout";
@@ -171,7 +171,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
   return (
     <section className={`panel dense-panel timeline-layout ${WORKSPACE_PANEL_CLASS}`}>
-      <AppTopbarSlotPortal slot="search">
+      <AppTopbarSlotPortal slot="controls">
         <TimelineToolbar
           activePersonFilter={activePersonFilter}
           bootstrapMembers={bootstrap.members}
@@ -243,16 +243,12 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         openTaskDetailModal={actions.openTaskDetailAndSelectTask}
       />
 
-      <button
-        aria-label="Add to timeline"
-        className="primary-action queue-toolbar-action queue-toolbar-action-round timeline-floating-create-button"
-        data-tutorial-target="timeline-create-task-button"
+      <WorkspaceFloatingAddButton
+        ariaLabel="Add to timeline"
         onClick={openCreateTaskModal}
         title="Add to timeline"
-        type="button"
-      >
-        <Plus size={14} strokeWidth={2} />
-      </button>
+        tutorialTarget="timeline-create-task-button"
+      />
 
       <TimelineMilestoneUnderlaysPortal
         onHideMilestonePopup={data.clearHoveredMilestonePopup}

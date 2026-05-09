@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 
+import { AppTopbarSlotPortal } from "@/components/layout/AppTopbarSlotPortal";
 import type { RiskManagementViewTab } from "@/lib/workspaceNavigation";
 import type { BootstrapPayload } from "@/types/bootstrap";
 import type { RiskPayload } from "@/types/payloads";
 import type { TaskRecord } from "@/types/recordsExecution";
+import { WorkspaceFloatingAddButton } from "@/features/workspace/shared/ui";
 import { EditableHoverIndicator } from "@/features/workspace/shared/table/workspaceTableChrome";
 import type { FilterSelection } from "@/features/workspace/shared/filters/workspaceFilterUtils";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model/workspaceTypes";
@@ -108,14 +110,21 @@ export function RisksView({
 
       {view === "kanban" ? (
         <>
-          <RiskFilterToolbar
-            onAddRisk={viewModel.openCreateEditor}
-            onSearchChange={viewModel.setSearch}
-            onSeverityFilterChange={viewModel.setSeverityFilter}
-            onSourceFilterChange={viewModel.setSourceFilter}
-            search={viewModel.search}
-            severityFilter={viewModel.severityFilter}
-            sourceFilter={viewModel.sourceFilter}
+          <AppTopbarSlotPortal slot="controls">
+            <RiskFilterToolbar
+              onSearchChange={viewModel.setSearch}
+              onSeverityFilterChange={viewModel.setSeverityFilter}
+              onSourceFilterChange={viewModel.setSourceFilter}
+              search={viewModel.search}
+              severityFilter={viewModel.severityFilter}
+              sourceFilter={viewModel.sourceFilter}
+            />
+          </AppTopbarSlotPortal>
+
+          <WorkspaceFloatingAddButton
+            ariaLabel="Add risk"
+            onClick={viewModel.openCreateEditor}
+            title="Add risk"
           />
 
           <KanbanScrollFrame motionClassName={viewModel.riskFilterMotionClass}>

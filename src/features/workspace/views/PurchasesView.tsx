@@ -1,10 +1,11 @@
-import { useMemo, useState, type CSSProperties } from "react";
-import { Plus } from "lucide-react";
+﻿import { useMemo, useState, type CSSProperties } from "react";
 
 import { formatCurrency } from "@/lib/appUtils/common";
 import type { BootstrapPayload } from "@/types/bootstrap";
 import type { PurchaseItemRecord } from "@/types/recordsInventory";
 import { IconManufacturing, IconPerson, IconTasks } from "@/components/shared/Icons";
+import { AppTopbarSlotPortal } from "@/components/layout/AppTopbarSlotPortal";
+import { WorkspaceFloatingAddButton } from "@/features/workspace/shared/ui";
 import { ColumnFilterDropdown } from "@/features/workspace/shared/filters/ColumnFilterDropdown";
 import { CompactFilterMenu } from "@/features/workspace/shared/filters/workspaceCompactFilterMenu";
 import { EditableHoverIndicator, PaginationControls, RequestedItemMeta, TableCell, useWorkspacePagination } from "@/features/workspace/shared/table/workspaceTableChrome";
@@ -95,10 +96,7 @@ export function PurchasesView({
 
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
-      <div className="panel-header compact-header">
-        <div className="queue-section-header">
-          <h2>Purchase list</h2>
-        </div>
+      <AppTopbarSlotPortal slot="controls">
         <div className="panel-actions filter-toolbar queue-toolbar purchase-toolbar">
           <div data-tutorial-target="purchases-search-input">
             <SearchToolbarInput
@@ -188,18 +186,21 @@ export function PurchasesView({
             ]}
           />
 
-          <button
-            aria-label="Add purchase"
-            className="primary-action queue-toolbar-action queue-toolbar-action-round"
-            data-tutorial-target="create-purchase-button"
-            onClick={openCreatePurchaseModal}
-            title="Add purchase"
-            type="button"
-          >
-            <Plus size={14} strokeWidth={2} />
-          </button>
+        </div>
+      </AppTopbarSlotPortal>
+
+      <div className="panel-header compact-header">
+        <div className="queue-section-header">
+          <h2>Purchase list</h2>
         </div>
       </div>
+
+      <WorkspaceFloatingAddButton
+        ariaLabel="Add purchase"
+        onClick={openCreatePurchaseModal}
+        title="Add purchase"
+        tutorialTarget="create-purchase-button"
+      />
 
       <div className={`table-shell ${purchaseFilterMotionClass}`}>
         <div

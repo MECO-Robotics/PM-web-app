@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 export const APP_TOPBAR_SLOT_IDS = {
+  controls: "workspace-topbar-slot-controls",
   search: "workspace-topbar-slot-search",
 } as const;
 

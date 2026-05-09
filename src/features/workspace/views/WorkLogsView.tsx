@@ -5,6 +5,7 @@ import type { FilterSelection } from "@/features/workspace/shared/filters/worksp
 import type { MembersById, SubsystemsById } from "@/features/workspace/shared/model/workspaceTypes";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model/workspaceTypes";
 import { AppTopbarSlotPortal } from "@/components/layout/AppTopbarSlotPortal";
+import { WorkspaceFloatingAddButton } from "@/features/workspace/shared/ui";
 
 import { useWorkLogsViewState } from "./workLogs/workLogsViewState";
 import { WorkLogsActivitySection } from "./workLogs/WorkLogsActivitySection";
@@ -41,10 +42,9 @@ export function WorkLogsView({
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
       {view === "logs" ? (
-        <AppTopbarSlotPortal slot="search">
+        <AppTopbarSlotPortal slot="controls">
           <WorkLogsToolbar
             bootstrap={bootstrap}
-            openCreateWorkLogModal={openCreateWorkLogModal}
             renderMode="topbar"
             search={workLogsView.search}
             setSearch={workLogsView.setSearch}
@@ -62,6 +62,15 @@ export function WorkLogsView({
           <h2>{view === "activity" ? "Activity" : view === "summary" ? "Work log summary" : "Work logs"}</h2>
         </div>
       </div>
+
+      {view === "logs" ? (
+        <WorkspaceFloatingAddButton
+          ariaLabel="Add work log"
+          onClick={openCreateWorkLogModal}
+          title="Add work log"
+          tutorialTarget="create-worklog-button"
+        />
+      ) : null}
 
       {view === "activity" ? (
         <WorkLogsActivitySection

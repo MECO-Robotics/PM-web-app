@@ -56,6 +56,25 @@
   max-width: 100%;
 }
 
+.milestones-toolbar {
+  align-items: center;
+}
+
+.milestones-toolbar .milestones-zoom-controls {
+  gap: 0.06rem;
+  padding: 0.1rem 0.12rem;
+}
+
+.milestones-toolbar .task-queue-zoom-label {
+  min-width: 3.2rem;
+  padding: 0 0.16rem;
+}
+
+.milestones-toolbar .milestones-zoom-button svg {
+  width: 14px;
+  height: 14px;
+}
+
 .timeline-toolbar-filters {
   display: flex;
   align-items: flex-start;
@@ -237,14 +256,6 @@
 .timeline-period-controls.is-week .timeline-period-label {
   min-width: 4.4rem;
   padding: 0 0.08rem;
-}
-
-.timeline-floating-create-button {
-  position: fixed;
-  right: clamp(1rem, 2vw, 1.6rem);
-  bottom: calc(clamp(1rem, 2vh, 1.3rem) + env(safe-area-inset-bottom, 0px));
-  z-index: 980;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--official-black) 24%, transparent);
 }
 
 .timeline-column-header {

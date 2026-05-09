@@ -72,6 +72,7 @@ export function AppTopbar({
         </div>
       </div>
       <div className="app-topbar-search-slot">
+        <div className="app-topbar-controls-host" id={APP_TOPBAR_SLOT_IDS.controls} />
         <div className="app-topbar-search-host" id={APP_TOPBAR_SLOT_IDS.search} />
         <label className="app-topbar-search" htmlFor="workspace-topbar-search">
           <span aria-hidden="true" className="app-topbar-search-icon">
