@@ -1,4 +1,4 @@
-import { IconEye, IconRefresh } from "@/components/shared/Icons";
+import { UserSearch } from "lucide-react";
 
 export function AppTopbarMyViewToggle({
   isActive,
@@ -25,31 +25,7 @@ export function AppTopbarMyViewToggle({
       }
       type="button"
     >
-      <IconEye />
-    </button>
-  );
-}
-
-export function AppTopbarRefreshButton({
-  isLoadingData,
-  loadWorkspace,
-}: {
-  isLoadingData: boolean;
-  loadWorkspace: () => Promise<void>;
-}) {
-  return (
-    <button
-      aria-label="Refresh workspace"
-      className={
-        isLoadingData
-          ? "icon-button refresh-button app-topbar-icon-button is-loading"
-          : "icon-button refresh-button app-topbar-icon-button"
-      }
-      onClick={() => void loadWorkspace()}
-      title="Refresh workspace"
-      type="button"
-    >
-      <IconRefresh />
+      <UserSearch size={14} strokeWidth={2} />
     </button>
   );
 }
