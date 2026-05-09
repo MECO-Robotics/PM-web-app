@@ -172,7 +172,9 @@ export function WorkspaceContentPanels({
   ...props
 }: WorkspaceContentPanelsProps) {
   const effectiveInventoryView =
-    isNonRobotProject && inventoryView === "parts" ? "materials" : inventoryView;
+    isNonRobotProject && (inventoryView === "parts" || inventoryView === "part-mappings")
+      ? "materials"
+      : inventoryView;
   const previousTaskViewRef = useRef(taskView);
   const previousReportsViewRef = useRef(reportsView);
   const previousManufacturingViewRef = useRef(manufacturingView);
@@ -197,7 +199,7 @@ export function WorkspaceContentPanels({
   const inventorySwipeDirection = getSwipeDirection(
     previousInventoryViewRef.current,
     effectiveInventoryView,
-    ["materials", "parts", "purchases"],
+    ["materials", "parts", "part-mappings", "purchases"],
   );
 
   useEffect(() => {
