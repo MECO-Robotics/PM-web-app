@@ -127,6 +127,19 @@ export function RobotMapView({
     }));
   };
 
+  const handleLayoutDrop = async (subsystemId: string, layout: SubsystemLayoutFields) => {
+    const previousLayout = subsystems.find((subsystem) => subsystem.id === subsystemId)?.layout;
+    const rollbackLayout = previousLayout ? { ...previousLayout } : buildUnplacedLayout(null);
+
+    applyLayoutDraft(subsystemId, layout);
+
+    const didPersist = await saveSubsystemLayout(subsystemId, layout).catch(() => false);
+
+    if (!didPersist) {
+      applyLayoutDraft(subsystemId, rollbackLayout);
+    }
+  };
+
   const handleAutoArrange = async () => {
     const autoLayouts = buildAutoArrangedLayouts(
       subsystems.map((subsystem) => ({
@@ -185,10 +198,7 @@ export function RobotMapView({
                 onAddSubsystem={openCreateSubsystemModal}
                 onAutoArrange={handleAutoArrange}
                 onDraftLayoutChange={applyLayoutDraft}
-                onLayoutDrop={async (subsystemId, layout) => {
-                  applyLayoutDraft(subsystemId, layout);
-                  await saveSubsystemLayout(subsystemId, layout);
-                }}
+                onLayoutDrop={handleLayoutDrop}
                 onReferenceImageSelected={(file) => void handleReferenceImageSelected(file)}
                 onResetLayout={handleResetLayout}
                 onSelectSubsystem={setSelectedSubsystemId}
