@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import { LayoutGrid, RotateCcw, SquarePlus, Upload } from "lucide-react";
+import { LayoutGrid, Upload } from "lucide-react";
 import type { SubsystemLayoutFields } from "@/lib/appUtils/subsystemLayout";
 
 import { buildUnplacedLayout, clampLayoutCoordinate, isSubsystemPlaced } from "./robotMapLayout";
+import { RobotMapCanvasActions } from "./RobotMapCanvasActions";
 import { SubsystemMapCard } from "./SubsystemMapCard";
 import type { RobotConfigurationSubsystemModel } from "./robotMapViewModel";
 
@@ -63,9 +64,7 @@ export function RobotMapCanvas({
   subsystems,
 }: RobotMapCanvasProps) {
   const mapSurfaceRef = useRef<HTMLDivElement | null>(null);
-  const resetMenuRef = useRef<HTMLDivElement | null>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
-  const [isResetMenuOpen, setIsResetMenuOpen] = useState(false);
 
   const subsystemById = useMemo(
     () => Object.fromEntries(subsystems.map((subsystem) => [subsystem.id, subsystem] as const)),
@@ -75,72 +74,6 @@ export function RobotMapCanvas({
   const unplacedSubsystems = subsystems.filter((subsystem) => !isSubsystemPlaced(subsystem.layout));
   const hasPlacedSubsystems = placedSubsystems.length > 0;
   const hasUnplacedSubsystems = unplacedSubsystems.length > 0;
-
-  const closeResetMenu = () => {
-    setIsResetMenuOpen(false);
-  };
-
-  const resetAndAddActions = (
-    <>
-      <div className={`robot-config-reset-menu${isResetMenuOpen ? " is-open" : ""}`} ref={resetMenuRef}>
-        <button
-          aria-expanded={isResetMenuOpen}
-          className="secondary-action queue-toolbar-action robot-config-reset-trigger"
-          onClick={() => {
-            setIsResetMenuOpen((current) => {
-              return !current;
-            });
-          }}
-          type="button"
-        >
-          <RotateCcw aria-hidden="true" size={14} />
-          <span>Reset</span>
-        </button>
-        {isResetMenuOpen ? (
-          <div className="robot-config-reset-menu-panel" role="menu">
-            <p>Are you sure?</p>
-            <button
-              className="primary-action queue-toolbar-action robot-config-reset-confirm"
-              onClick={() => {
-                onResetLayout();
-                closeResetMenu();
-              }}
-              type="button"
-            >
-              Confirm
-            </button>
-          </div>
-        ) : null}
-      </div>
-      <button
-        aria-label="Add subsystem"
-        className="icon-button robot-config-unplaced-add-button"
-        onClick={onAddSubsystem}
-        title="Add subsystem"
-        type="button"
-      >
-        <SquarePlus aria-hidden="true" size={14} />
-      </button>
-    </>
-  );
-
-  useEffect(() => {
-    if (!isResetMenuOpen) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (target && resetMenuRef.current?.contains(target)) {
-        return;
-      }
-
-      closeResetMenu();
-    };
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [isResetMenuOpen]);
 
   const startDraggingSubsystem = (
     event: React.PointerEvent<HTMLButtonElement>,
@@ -330,7 +263,7 @@ export function RobotMapCanvas({
 
         {!hasUnplacedSubsystems ? (
           <div className="robot-config-map-actions-overlay">
-            {resetAndAddActions}
+            <RobotMapCanvasActions onAddSubsystem={onAddSubsystem} onResetLayout={onResetLayout} />
           </div>
         ) : null}
       </div>
@@ -357,7 +290,7 @@ export function RobotMapCanvas({
                   <span>Auto-arrange</span>
                 </button>
               ) : null}
-              {resetAndAddActions}
+              <RobotMapCanvasActions onAddSubsystem={onAddSubsystem} onResetLayout={onResetLayout} />
             </div>
           </header>
           <div className="robot-config-unplaced-grid">

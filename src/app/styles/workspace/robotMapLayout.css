@@ -153,10 +153,6 @@
   width: 2.1rem;
 }
 
-.robot-config-unplaced-add-button svg {
-  display: block;
-}
-
 .robot-config-unplaced-add-button:hover,
 .robot-config-unplaced-add-button:focus-visible {
   background: linear-gradient(135deg, #1f56a2, #16478e);
