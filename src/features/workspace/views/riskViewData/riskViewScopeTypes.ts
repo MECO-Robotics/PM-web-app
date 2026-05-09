@@ -1,7 +1,7 @@
-﻿import type { BootstrapPayload } from "@/types/bootstrap";
+import type { BootstrapPayload } from "@/types/bootstrap";
 import type { RiskRecord } from "@/types/recordsReporting";
 
-import type { ScopeMetricRow } from "../riskMetricsTypes";
+import type { ScopeMetricRow } from "../riskMetrics/riskMetricsTypes";
 import type { BlockerBreakdown, HealthStatus } from "./riskViewMetricsUtils";
 
 export interface RiskViewScopeData {

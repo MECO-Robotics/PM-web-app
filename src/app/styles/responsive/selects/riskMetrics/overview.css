@@ -75,10 +75,6 @@
   color: var(--text-copy);
 }
 
-.metrics-health-list-actions li {
-  color: var(--text-title);
-}
-
 .metrics-plan-card {
   gap: 0.48rem;
 }
@@ -200,4 +196,5 @@
     grid-template-columns: 1fr;
   }
 }
+
 
