@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+﻿import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import {
   createOnshapeDocumentRef,
@@ -12,6 +12,7 @@ import { CadStatusPanels } from "./components/CadStatusPanels";
 import type { OnshapeOverview, OnshapeSyncEstimate, SyncLevel } from "./model/cadIntegrationTypes";
 import { parseOnshapeUrl } from "./model/onshapeUrlParser";
 import "./cadIntegration.css";
+import "./cadIntegrationData.css";
 
 const defaultOverview: OnshapeOverview = {
   connection: {
