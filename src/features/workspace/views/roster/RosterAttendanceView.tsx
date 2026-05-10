@@ -89,37 +89,39 @@ export function RosterAttendanceView({
       <AppTopbarSlotPortal slot="controls">
         <div className="panel-actions filter-toolbar mc-roster-insights-toolbar">
           <TopbarResponsiveSearch
+            actions={
+              <CompactFilterMenu
+                activeCount={availabilityFilter === "all" ? 0 : 1}
+                ariaLabel="Filter by availability"
+                buttonLabel="Status"
+                items={[
+                  {
+                    label: "Availability",
+                    content: (
+                      <select
+                        aria-label="Filter attendance by availability"
+                        className="task-queue-sort-menu-select"
+                        onChange={(event) =>
+                          setAvailabilityFilter(event.target.value as RosterAvailabilityStatus | "all")
+                        }
+                        value={availabilityFilter}
+                      >
+                        {AVAILABILITY_OPTIONS.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.name}
+                          </option>
+                        ))}
+                      </select>
+                    ),
+                  },
+                ]}
+              />
+            }
             ariaLabel="Search attendance"
             compactPlaceholder="Search"
             onChange={setSearchText}
             placeholder="Search members..."
             value={searchText}
-          />
-          <CompactFilterMenu
-            activeCount={availabilityFilter === "all" ? 0 : 1}
-            ariaLabel="Filter by availability"
-            buttonLabel="Status"
-            items={[
-              {
-                label: "Availability",
-                content: (
-                  <select
-                    aria-label="Filter attendance by availability"
-                    className="task-queue-sort-menu-select"
-                    onChange={(event) =>
-                      setAvailabilityFilter(event.target.value as RosterAvailabilityStatus | "all")
-                    }
-                    value={availabilityFilter}
-                  >
-                    {AVAILABILITY_OPTIONS.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.name}
-                      </option>
-                    ))}
-                  </select>
-                ),
-              },
-            ]}
           />
         </div>
       </AppTopbarSlotPortal>

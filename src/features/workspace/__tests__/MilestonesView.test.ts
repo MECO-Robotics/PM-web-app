@@ -218,7 +218,8 @@ describe("MilestonesView", () => {
       }),
     );
 
-    expect(markup).toContain("milestones-search-filter-overlay");
+    expect(markup).toContain("topbar-responsive-search-actions");
+    expect(markup).toContain("--topbar-responsive-search-action-overlay-width:4rem");
     expect(markup).toContain("milestones-search-filter-menu");
     expect(markup).toContain("milestones-search-sort-menu");
     expect(markup).toContain('aria-label="Milestone filters"');

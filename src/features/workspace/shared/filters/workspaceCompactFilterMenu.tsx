@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-
-import { IconFilter } from "@/components/shared/Icons";
+import { Filter } from "lucide-react";
 
 export type CompactFilterMenuItem = {
   content: ReactNode;
@@ -82,7 +81,7 @@ export function CompactFilterMenu({
         type="button"
       >
         <span className="toolbar-filter-icon">
-          {icon ?? <IconFilter />}
+          {icon ?? <Filter size={14} strokeWidth={2} />}
         </span>
         {iconOnly ? null : (
           <span aria-hidden="true" className="toolbar-filter-value">

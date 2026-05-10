@@ -164,17 +164,20 @@ export function TaskCalendarView({
         <AppTopbarSlotPortal slot="controls">
           <div className="panel-actions filter-toolbar task-queue-toolbar task-calendar-filter-toolbar">
             <TopbarResponsiveSearch
+              actionCount={2}
+              actions={
+                <TaskCalendarFilterToolbar
+                  eventFilter={eventFilter}
+                  onEventFilterChange={setEventFilter}
+                  onSortModeChange={setSortMode}
+                  sortMode={sortMode}
+                />
+              }
               ariaLabel="Search calendar"
               compactPlaceholder="Search"
               onChange={setSearchFilter}
               placeholder="Search calendar..."
               value={searchFilter}
-            />
-            <TaskCalendarFilterToolbar
-              eventFilter={eventFilter}
-              onEventFilterChange={setEventFilter}
-              onSortModeChange={setSortMode}
-              sortMode={sortMode}
             />
 
             <div className="task-calendar-toolbar">

@@ -87,6 +87,77 @@ export function TaskQueueToolbar({
   return (
     <div className="panel-actions filter-toolbar task-queue-toolbar">
       <TopbarResponsiveSearch
+        actionCount={2}
+        actions={
+          <>
+            <TaskQueueCompactFilterMenu
+              activeFilterCount={activeFilterCount}
+              bootstrap={bootstrap}
+              disciplineFilter={disciplineFilter}
+              disciplineOptions={disciplineOptions}
+              isAllProjectsView={isAllProjectsView}
+              ownerFilter={ownerFilter}
+              priorityFilter={priorityFilter}
+              projectFilter={projectFilter}
+              setDisciplineFilter={setDisciplineFilter}
+              setOwnerFilter={setOwnerFilter}
+              setPriorityFilter={setPriorityFilter}
+              setProjectFilter={setProjectFilter}
+              setStatusFilter={setStatusFilter}
+              setSubsystemFilter={setSubsystemFilter}
+              setSubsystemIterationFilter={setSubsystemIterationFilter}
+              showSubsystemIterationFilter={showSubsystemIterationFilter}
+              statusFilter={statusFilter}
+              subsystemFilter={subsystemFilter}
+              subsystemFilterOptions={subsystemFilterOptions}
+              subsystemIterationFilter={subsystemIterationFilter}
+              subsystemIterationOptions={subsystemIterationOptions}
+            />
+            <CompactFilterMenu
+              activeCount={taskSortIsDefault ? 0 : 1}
+              ariaLabel="Sort tasks"
+              buttonLabel="Sort"
+              className="task-queue-sort-menu"
+              icon={<IconSort />}
+              items={[
+                {
+                  label: "Sort by",
+                  content: (
+                    <select
+                      aria-label="Sort tasks by"
+                      className="task-queue-sort-menu-select"
+                      onChange={(milestone) => setSortField(milestone.target.value as TaskSortField)}
+                      value={sortField}
+                    >
+                      {TASK_SORT_OPTIONS.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name}
+                        </option>
+                      ))}
+                    </select>
+                  ),
+                },
+                {
+                  label: "Direction",
+                  content: (
+                    <select
+                      aria-label="Sort direction"
+                      className="task-queue-sort-menu-select"
+                      onChange={(milestone) => setSortOrder(milestone.target.value as "asc" | "desc")}
+                      value={sortOrder}
+                    >
+                      {SORT_DIRECTION_OPTIONS.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name}
+                        </option>
+                      ))}
+                    </select>
+                  ),
+                },
+              ]}
+            />
+          </>
+        }
         ariaLabel="Search tasks"
         compactPlaceholder="Search"
         onChange={setSearchFilter}
@@ -95,75 +166,7 @@ export function TaskQueueToolbar({
         value={searchFilter}
       />
 
-      <TaskQueueCompactFilterMenu
-        activeFilterCount={activeFilterCount}
-        bootstrap={bootstrap}
-        disciplineFilter={disciplineFilter}
-        disciplineOptions={disciplineOptions}
-        isAllProjectsView={isAllProjectsView}
-        ownerFilter={ownerFilter}
-        priorityFilter={priorityFilter}
-        projectFilter={projectFilter}
-        setDisciplineFilter={setDisciplineFilter}
-        setOwnerFilter={setOwnerFilter}
-        setPriorityFilter={setPriorityFilter}
-        setProjectFilter={setProjectFilter}
-        setStatusFilter={setStatusFilter}
-        setSubsystemFilter={setSubsystemFilter}
-        setSubsystemIterationFilter={setSubsystemIterationFilter}
-        showSubsystemIterationFilter={showSubsystemIterationFilter}
-        statusFilter={statusFilter}
-        subsystemFilter={subsystemFilter}
-        subsystemFilterOptions={subsystemFilterOptions}
-        subsystemIterationFilter={subsystemIterationFilter}
-        subsystemIterationOptions={subsystemIterationOptions}
-      />
-
       <div className="task-queue-toolbar-inline-actions">
-        <CompactFilterMenu
-          activeCount={taskSortIsDefault ? 0 : 1}
-          ariaLabel="Sort tasks"
-          buttonLabel="Sort"
-          className="task-queue-sort-menu"
-          icon={<IconSort />}
-          items={[
-            {
-              label: "Sort by",
-              content: (
-                <select
-                  aria-label="Sort tasks by"
-                  className="task-queue-sort-menu-select"
-                  onChange={(milestone) => setSortField(milestone.target.value as TaskSortField)}
-                  value={sortField}
-                >
-                  {TASK_SORT_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
-              ),
-            },
-            {
-              label: "Direction",
-              content: (
-                <select
-                  aria-label="Sort direction"
-                  className="task-queue-sort-menu-select"
-                  onChange={(milestone) => setSortOrder(milestone.target.value as "asc" | "desc")}
-                  value={sortOrder}
-                >
-                  {SORT_DIRECTION_OPTIONS.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
-              ),
-            },
-          ]}
-        />
-
         <div aria-label="Task queue zoom" className="task-queue-zoom-controls" role="group">
           <button
             aria-label="Zoom out task queue"

@@ -8,6 +8,7 @@
 }
 
 .topbar-responsive-search {
+  --topbar-responsive-search-action-overlay-width: 0rem;
   --topbar-responsive-search-icon-button-size: 1.7rem;
   --topbar-responsive-search-icon-pill-height: 2.05rem;
   --topbar-responsive-search-icon-pill-padding: 0.18rem;
@@ -39,13 +40,25 @@
   width: 100%;
 }
 
+.topbar-responsive-search-field {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+}
+
 .worklog-toolbar-topbar .topbar-responsive-search-full {
   flex: 1 1 15rem;
   min-width: 0;
 }
 
+.topbar-responsive-search-field .toolbar-search,
 .topbar-responsive-search-full .toolbar-search {
   width: 100%;
+}
+
+.topbar-responsive-search.has-actions .topbar-responsive-search-field .toolbar-search {
+  padding-right: var(--topbar-responsive-search-action-overlay-width);
 }
 
 .topbar-responsive-search-full-compact {

@@ -1,3 +1,4 @@
+import { CompactFilterMenu } from "@/features/workspace/shared/filters/workspaceCompactFilterMenu";
 import { TopbarResponsiveSearch } from "@/features/workspace/shared/filters/TopbarResponsiveSearch";
 
 interface SubsystemsToolbarProps {
@@ -28,6 +29,39 @@ export function SubsystemsToolbar({
   return (
     <div className="panel-actions filter-toolbar subsystem-manager-toolbar">
       <TopbarResponsiveSearch
+        actions={
+          <CompactFilterMenu
+            activeCount={Number(showArchivedSubsystems) + Number(showArchivedMechanisms)}
+            ariaLabel="Subsystem filters"
+            buttonLabel="Filters"
+            className="materials-filter-menu"
+            items={[
+              {
+                label: "Archived",
+                content: (
+                  <div className="task-queue-filter-menu-checkboxes">
+                    <label style={LABEL_STYLE}>
+                      <input
+                        checked={showArchivedSubsystems}
+                        onChange={(milestone) => setShowArchivedSubsystems(milestone.target.checked)}
+                        type="checkbox"
+                      />
+                      Show archived subsystems
+                    </label>
+                    <label style={LABEL_STYLE}>
+                      <input
+                        checked={showArchivedMechanisms}
+                        onChange={(milestone) => setShowArchivedMechanisms(milestone.target.checked)}
+                        type="checkbox"
+                      />
+                      Show archived mechanisms
+                    </label>
+                  </div>
+                ),
+              },
+            ]}
+          />
+        }
         ariaLabel="Search subsystems and mechanisms"
         compactPlaceholder="Search"
         onChange={setSearch}
@@ -35,22 +69,6 @@ export function SubsystemsToolbar({
         tutorialTarget="subsystem-search-input"
         value={search}
       />
-      <label style={LABEL_STYLE}>
-        <input
-          checked={showArchivedSubsystems}
-          onChange={(milestone) => setShowArchivedSubsystems(milestone.target.checked)}
-          type="checkbox"
-        />
-        Show archived subsystems
-      </label>
-      <label style={LABEL_STYLE}>
-        <input
-          checked={showArchivedMechanisms}
-          onChange={(milestone) => setShowArchivedMechanisms(milestone.target.checked)}
-          type="checkbox"
-        />
-        Show archived mechanisms
-      </label>
 
     </div>
   );

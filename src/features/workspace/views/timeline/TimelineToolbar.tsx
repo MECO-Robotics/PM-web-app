@@ -111,33 +111,35 @@ export const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
   return (
     <div className="panel-actions filter-toolbar timeline-toolbar timeline-topbar-controls">
       <TopbarResponsiveSearch
+        actions={
+          <CompactFilterMenu
+            activeCount={activePersonFilter.length}
+            ariaLabel="Timeline filters"
+            buttonLabel="Filters"
+            className="materials-filter-menu timeline-roster-filter"
+            items={[
+              {
+                label: "Roster",
+                content: (
+                  <FilterDropdown
+                    allLabel="All roster"
+                    ariaLabel="Filter person"
+                    className="task-queue-filter-menu-submenu"
+                    icon={<IconPerson />}
+                    onChange={onChangePersonFilter}
+                    options={bootstrapMembers}
+                    value={activePersonFilter}
+                  />
+                ),
+              },
+            ]}
+          />
+        }
         ariaLabel="Search timeline"
         compactPlaceholder="Search"
         onChange={onSearchChange}
         placeholder="Search timeline..."
         value={searchFilter}
-      />
-      <CompactFilterMenu
-        activeCount={activePersonFilter.length}
-        ariaLabel="Timeline filters"
-        buttonLabel="Filters"
-        className="materials-filter-menu timeline-roster-filter"
-        items={[
-          {
-            label: "Roster",
-            content: (
-              <FilterDropdown
-                allLabel="All roster"
-                ariaLabel="Filter person"
-                className="task-queue-filter-menu-submenu"
-                icon={<IconPerson />}
-                onChange={onChangePersonFilter}
-                options={bootstrapMembers}
-                value={activePersonFilter}
-              />
-            ),
-          },
-        ]}
       />
       <div
         aria-label="Timeline interval"

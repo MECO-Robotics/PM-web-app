@@ -45,7 +45,7 @@ export function MilestonesSearchControl({
       onBlur={handleBlur}
       onFocus={(event) => {
         const target = event.target;
-        if (target instanceof Element && target.closest(".milestones-search-filter-overlay")) {
+        if (target instanceof Element && target.closest(".topbar-responsive-search-actions")) {
           return;
         }
 
@@ -58,6 +58,8 @@ export function MilestonesSearchControl({
       }}
     >
       <TopbarResponsiveSearch
+        actionCount={filterControl ? 2 : 0}
+        actions={filterControl}
         ariaLabel="Search milestones"
         compactPlaceholder="Search"
         compactSwitchWidth={MILESTONE_SEARCH_COMPACT_SWITCH_WIDTH}
@@ -68,18 +70,10 @@ export function MilestonesSearchControl({
           setSearchFilter(value);
           setIsSuggestionsOpen(value.trim() !== "");
         }}
+        onActionsMouseDown={() => setIsSuggestionsOpen(false)}
         placeholder="Search milestones..."
         value={searchFilter}
       />
-
-      {filterControl ? (
-        <div
-          className="milestones-search-filter-overlay"
-          onMouseDown={() => setIsSuggestionsOpen(false)}
-        >
-          {filterControl}
-        </div>
-      ) : null}
 
       {showSuggestions ? (
         <div aria-label="Milestone search suggestions" className="milestones-search-suggestions" role="listbox">

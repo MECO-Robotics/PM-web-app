@@ -108,77 +108,78 @@ export function ManufacturingQueueView({
       <AppTopbarSlotPortal slot="controls">
         <div className="panel-actions filter-toolbar queue-toolbar">
           <TopbarResponsiveSearch
+            actions={
+              <CompactFilterMenu
+                activeCount={[subsystem, requester, material, status].filter((value) => value.length > 0).length}
+                ariaLabel={`${title} filters`}
+                buttonLabel="Filters"
+                className="materials-filter-menu"
+                items={[
+                  {
+                    label: "Subsystem",
+                    content: (
+                      <FilterDropdown
+                        allLabel="All subsystems"
+                        ariaLabel={`Filter ${title} by subsystem`}
+                        className="task-queue-filter-menu-submenu"
+                        icon={<IconManufacturing />}
+                        onChange={setSubsystem}
+                        options={bootstrap.subsystems}
+                        value={subsystem}
+                      />
+                    ),
+                  },
+                  {
+                    label: "Requester",
+                    content: (
+                      <FilterDropdown
+                        allLabel="All requesters"
+                        ariaLabel={`Filter ${title} by requester`}
+                        className="task-queue-filter-menu-submenu"
+                        icon={<IconPerson />}
+                        onChange={setRequester}
+                        options={bootstrap.members}
+                        value={requester}
+                      />
+                    ),
+                  },
+                  {
+                    label: "Material",
+                    content: (
+                      <FilterDropdown
+                        allLabel="All materials"
+                        ariaLabel={`Filter ${title} by material`}
+                        className="task-queue-filter-menu-submenu"
+                        icon={<IconManufacturing />}
+                        onChange={setMaterial}
+                        options={uniqueMaterials}
+                        value={material}
+                      />
+                    ),
+                  },
+                  {
+                    label: "Status",
+                    content: (
+                      <FilterDropdown
+                        allLabel="All statuses"
+                        ariaLabel={`Filter ${title} by status`}
+                        className="task-queue-filter-menu-submenu"
+                        icon={<IconTasks />}
+                        onChange={setStatus}
+                        options={MANUFACTURING_STATUS_OPTIONS}
+                        value={status}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            }
             ariaLabel={`Search ${title}`}
             compactPlaceholder="Search"
             onChange={setSearch}
             placeholder="Search parts..."
             tutorialTarget={tutorialTarget("search-input")}
             value={search}
-          />
-
-          <CompactFilterMenu
-            activeCount={[subsystem, requester, material, status].filter((value) => value.length > 0).length}
-            ariaLabel={`${title} filters`}
-            buttonLabel="Filters"
-            className="materials-filter-menu"
-            items={[
-              {
-                label: "Subsystem",
-                content: (
-                  <FilterDropdown
-                    allLabel="All subsystems"
-                    ariaLabel={`Filter ${title} by subsystem`}
-                    className="task-queue-filter-menu-submenu"
-                    icon={<IconManufacturing />}
-                    onChange={setSubsystem}
-                    options={bootstrap.subsystems}
-                    value={subsystem}
-                  />
-                ),
-              },
-              {
-                label: "Requester",
-                content: (
-                  <FilterDropdown
-                    allLabel="All requesters"
-                    ariaLabel={`Filter ${title} by requester`}
-                    className="task-queue-filter-menu-submenu"
-                    icon={<IconPerson />}
-                    onChange={setRequester}
-                    options={bootstrap.members}
-                    value={requester}
-                  />
-                ),
-              },
-              {
-                label: "Material",
-                content: (
-                  <FilterDropdown
-                    allLabel="All materials"
-                    ariaLabel={`Filter ${title} by material`}
-                    className="task-queue-filter-menu-submenu"
-                    icon={<IconManufacturing />}
-                    onChange={setMaterial}
-                    options={uniqueMaterials}
-                    value={material}
-                  />
-                ),
-              },
-              {
-                label: "Status",
-                content: (
-                  <FilterDropdown
-                    allLabel="All statuses"
-                    ariaLabel={`Filter ${title} by status`}
-                    className="task-queue-filter-menu-submenu"
-                    icon={<IconTasks />}
-                    onChange={setStatus}
-                    options={MANUFACTURING_STATUS_OPTIONS}
-                    value={status}
-                  />
-                ),
-              },
-            ]}
           />
 
         </div>

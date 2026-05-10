@@ -40,6 +40,44 @@ export function PartsToolbar({
   return (
     <div className="panel-actions filter-toolbar part-manager-toolbar">
       <TopbarResponsiveSearch
+        actions={
+          <CompactFilterMenu
+            activeCount={[partSubsystem, partStatus].filter((value) => value.length > 0).length}
+            ariaLabel="Part filters"
+            buttonLabel="Filters"
+            className="materials-filter-menu"
+            items={[
+              {
+                label: "Subsystem",
+                content: (
+                  <FilterDropdown
+                    allLabel="All subsystems"
+                    ariaLabel="Filter parts by subsystem"
+                    className="task-queue-filter-menu-submenu"
+                    icon={<IconManufacturing />}
+                    onChange={setPartSubsystem}
+                    options={bootstrap.subsystems}
+                    value={partSubsystem}
+                  />
+                ),
+              },
+              {
+                label: "Status",
+                content: (
+                  <FilterDropdown
+                    allLabel="All statuses"
+                    ariaLabel="Filter parts by status"
+                    className="task-queue-filter-menu-submenu"
+                    icon={<IconTasks />}
+                    onChange={setPartStatus}
+                    options={PART_STATUS_OPTIONS}
+                    value={partStatus}
+                  />
+                ),
+              },
+            ]}
+          />
+        }
         ariaLabel="Search parts"
         compactPlaceholder="Search"
         onChange={setPartSearch}
@@ -55,43 +93,6 @@ export function PartsToolbar({
         />
         Show archived definitions
       </label>
-
-      <CompactFilterMenu
-        activeCount={[partSubsystem, partStatus].filter((value) => value.length > 0).length}
-        ariaLabel="Part filters"
-        buttonLabel="Filters"
-        className="materials-filter-menu"
-        items={[
-          {
-            label: "Subsystem",
-            content: (
-              <FilterDropdown
-                allLabel="All subsystems"
-                ariaLabel="Filter parts by subsystem"
-                className="task-queue-filter-menu-submenu"
-                icon={<IconManufacturing />}
-                onChange={setPartSubsystem}
-                options={bootstrap.subsystems}
-                value={partSubsystem}
-              />
-            ),
-          },
-          {
-            label: "Status",
-            content: (
-              <FilterDropdown
-                allLabel="All statuses"
-                ariaLabel="Filter parts by status"
-                className="task-queue-filter-menu-submenu"
-                icon={<IconTasks />}
-                onChange={setPartStatus}
-                options={PART_STATUS_OPTIONS}
-                value={partStatus}
-              />
-            ),
-          },
-        ]}
-      />
 
     </div>
   );

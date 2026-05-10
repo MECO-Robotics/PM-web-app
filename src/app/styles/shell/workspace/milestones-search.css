@@ -1,4 +1,4 @@
-.milestones-toolbar .topbar-responsive-search .toolbar-search {
+.milestones-toolbar .topbar-responsive-search:not(.has-actions) .toolbar-search {
   padding-right: 0.3rem;
 }
 
@@ -18,85 +18,17 @@
 }
 
 .milestones-search-control {
-  --milestones-search-action-overlay-width: 4rem;
   position: relative;
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.milestones-search-control > .topbar-responsive-search {
-  --topbar-responsive-search-icon-pill-reserved-width: var(--milestones-search-action-overlay-width);
-  --topbar-responsive-search-icon-pill-extra-width: 1rem;
-}
-
-.milestones-toolbar .topbar-responsive-search-dynamic .toolbar-search {
+.milestones-toolbar .topbar-responsive-search-dynamic:not(.has-actions) .toolbar-search {
   width: 100%;
   min-width: 0;
   flex: 1 1 auto;
   padding-right: 0.08rem;
-}
-
-.milestones-search-control .toolbar-search {
-  padding-right: var(--milestones-search-action-overlay-width);
-}
-
-.milestones-search-filter-overlay {
-  position: absolute;
-  top: 50%;
-  right: 0.2rem;
-  z-index: 45;
-  display: inline-flex;
-  gap: 0.08rem;
-  transform: translateY(-50%);
-}
-
-.milestones-search-filter-overlay .task-queue-filter-menu.toolbar-filter-dropdown {
-  width: 1.7rem;
-  height: 1.7rem;
-  min-height: 1.7rem;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.milestones-search-filter-overlay .task-queue-filter-menu-button {
-  justify-content: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  padding: 0;
-  border-radius: 999px;
-  color: var(--text-copy);
-}
-
-.milestones-search-filter-overlay .task-queue-filter-menu-button:hover,
-.milestones-search-filter-overlay .task-queue-filter-menu.is-open .task-queue-filter-menu-button,
-.milestones-search-filter-overlay .task-queue-filter-menu.is-active .task-queue-filter-menu-button {
-  background: color-mix(in srgb, var(--meco-blue) 10%, transparent);
-  color: var(--official-blue);
-}
-
-.milestones-search-filter-overlay .task-queue-filter-count {
-  position: absolute;
-  top: -0.18rem;
-  right: -0.18rem;
-  min-width: 0.82rem;
-  width: 0.82rem;
-  height: 0.82rem;
-  padding: 0;
-  font-size: 0.52rem;
-}
-
-.milestones-search-filter-overlay .task-queue-filter-menu-popover {
-  top: calc(100% + 0.38rem);
-  right: 0;
-  width: max-content;
-  min-width: 13.5rem;
-}
-
-.milestones-search-filter-overlay .task-queue-filter-menu-item {
-  width: 100%;
 }
 
 .milestones-search-suggestions {
