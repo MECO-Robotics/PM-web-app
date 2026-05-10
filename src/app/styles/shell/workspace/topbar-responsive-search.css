@@ -77,25 +77,3 @@
   }
 }
 
-.milestones-toolbar .topbar-responsive-search .toolbar-search {
-  padding-right: 0.3rem;
-}
-
-.milestones-toolbar .milestones-search-slot {
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: 100%;
-  display: flex;
-}
-
-.milestones-toolbar .milestones-search-slot > .topbar-responsive-search {
-  width: 100%;
-  min-width: 0;
-}
-
-.milestones-toolbar .topbar-responsive-search-dynamic .toolbar-search {
-  width: 100%;
-  min-width: 0;
-  flex: 1 1 auto;
-  padding-right: 0.08rem;
-}

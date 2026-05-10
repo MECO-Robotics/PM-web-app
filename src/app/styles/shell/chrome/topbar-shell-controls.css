@@ -35,7 +35,8 @@
   display: flex;
 }
 
-.app-topbar-controls-host .milestones-toolbar > .milestones-search-slot > .topbar-responsive-search {
+.app-topbar-controls-host .milestones-toolbar > .milestones-search-slot > .topbar-responsive-search,
+.app-topbar-controls-host .milestones-toolbar > .milestones-search-slot > .milestones-search-control {
   width: 100%;
   min-width: 0;
 }

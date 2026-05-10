@@ -81,10 +81,24 @@ describe("AppTopbar", () => {
       },
     );
 
-    expect(markup).toContain('aria-label="Clear My View filter"');
+    expect(markup).toContain('aria-label="Switch to Users"');
     expect(markup).toContain('aria-pressed="true"');
+    expect(markup).toContain('data-state="user-search"');
     expect(markup).toContain("Showing Ava Chen");
+    expect(markup).toContain("lucide-user-search");
+    expect(markup).toContain("lucide-users");
     expect(markup).not.toContain(">My View<");
+  });
+
+  it("renders the topbar people toggle in all-users mode by default", () => {
+    const markup = renderTopbar();
+
+    expect(markup).toContain('aria-label="Switch to User search"');
+    expect(markup).toContain('aria-pressed="false"');
+    expect(markup).toContain('data-state="users"');
+    expect(markup).toContain("Showing all users");
+    expect(markup).toContain("lucide-user-search");
+    expect(markup).toContain("lucide-users");
   });
 
   it("keeps a standalone dark mode button for local access", () => {

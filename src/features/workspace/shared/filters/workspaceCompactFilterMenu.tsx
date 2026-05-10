@@ -14,6 +14,8 @@ export function CompactFilterMenu({
   buttonLabel = "Filters",
   className,
   icon,
+  iconOnly = false,
+  onButtonClick,
   items,
 }: {
   activeCount?: number;
@@ -21,6 +23,8 @@ export function CompactFilterMenu({
   buttonLabel?: string;
   className?: string;
   icon?: ReactNode;
+  iconOnly?: boolean;
+  onButtonClick?: () => void;
   items: CompactFilterMenuItem[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,7 +65,7 @@ export function CompactFilterMenu({
 
   return (
     <span
-      className={`toolbar-filter toolbar-filter-dropdown task-queue-filter-menu${isActive ? " is-active" : ""}${isOpen ? " is-open" : ""}${className ? ` ${className}` : ""}`}
+      className={`toolbar-filter toolbar-filter-dropdown task-queue-filter-menu${iconOnly ? " is-icon-only" : ""}${isActive ? " is-active" : ""}${isOpen ? " is-open" : ""}${className ? ` ${className}` : ""}`}
       ref={menuRef}
     >
       <button
@@ -70,22 +74,27 @@ export function CompactFilterMenu({
         aria-haspopup="menu"
         aria-label={ariaLabel}
         className="toolbar-filter-menu-button task-queue-filter-menu-button"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => {
+          onButtonClick?.();
+          setIsOpen((current) => !current);
+        }}
         title={buttonLabel}
         type="button"
       >
         <span className="toolbar-filter-icon">
           {icon ?? <IconFilter />}
         </span>
-        <span aria-hidden="true" className="toolbar-filter-value">
-          {buttonLabel}
-        </span>
+        {iconOnly ? null : (
+          <span aria-hidden="true" className="toolbar-filter-value">
+            {buttonLabel}
+          </span>
+        )}
         {activeCount > 0 ? (
           <span aria-hidden="true" className="task-queue-filter-count">
             {activeCount}
           </span>
         ) : null}
-        <span aria-hidden="true" className="toolbar-filter-chevron" />
+        {iconOnly ? null : <span aria-hidden="true" className="toolbar-filter-chevron" />}
       </button>
 
       {isOpen ? (

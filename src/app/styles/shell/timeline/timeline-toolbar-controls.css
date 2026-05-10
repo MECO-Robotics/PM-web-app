@@ -16,13 +16,27 @@
 }
 
 .milestones-toolbar .milestones-zoom-controls {
+  flex: 0 0 auto;
   gap: 0.06rem;
-  padding: 0.1rem 0.12rem;
+  min-height: 1.9rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.milestones-toolbar .milestones-zoom-button.icon-button {
+  width: 1.7rem;
+  height: 1.7rem;
+  min-width: 1.7rem;
+  border: 1px solid var(--border-base);
+  background: var(--bg-row-alt);
 }
 
 .milestones-toolbar .task-queue-zoom-label {
-  min-width: 3.2rem;
-  padding: 0 0.16rem;
+  flex: 0 0 2.55rem;
+  min-width: 2.55rem;
+  padding: 0;
 }
 
 .milestones-toolbar .milestones-zoom-button svg {
