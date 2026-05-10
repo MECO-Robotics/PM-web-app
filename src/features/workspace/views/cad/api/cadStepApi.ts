@@ -1,0 +1,121 @@
+import { requestApi } from "@/lib/auth/core/request";
+import type {
+  CadStepDiff,
+  CadStepImportRunRecord,
+  CadStepImportSummary,
+  CadStepMappingRecord,
+  CadStepSnapshotRecord,
+  CadStepTreeNode,
+  CadStepWarningRecord,
+} from "../model/cadIntegrationTypes";
+
+export function uploadCadStepFile(
+  payload: {
+    file: File;
+    label: string;
+    projectId?: string | null;
+    seasonId?: string | null;
+  },
+  onUnauthorized?: () => void,
+) {
+  const formData = new FormData();
+  formData.set("file", payload.file);
+  formData.set("label", payload.label);
+  if (payload.projectId) {
+    formData.set("projectId", payload.projectId);
+  }
+  if (payload.seasonId) {
+    formData.set("seasonId", payload.seasonId);
+  }
+  return requestApi<{
+    importRun: CadStepImportRunRecord;
+    snapshot: CadStepSnapshotRecord;
+    summary: CadStepImportSummary;
+  }>("/cad/step-imports", { method: "POST", body: formData }, onUnauthorized);
+}
+
+export function fetchCadSnapshots(
+  payload: { projectId?: string | null; seasonId?: string | null } = {},
+  onUnauthorized?: () => void,
+) {
+  const params = new URLSearchParams();
+  if (payload.projectId) {
+    params.set("projectId", payload.projectId);
+  }
+  if (payload.seasonId) {
+    params.set("seasonId", payload.seasonId);
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return requestApi<{ items: CadStepSnapshotRecord[] }>(`/cad/snapshots${suffix}`, {}, onUnauthorized);
+}
+
+export function fetchCadSnapshotSummary(snapshotId: string, onUnauthorized?: () => void) {
+  return requestApi<{ item: CadStepSnapshotRecord; summary: CadStepImportSummary }>(
+    `/cad/snapshots/${snapshotId}`,
+    {},
+    onUnauthorized,
+  );
+}
+
+export function fetchCadSnapshotTree(snapshotId: string, onUnauthorized?: () => void) {
+  return requestApi<{ snapshotId: string; rootNodes: CadStepTreeNode[] }>(
+    `/cad/snapshots/${snapshotId}/tree`,
+    {},
+    onUnauthorized,
+  );
+}
+
+export function fetchCadSnapshotMappings(snapshotId: string, onUnauthorized?: () => void) {
+  return requestApi<{ items: CadStepMappingRecord[] }>(
+    `/cad/snapshots/${snapshotId}/mappings`,
+    {},
+    onUnauthorized,
+  );
+}
+
+export function applyCadSnapshotMappings(
+  snapshotId: string,
+  payload: {
+    updates: Array<{
+      mappingId: string;
+      targetKind: CadStepMappingRecord["targetKind"];
+      targetId?: string | null;
+      confidence?: CadStepMappingRecord["confidence"];
+      status?: CadStepMappingRecord["status"];
+      applyToFuture?: boolean;
+    }>;
+  },
+  onUnauthorized?: () => void,
+) {
+  return requestApi<{ updated: CadStepMappingRecord[]; mappingRules: unknown[] }>(
+    `/cad/snapshots/${snapshotId}/mappings/apply`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+}
+
+export function finalizeCadSnapshot(
+  snapshotId: string,
+  payload: { allowUnresolved?: boolean } = {},
+  onUnauthorized?: () => void,
+) {
+  return requestApi<{ item: CadStepSnapshotRecord }>(
+    `/cad/snapshots/${snapshotId}/finalize`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    onUnauthorized,
+  );
+}
+
+export function fetchCadSnapshotDiff(snapshotId: string, onUnauthorized?: () => void) {
+  return requestApi<CadStepDiff>(`/cad/snapshots/${snapshotId}/diff`, {}, onUnauthorized);
+}
+
+export type { CadStepWarningRecord };

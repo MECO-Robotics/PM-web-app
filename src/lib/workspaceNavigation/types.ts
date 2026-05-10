@@ -7,6 +7,7 @@ export type ViewTab =
   | "reports"
   | "manufacturing"
   | "inventory"
+  | "cad"
   | "subsystems"
   | "roster"
   | "help";
@@ -37,6 +38,7 @@ export type NavigationSubItemId =
   | "readiness-subsystems"
   | "readiness-risks"
   | "config-robot-model"
+  | "config-cad"
   | "config-part-mappings"
   | "config-directory"
   | "tasks-timeline"
