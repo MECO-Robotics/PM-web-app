@@ -49,6 +49,21 @@ export function fetchCadSnapshots(
   return requestApi<{ items: CadStepSnapshotRecord[] }>(`/cad/snapshots${suffix}`, {}, onUnauthorized);
 }
 
+export function fetchCadStepImportRuns(
+  payload: { projectId?: string | null; seasonId?: string | null } = {},
+  onUnauthorized?: () => void,
+) {
+  const params = new URLSearchParams();
+  if (payload.projectId) {
+    params.set("projectId", payload.projectId);
+  }
+  if (payload.seasonId) {
+    params.set("seasonId", payload.seasonId);
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return requestApi<{ items: CadStepImportRunRecord[] }>(`/cad/import-runs${suffix}`, {}, onUnauthorized);
+}
+
 export function fetchCadSnapshotSummary(snapshotId: string, onUnauthorized?: () => void) {
   return requestApi<{ item: CadStepSnapshotRecord; summary: CadStepImportSummary }>(
     `/cad/snapshots/${snapshotId}`,

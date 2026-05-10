@@ -8,6 +8,7 @@ import {
   fetchCadSnapshots,
   fetchCadSnapshotSummary,
   fetchCadSnapshotTree,
+  fetchCadStepImportRuns,
   finalizeCadSnapshot,
   uploadCadStepFile,
 } from "./api/cadStepApi";
@@ -15,6 +16,7 @@ import { CadStepReviewPanels } from "./components/CadStepReviewPanels";
 import { CadStepUploadPanel } from "./components/CadStepUploadPanel";
 import type {
   CadStepDiff,
+  CadStepImportRunRecord,
   CadStepImportSummary,
   CadStepMappingRecord,
   CadStepSnapshotRecord,
@@ -23,6 +25,7 @@ import type {
 } from "./model/cadIntegrationTypes";
 import "./cadIntegration.css";
 import "./cadIntegrationData.css";
+import "./cadStepDiagnostics.css";
 import "./cadStepWorkflow.css";
 
 export function CadIntegrationView({
@@ -41,6 +44,7 @@ export function CadIntegrationView({
   const [stepFile, setStepFile] = useState<File | null>(null);
   const [stepLabel, setStepLabel] = useState("Robot STEP iteration");
   const [cadSnapshots, setCadSnapshots] = useState<CadStepSnapshotRecord[]>([]);
+  const [cadImportRuns, setCadImportRuns] = useState<CadStepImportRunRecord[]>([]);
   const [selectedCadSnapshotId, setSelectedCadSnapshotId] = useState("");
   const [stepSummary, setStepSummary] = useState<CadStepImportSummary | null>(null);
   const [stepTree, setStepTree] = useState<CadStepTreeNode[]>([]);
@@ -53,6 +57,12 @@ export function CadIntegrationView({
   const [isFinalizing, setIsFinalizing] = useState(false);
 
   const selectedCadSnapshot = cadSnapshots.find((snapshot) => snapshot.id === selectedCadSnapshotId) ?? null;
+  const selectedCadImportRun = selectedCadSnapshot
+    ? cadImportRuns.find((run) => run.id === selectedCadSnapshot.importRunId) ?? null
+    : null;
+  const latestCadImportRun = cadImportRuns
+    .filter((run) => run.source === "STEP_UPLOAD" && run.status !== "FAILED" && run.status !== "CANCELED")
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0] ?? null;
 
   const loadCadSnapshotDetails = useCallback(async (snapshotId: string) => {
     const [summaryResponse, treeResponse, mappingsResponse, diffResponse] = await Promise.all([
@@ -69,9 +79,13 @@ export function CadIntegrationView({
   }, []);
 
   const loadCadSnapshots = useCallback(async (preferredSnapshotId?: string) => {
-    const response = await fetchCadSnapshots({ projectId, seasonId });
-    setCadSnapshots(response.items);
-    const nextSnapshotId = preferredSnapshotId || response.items[0]?.id || "";
+    const [snapshotsResponse, importRunsResponse] = await Promise.all([
+      fetchCadSnapshots({ projectId, seasonId }),
+      fetchCadStepImportRuns({ projectId, seasonId }),
+    ]);
+    setCadSnapshots(snapshotsResponse.items);
+    setCadImportRuns(importRunsResponse.items);
+    const nextSnapshotId = preferredSnapshotId || snapshotsResponse.items[0]?.id || "";
     setSelectedCadSnapshotId(nextSnapshotId);
     if (nextSnapshotId) {
       await loadCadSnapshotDetails(nextSnapshotId);
@@ -105,6 +119,9 @@ export function CadIntegrationView({
         seasonId,
       });
       await loadCadSnapshots(response.snapshot.id);
+      setCadImportRuns((current) => [response.importRun, ...current.filter((run) => run.id !== response.importRun.id)]);
+      setCadSnapshots((current) => [response.snapshot, ...current.filter((snapshot) => snapshot.id !== response.snapshot.id)]);
+      setSelectedCadSnapshotId(response.snapshot.id);
       setMessage(
         `STEP import ready for review: ${response.summary.assemblyCount} assemblies, ${response.summary.partDefinitionCount} part definitions, ${response.summary.warningCount} warnings.`,
       );
@@ -216,6 +233,8 @@ export function CadIntegrationView({
         mappings={stepMappings}
         onConfirmMapping={handleConfirmMapping}
         onFinalize={handleFinalize}
+        importRun={selectedCadImportRun}
+        latestImportRunId={latestCadImportRun?.id ?? null}
         snapshot={selectedCadSnapshot}
         summary={stepSummary}
         targets={{ subsystems, mechanisms, partDefinitions }}

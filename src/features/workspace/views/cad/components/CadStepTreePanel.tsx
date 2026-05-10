@@ -1,0 +1,76 @@
+import type {
+  CadStepImportRunRecord,
+  CadStepTreeNode,
+} from "../model/cadIntegrationTypes";
+
+function mappingTone(mapping?: CadStepTreeNode["mapping"] | CadStepTreeNode["partInstances"][number]["mapping"] | null) {
+  if (!mapping || mapping.status === "NEEDS_REVIEW" || mapping.targetKind === "UNMAPPED") {
+    return "needs-review";
+  }
+  if (mapping.status === "CONFIRMED") {
+    return "confirmed";
+  }
+  return "proposed";
+}
+
+function formatDate(value?: string | null) {
+  return value ? new Date(value).toLocaleString() : "not available";
+}
+
+function TreeNode({ node }: { node: CadStepTreeNode }) {
+  return (
+    <li className="cad-tree-node" data-mapping={mappingTone(node.mapping)}>
+      <div className="cad-tree-node-main">
+        <strong>{node.name}</strong>
+        <span>{node.inferredType.replace(/_/g, " ").toLowerCase()}</span>
+        <code>{node.instancePath}</code>
+      </div>
+      {node.partInstances.length ? (
+        <ul className="cad-tree-parts">
+          {node.partInstances.map((instance) => (
+            <li data-mapping={mappingTone(instance.mapping)} key={instance.id}>
+              <span>{instance.partDefinition?.name ?? instance.instancePath}</span>
+              <small>qty {instance.quantity}</small>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {node.children.length ? (
+        <ul className="cad-tree-children">
+          {node.children.map((child) => <TreeNode key={child.id} node={child} />)}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+export function CadStepTreePanel({
+  importRun,
+  isViewingOlderSnapshot,
+  tree,
+}: {
+  importRun: CadStepImportRunRecord | null;
+  isViewingOlderSnapshot: boolean;
+  tree: CadStepTreeNode[];
+}) {
+  return (
+    <section className="cad-card">
+      <div className="cad-section-heading">
+        <span className="cad-eyebrow">Detected hierarchy</span>
+        <h3>Assembly tree</h3>
+      </div>
+      {importRun ? (
+        <dl className="cad-tree-import-meta">
+          <div><dt>Imported file</dt><dd>{importRun.originalFilename}</dd></div>
+          <div><dt>Import created</dt><dd>{formatDate(importRun.createdAt)}</dd></div>
+        </dl>
+      ) : null}
+      {isViewingOlderSnapshot ? (
+        <p className="cad-old-snapshot-alert" role="status">You are viewing an older CAD snapshot.</p>
+      ) : null}
+      {tree.length ? (
+        <ul className="cad-step-tree">{tree.map((node) => <TreeNode key={node.id} node={node} />)}</ul>
+      ) : <p className="cad-empty-copy">Upload a STEP file to inspect the detected assembly tree.</p>}
+    </section>
+  );
+}

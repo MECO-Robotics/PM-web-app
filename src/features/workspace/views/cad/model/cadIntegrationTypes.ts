@@ -198,8 +198,23 @@ export interface CadStepImportSummary {
   assemblyCount: number;
   partDefinitionCount: number;
   partInstanceCount: number;
-  maxDepth: number;
-  parserVersion: string;
+  maxDepth?: number;
+  parserVersion?: string;
+  actualParserVersion?: string;
+  configuredParserMode?: string;
+  parserMode?: string;
+  productCount?: number;
+  productDefinitionCount?: number;
+  productDefinitionFormationCount?: number;
+  assemblyUsageCount?: number;
+  nextAssemblyUsageOccurrenceCount?: number;
+  rootName?: string | null;
+  rootNames?: string[];
+  topLevelAssemblies?: string[];
+  topLevelAssemblyNames?: string[];
+  topLevelDetectedAssemblies?: string[];
+  parserUsedPlaceholder?: boolean;
+  rawStats?: Record<string, unknown>;
   warningCount: number;
   mappingCount: number;
 }

@@ -14,6 +14,7 @@ jest.mock("../api/cadStepApi", () => ({
   fetchCadSnapshotTree: jest.fn(),
   fetchCadSnapshotMappings: jest.fn(),
   fetchCadSnapshotDiff: jest.fn(),
+  fetchCadStepImportRuns: jest.fn(),
   uploadCadStepFile: jest.fn(),
   applyCadSnapshotMappings: jest.fn(),
   finalizeCadSnapshot: jest.fn(),
@@ -78,8 +79,10 @@ describe("CAD STEP mapper view", () => {
           mappingChanges: [],
           warnings: [],
         },
+        importRun: null,
         isFinalizing: false,
         isSavingMapping: false,
+        latestImportRunId: "cad-import-2",
         mappings: [{
           id: "mapping-1",
           snapshotId: "cad-snapshot-2",
@@ -153,8 +156,10 @@ describe("CAD STEP mapper view", () => {
     const markup = renderToStaticMarkup(
       React.createElement(CadStepReviewPanels, {
         diff: null,
+        importRun: null,
         isFinalizing: false,
         isSavingMapping: false,
+        latestImportRunId: "cad-import-parser",
         mappings: [],
         onConfirmMapping: jest.fn(),
         onFinalize: jest.fn(),
@@ -245,10 +250,181 @@ describe("CAD STEP mapper view", () => {
     const carryForwardIndex = markup.indexOf("Carry-forward");
 
     expect(markup).toContain("step-text-assembly-parser-1");
-    expect(markup.indexOf("Placeholder parser was used. This is not a real parse of the uploaded STEP file.")).toBeGreaterThan(-1);
-    expect(markup.indexOf("Placeholder parser was used. This is not a real parse of the uploaded STEP file.")).toBeLessThan(carryForwardIndex);
+    expect(markup.indexOf("Placeholder parser output. This is not from your uploaded STEP file.")).toBeGreaterThan(-1);
+    expect(markup.indexOf("Placeholder parser output. This is not from your uploaded STEP file.")).toBeLessThan(carryForwardIndex);
     expect(markup.indexOf("step_hierarchy_missing")).toBeLessThan(carryForwardIndex);
     expect(markup.indexOf("step_flattened_file")).toBeLessThan(carryForwardIndex);
     expect(markup.indexOf("step_parser_partial")).toBeLessThan(carryForwardIndex);
+  });
+
+  it("renders detailed STEP parser diagnostics and import metadata near the tree", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CadStepReviewPanels, {
+        diff: null,
+        importRun: {
+          id: "cad-import-diagnostics",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          source: "STEP_UPLOAD",
+          status: "MAPPING_REVIEW",
+          originalFilename: "competition-robot.step",
+          uploadedFileHash: "hash",
+          parserVersion: "step-text-assembly-parser-2",
+          parseStartedAt: "2026-05-10T00:00:00.000Z",
+          parseCompletedAt: "2026-05-10T00:00:01.000Z",
+          rawSummaryJson: {
+            parserMode: "auto",
+            productCount: 12,
+            assemblyUsageCount: 7,
+            nextAssemblyUsageOccurrenceCount: 7,
+            rootName: "ASM - Robot",
+            rootNames: ["ASM - Robot", "ASM - Practice Bot"],
+            topLevelAssemblies: ["SUB - Drivebase", "SUB - Shooter"],
+            parserUsedPlaceholder: false,
+          },
+          createdAt: "2026-05-10T00:00:00.000Z",
+          updatedAt: "2026-05-10T00:00:01.000Z",
+        },
+        isFinalizing: false,
+        isSavingMapping: false,
+        latestImportRunId: "cad-import-newer",
+        mappings: [],
+        onConfirmMapping: jest.fn(),
+        onFinalize: jest.fn(),
+        snapshot: {
+          id: "cad-snapshot-diagnostics",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          importRunId: "cad-import-diagnostics",
+          source: "STEP_UPLOAD",
+          label: "Diagnostics snapshot",
+          uploadedFileHash: "hash",
+          previousSnapshotId: null,
+          status: "mapping_review",
+          createdBy: null,
+          createdAt: "2026-05-10T00:00:02.000Z",
+          finalizedBy: null,
+          finalizedAt: null,
+          notes: null,
+        },
+        summary: {
+          assemblyCount: 3,
+          partDefinitionCount: 2,
+          partInstanceCount: 4,
+          maxDepth: 2,
+          parserVersion: "step-text-assembly-parser-2",
+          parserMode: "auto",
+          productCount: 12,
+          assemblyUsageCount: 7,
+          nextAssemblyUsageOccurrenceCount: 7,
+          rootName: "ASM - Robot",
+          rootNames: ["ASM - Robot", "ASM - Practice Bot"],
+          topLevelAssemblies: ["SUB - Drivebase", "SUB - Shooter"],
+          parserUsedPlaceholder: false,
+          warningCount: 0,
+          mappingCount: 0,
+        },
+        targets: {
+          subsystems: [],
+          mechanisms: [],
+          partDefinitions: [],
+        },
+        tree: [],
+        warnings: [],
+      }),
+    );
+
+    expect(markup).toContain("Parser mode");
+    expect(markup).toContain("auto");
+    expect(markup).toContain("Product count");
+    expect(markup).toContain("12");
+    expect(markup).toContain("NEXT_ASSEMBLY_USAGE_OCCURRENCE");
+    expect(markup).toContain("7");
+    expect(markup).toContain("Root names");
+    expect(markup).toContain("ASM - Robot, ASM - Practice Bot");
+    expect(markup).toContain("Top-level detected assemblies");
+    expect(markup).toContain("SUB - Drivebase, SUB - Shooter");
+    expect(markup).toContain("Placeholder used");
+    expect(markup).toContain("No");
+    expect(markup).toContain("competition-robot.step");
+    expect(markup).toContain("You are viewing an older CAD snapshot.");
+  });
+
+  it("blocks finalize and future mapping rules for placeholder STEP output", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CadStepReviewPanels, {
+        diff: null,
+        importRun: null,
+        isFinalizing: false,
+        isSavingMapping: false,
+        latestImportRunId: "cad-import-placeholder",
+        mappings: [{
+          id: "mapping-placeholder",
+          snapshotId: "cad-snapshot-placeholder",
+          mappingRuleId: null,
+          sourceKind: "ASSEMBLY_NODE",
+          sourceId: "cad-assembly-placeholder",
+          sourceName: "MECH - Placeholder",
+          targetKind: "UNMAPPED",
+          targetId: null,
+          confidence: "LOW",
+          status: "NEEDS_REVIEW",
+          rule: null,
+          updatedAt: "2026-05-10T00:00:00.000Z",
+        }],
+        onConfirmMapping: jest.fn(),
+        onFinalize: jest.fn(),
+        snapshot: {
+          id: "cad-snapshot-placeholder",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          importRunId: "cad-import-placeholder",
+          source: "STEP_UPLOAD",
+          label: "Placeholder snapshot",
+          uploadedFileHash: "hash",
+          previousSnapshotId: null,
+          status: "mapping_review",
+          createdBy: null,
+          createdAt: "2026-05-10T00:00:00.000Z",
+          finalizedBy: null,
+          finalizedAt: null,
+          notes: null,
+        },
+        summary: {
+          assemblyCount: 2,
+          partDefinitionCount: 1,
+          partInstanceCount: 1,
+          maxDepth: 1,
+          parserVersion: "mock-step-parser-placeholder-1",
+          parserUsedPlaceholder: true,
+          warningCount: 1,
+          mappingCount: 1,
+        },
+        targets: {
+          subsystems: [],
+          mechanisms: [],
+          partDefinitions: [],
+        },
+        tree: [],
+        warnings: [{
+          id: "warning-placeholder",
+          importRunId: "cad-import-placeholder",
+          snapshotId: "cad-snapshot-placeholder",
+          severity: "ERROR",
+          code: "step_parser_placeholder_used",
+          title: "Placeholder parser used",
+          message: "The STEP import fell back to placeholder output.",
+          sourceKind: null,
+          sourceId: null,
+          createdAt: "2026-05-10T00:00:00.000Z",
+        }],
+      }),
+    );
+
+    expect(markup).toContain("Placeholder parser output. This is not from your uploaded STEP file.");
+    expect(markup).toContain("Finalize is blocked for placeholder STEP output.");
+    expect(markup).toContain("disabled=\"\"");
+    expect(markup).toContain("Placeholder output cannot be saved as future mapping rules.");
+    expect(markup).not.toContain("This snapshot and future imports");
   });
 });

@@ -3,13 +3,19 @@ import { useMemo, useState } from "react";
 import type { MechanismRecord, PartDefinitionRecord, SubsystemRecord } from "@/types/records";
 import type {
   CadStepDiff,
+  CadStepImportRunRecord,
   CadStepImportSummary,
   CadStepMappingRecord,
   CadStepSnapshotRecord,
   CadStepTreeNode,
   CadStepWarningRecord,
 } from "../model/cadIntegrationTypes";
+import {
+  PLACEHOLDER_PARSER_WARNING_TEXT,
+  stepUsesPlaceholderParser,
+} from "../model/cadStepParserStatus";
 import { CadStepImportSummaryCard } from "./CadStepImportSummaryCard";
+import { CadStepTreePanel } from "./CadStepTreePanel";
 
 type TargetKind = CadStepMappingRecord["targetKind"];
 
@@ -21,43 +27,6 @@ const targetKinds: Array<{ value: TargetKind; label: string }> = [
   { value: "REFERENCE_GEOMETRY", label: "Reference geometry" },
   { value: "UNMAPPED", label: "Unmapped" },
 ];
-
-function mappingTone(mapping?: CadStepMappingRecord | null) {
-  if (!mapping || mapping.status === "NEEDS_REVIEW" || mapping.targetKind === "UNMAPPED") {
-    return "needs-review";
-  }
-  if (mapping.status === "CONFIRMED") {
-    return "confirmed";
-  }
-  return "proposed";
-}
-
-function TreeNode({ node }: { node: CadStepTreeNode }) {
-  return (
-    <li className="cad-tree-node" data-mapping={mappingTone(node.mapping)}>
-      <div className="cad-tree-node-main">
-        <strong>{node.name}</strong>
-        <span>{node.inferredType.replace(/_/g, " ").toLowerCase()}</span>
-        <code>{node.instancePath}</code>
-      </div>
-      {node.partInstances.length ? (
-        <ul className="cad-tree-parts">
-          {node.partInstances.map((instance) => (
-            <li data-mapping={mappingTone(instance.mapping)} key={instance.id}>
-              <span>{instance.partDefinition?.name ?? instance.instancePath}</span>
-              <small>qty {instance.quantity}</small>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {node.children.length ? (
-        <ul className="cad-tree-children">
-          {node.children.map((child) => <TreeNode key={child.id} node={child} />)}
-        </ul>
-      ) : null}
-    </li>
-  );
-}
 
 function targetOptions(
   kind: TargetKind,
@@ -87,8 +56,10 @@ function ruleOrigin(mapping: CadStepMappingRecord) {
 
 export function CadStepReviewPanels({
   diff,
+  importRun,
   isFinalizing,
   isSavingMapping,
+  latestImportRunId,
   mappings,
   onConfirmMapping,
   onFinalize,
@@ -99,8 +70,10 @@ export function CadStepReviewPanels({
   warnings,
 }: {
   diff: CadStepDiff | null;
+  importRun: CadStepImportRunRecord | null;
   isFinalizing: boolean;
   isSavingMapping: boolean;
+  latestImportRunId: string | null;
   mappings: CadStepMappingRecord[];
   onConfirmMapping: (input: {
     mappingId: string;
@@ -121,6 +94,8 @@ export function CadStepReviewPanels({
     () => mappings.filter((mapping) => mapping.status === "NEEDS_REVIEW" || mapping.targetKind === "UNMAPPED").length,
     [mappings],
   );
+  const usesPlaceholderParser = stepUsesPlaceholderParser({ importRun, summary, warnings });
+  const isViewingOlderSnapshot = Boolean(snapshot && latestImportRunId && snapshot.importRunId !== latestImportRunId);
 
   const readDraft = (mapping: CadStepMappingRecord) => drafts[mapping.id] ?? {
     targetKind: mapping.targetKind === "UNMAPPED" ? "SUBSYSTEM" : mapping.targetKind,
@@ -130,13 +105,23 @@ export function CadStepReviewPanels({
 
   return (
     <div className="cad-step-review-stack">
+      {usesPlaceholderParser ? (
+        <section className="cad-parser-alert cad-parser-alert-large" role="alert">
+          {PLACEHOLDER_PARSER_WARNING_TEXT}
+        </section>
+      ) : null}
+
       <div className="cad-grid cad-grid-three">
-        <CadStepImportSummaryCard snapshot={snapshot} summary={summary} warnings={warnings} />
+        <CadStepImportSummaryCard importRun={importRun} snapshot={snapshot} summary={summary} warnings={warnings} />
 
         <article className="cad-card cad-status-card">
           <span className="cad-eyebrow">Carry-forward</span>
           <h3>Mapping rules</h3>
-          <p>Existing rules propose mappings. Student edits can stay snapshot-only or create a new future rule.</p>
+          <p>
+            {usesPlaceholderParser
+              ? "Placeholder output cannot be saved as future mapping rules."
+              : "Existing rules propose mappings. Student edits can stay snapshot-only or create a new future rule."}
+          </p>
           <dl className="cad-key-values">
             <div><dt>Existing rules</dt><dd>{mappings.filter((mapping) => mapping.rule).length}</dd></div>
             <div><dt>Needs review</dt><dd>{unresolvedCount}</dd></div>
@@ -147,14 +132,23 @@ export function CadStepReviewPanels({
         <article className="cad-card cad-status-card">
           <span className="cad-eyebrow">Finalize</span>
           <h3>Review gate</h3>
-          <p>Finalize is blocked while required mappings are unresolved unless you explicitly allow unresolved warnings.</p>
+          <p>
+            {usesPlaceholderParser
+              ? "Finalize is blocked for placeholder STEP output."
+              : "Finalize is blocked while required mappings are unresolved unless you explicitly allow unresolved warnings."}
+          </p>
           <label className="cad-inline-check">
-            <input checked={allowUnresolved} onChange={(event) => setAllowUnresolved(event.target.checked)} type="checkbox" />
+            <input
+              checked={allowUnresolved}
+              disabled={usesPlaceholderParser}
+              onChange={(event) => setAllowUnresolved(event.target.checked)}
+              type="checkbox"
+            />
             <span>Finalize with unresolved warnings</span>
           </label>
           <button
             className="secondary-button"
-            disabled={!snapshot || isFinalizing || (unresolvedCount > 0 && !allowUnresolved)}
+            disabled={!snapshot || isFinalizing || usesPlaceholderParser || (unresolvedCount > 0 && !allowUnresolved)}
             onClick={() => onFinalize(allowUnresolved)}
             type="button"
           >
@@ -163,15 +157,11 @@ export function CadStepReviewPanels({
         </article>
       </div>
 
-      <section className="cad-card">
-        <div className="cad-section-heading">
-          <span className="cad-eyebrow">Detected hierarchy</span>
-          <h3>Assembly tree</h3>
-        </div>
-        {tree.length ? (
-          <ul className="cad-step-tree">{tree.map((node) => <TreeNode key={node.id} node={node} />)}</ul>
-        ) : <p className="cad-empty-copy">Upload a STEP file to inspect the detected assembly tree.</p>}
-      </section>
+      <CadStepTreePanel
+        importRun={importRun}
+        isViewingOlderSnapshot={isViewingOlderSnapshot}
+        tree={tree}
+      />
 
       <section className="cad-card">
         <div className="cad-section-heading">
@@ -225,7 +215,7 @@ export function CadStepReviewPanels({
                         })}
                       >
                         <option value="snapshot">This snapshot only</option>
-                        <option value="future">This snapshot and future imports</option>
+                        {usesPlaceholderParser ? null : <option value="future">This snapshot and future imports</option>}
                       </select>
                       <div className="cad-row-actions">
                         <button
@@ -235,7 +225,7 @@ export function CadStepReviewPanels({
                             mappingId: mapping.id,
                             targetKind: draft.targetKind,
                             targetId: draft.targetId || null,
-                            applyToFuture: draft.scope === "future",
+                            applyToFuture: !usesPlaceholderParser && draft.scope === "future",
                           })}
                           type="button"
                         >
@@ -248,7 +238,7 @@ export function CadStepReviewPanels({
                             mappingId: mapping.id,
                             targetKind: "IGNORE",
                             targetId: null,
-                            applyToFuture: draft.scope === "future",
+                            applyToFuture: !usesPlaceholderParser && draft.scope === "future",
                           })}
                           type="button"
                         >
@@ -261,7 +251,7 @@ export function CadStepReviewPanels({
                             mappingId: mapping.id,
                             targetKind: "REFERENCE_GEOMETRY",
                             targetId: null,
-                            applyToFuture: draft.scope === "future",
+                            applyToFuture: !usesPlaceholderParser && draft.scope === "future",
                           })}
                           type="button"
                         >
