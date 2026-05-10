@@ -1,12 +1,17 @@
 import type { Dispatch, SetStateAction } from "react";
-import { Plus } from "lucide-react";
 
-import { IconParts, IconSort, IconTasks } from "@/components/shared/Icons";
+import {
+  IconParts,
+  IconSearchMinus,
+  IconSearchPlus,
+  IconSort,
+  IconTasks,
+} from "@/components/shared/Icons";
 import type { BootstrapPayload } from "@/types/bootstrap";
 import type { MilestoneType } from "@/types/common";
 import { CompactFilterMenu } from "@/features/workspace/shared/filters/workspaceCompactFilterMenu";
 import { FilterDropdown } from "@/features/workspace/shared/filters/FilterDropdown";
-import { SearchToolbarInput } from "@/features/workspace/shared/filters/workspaceSearchToolbarInput";
+import { TopbarResponsiveSearch } from "@/features/workspace/shared/filters/TopbarResponsiveSearch";
 import type { FilterSelection } from "@/features/workspace/shared/filters/workspaceFilterUtils";
 import { EVENT_TYPE_STYLES as MILESTONE_TYPE_STYLES } from "@/features/workspace/shared/events/eventStyles";
 import {
@@ -38,7 +43,6 @@ const SORT_DIRECTION_OPTIONS: { id: "asc" | "desc"; name: string }[] = [
 
 interface MilestonesToolbarProps {
   isAllProjectsView: boolean;
-  onAddMilestone: () => void;
   projectFilter: FilterSelection;
   searchFilter: string;
   setProjectFilter: Dispatch<SetStateAction<FilterSelection>>;
@@ -56,7 +60,6 @@ interface MilestonesToolbarProps {
 
 export function MilestonesToolbar({
   isAllProjectsView,
-  onAddMilestone,
   projectFilter,
   projects,
   searchFilter,
@@ -77,9 +80,14 @@ export function MilestonesToolbar({
 
   return (
     <div className="panel-actions filter-toolbar milestones-toolbar">
-      <div data-tutorial-target="milestone-search-input">
-        <SearchToolbarInput
+      <div className="milestones-search-slot" data-tutorial-target="milestone-search-input">
+        <TopbarResponsiveSearch
           ariaLabel="Search milestones"
+          compactPlaceholder="Search"
+          compactSwitchWidth={200}
+          iconReleaseWidth={260}
+          iconSwitchWidth={86}
+          mode="dynamic-label"
           onChange={setSearchFilter}
           placeholder="Search milestones..."
           value={searchFilter}
@@ -168,40 +176,30 @@ export function MilestonesToolbar({
         ]}
       />
 
-      <div aria-label="Milestones zoom" className="task-queue-zoom-controls" role="group">
+      <div aria-label="Milestones zoom" className="task-queue-zoom-controls milestones-zoom-controls" role="group">
         <button
           aria-label="Zoom out milestones"
-          className="icon-button task-queue-zoom-button"
+          className="icon-button task-queue-zoom-button milestones-zoom-button"
           disabled={milestoneZoom <= MILESTONE_ZOOM_MIN}
           onClick={() => setMilestoneZoom((current) => clampMilestoneZoom(current - MILESTONE_ZOOM_STEP))}
           title="Zoom out milestones"
           type="button"
         >
-          -
+          <IconSearchMinus />
         </button>
         <span className="task-queue-zoom-label">{formatMilestoneZoomLabel(milestoneZoom)}</span>
         <button
           aria-label="Zoom in milestones"
-          className="icon-button task-queue-zoom-button"
+          className="icon-button task-queue-zoom-button milestones-zoom-button"
           disabled={milestoneZoom >= MILESTONE_ZOOM_MAX}
           onClick={() => setMilestoneZoom((current) => clampMilestoneZoom(current + MILESTONE_ZOOM_STEP))}
           title="Zoom in milestones"
           type="button"
         >
-          +
+          <IconSearchPlus />
         </button>
       </div>
 
-      <button
-        aria-label="Add milestone"
-        className="primary-action queue-toolbar-action queue-toolbar-action-round"
-        data-tutorial-target="create-milestone-button"
-        onClick={onAddMilestone}
-        title="Add milestone"
-        type="button"
-      >
-        <Plus size={14} strokeWidth={2} />
-      </button>
     </div>
   );
 }

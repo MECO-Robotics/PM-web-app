@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+﻿import { useMemo, useState } from "react";
 
 import type { BootstrapPayload } from "@/types/bootstrap";
 import type { ManufacturingItemRecord } from "@/types/recordsInventory";
 import { IconManufacturing, IconPerson, IconTasks } from "@/components/shared/Icons";
+import { AppTopbarSlotPortal } from "@/components/layout/AppTopbarSlotPortal";
+import { WorkspaceFloatingAddButton } from "@/features/workspace/shared/ui";
 import { CompactFilterMenu } from "@/features/workspace/shared/filters/workspaceCompactFilterMenu";
 import { FilterDropdown } from "@/features/workspace/shared/filters/FilterDropdown";
 import { filterSelectionIncludes, useFilterChangeMotionClass } from "@/features/workspace/shared/filters/workspaceFilterUtils";
@@ -104,10 +105,7 @@ export function ManufacturingQueueView({
 
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
-      <div className="panel-header compact-header">
-        <div className="queue-section-header">
-          <h2>{title}</h2>
-        </div>
+      <AppTopbarSlotPortal slot="controls">
         <div className="panel-actions filter-toolbar queue-toolbar">
           <div data-tutorial-target={tutorialTarget("search-input")}>
             <SearchToolbarInput
@@ -183,18 +181,21 @@ export function ManufacturingQueueView({
             ]}
           />
 
-          <button
-            aria-label={addButtonAriaLabel}
-            className="primary-action queue-toolbar-action queue-toolbar-action-round"
-            data-tutorial-target={tutorialTarget("create-job-button")}
-            onClick={onCreate}
-            title="Add"
-            type="button"
-          >
-            <Plus size={14} strokeWidth={2} />
-          </button>
+        </div>
+      </AppTopbarSlotPortal>
+
+      <div className="panel-header compact-header">
+        <div className="queue-section-header">
+          <h2>{title}</h2>
         </div>
       </div>
+
+      <WorkspaceFloatingAddButton
+        ariaLabel={addButtonAriaLabel}
+        onClick={onCreate}
+        title={addButtonAriaLabel}
+        tutorialTarget={tutorialTarget("create-job-button")}
+      />
 
       <KanbanScrollFrame motionClassName={manufacturingFilterMotionClass}>
         <>

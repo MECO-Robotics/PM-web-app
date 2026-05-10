@@ -1,9 +1,10 @@
-import { useMemo, useState, type CSSProperties } from "react";
-import { Plus } from "lucide-react";
+﻿import { useMemo, useState, type CSSProperties } from "react";
 
 import type { BootstrapPayload } from "@/types/bootstrap";
 import type { MaterialRecord } from "@/types/recordsInventory";
 import { IconManufacturing, IconTasks } from "@/components/shared/Icons";
+import { AppTopbarSlotPortal } from "@/components/layout/AppTopbarSlotPortal";
+import { WorkspaceFloatingAddButton } from "@/features/workspace/shared/ui";
 import { ColumnFilterDropdown } from "@/features/workspace/shared/filters/ColumnFilterDropdown";
 import { CompactFilterMenu } from "@/features/workspace/shared/filters/workspaceCompactFilterMenu";
 import { EditableHoverIndicator, PaginationControls, TableCell, useWorkspacePagination } from "@/features/workspace/shared/table/workspaceTableChrome";
@@ -56,13 +57,7 @@ export function MaterialsView({
 
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
-      <div className="panel-header compact-header">
-        <div className="queue-section-header">
-          <h2>Materials manager</h2>
-          <p className="section-copy">
-            Live inventory for stock, reorder thresholds, vendors, and shop locations.
-          </p>
-        </div>
+      <AppTopbarSlotPortal slot="controls">
         <div className="panel-actions filter-toolbar materials-toolbar">
           <div data-tutorial-target="materials-search-input">
             <SearchToolbarInput
@@ -110,18 +105,24 @@ export function MaterialsView({
             ]}
           />
 
-          <button
-            aria-label="Add material"
-            className="primary-action queue-toolbar-action queue-toolbar-action-round"
-            data-tutorial-target="create-material-button"
-            onClick={openCreateMaterialModal}
-            title="Add material"
-            type="button"
-          >
-            <Plus size={14} strokeWidth={2} />
-          </button>
+        </div>
+      </AppTopbarSlotPortal>
+
+      <div className="panel-header compact-header">
+        <div className="queue-section-header">
+          <h2>Materials manager</h2>
+          <p className="section-copy">
+            Live inventory for stock, reorder thresholds, vendors, and shop locations.
+          </p>
         </div>
       </div>
+
+      <WorkspaceFloatingAddButton
+        ariaLabel="Add material"
+        onClick={openCreateMaterialModal}
+        title="Add material"
+        tutorialTarget="create-material-button"
+      />
 
       <div className={`table-shell ${materialsFilterMotionClass}`}>
         <div

@@ -1,7 +1,8 @@
 import { useMemo, useState, type CSSProperties } from "react";
-import { Plus } from "lucide-react";
 
 import { IconManufacturing, IconTasks } from "@/components/shared/Icons";
+import { AppTopbarSlotPortal } from "@/components/layout/AppTopbarSlotPortal";
+import { WorkspaceFloatingAddButton } from "@/features/workspace/shared/ui";
 import type { ArtifactKind, ArtifactStatus } from "@/types/common";
 import type { ArtifactRecord } from "@/types/recordsInventory";
 import type { BootstrapPayload } from "@/types/bootstrap";
@@ -136,14 +137,7 @@ export function ArtifactInventoryView({
 
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
-      <div className="panel-header compact-header">
-        <div className="queue-section-header">
-          <h2>{sectionTitle}</h2>
-          <p className="section-copy">
-            Artifact inventory scoped to this project selection.
-          </p>
-        </div>
-
+      <AppTopbarSlotPortal slot="controls">
         <div className="panel-actions filter-toolbar materials-toolbar">
           <SearchToolbarInput
             ariaLabel={`Search ${sectionTitle.toLowerCase()}`}
@@ -205,18 +199,24 @@ export function ArtifactInventoryView({
             Show archived
           </label>
 
-          <button
-            aria-label={addLabel}
-            className="primary-action queue-toolbar-action queue-toolbar-action-round"
-            data-tutorial-target="create-document-button"
-            onClick={() => openCreateArtifactModal(primaryKind)}
-            title={addLabel}
-            type="button"
-          >
-            <Plus size={14} strokeWidth={2} />
-          </button>
+        </div>
+      </AppTopbarSlotPortal>
+
+      <div className="panel-header compact-header">
+        <div className="queue-section-header">
+          <h2>{sectionTitle}</h2>
+          <p className="section-copy">
+            Artifact inventory scoped to this project selection.
+          </p>
         </div>
       </div>
+
+      <WorkspaceFloatingAddButton
+        ariaLabel={addLabel}
+        onClick={() => openCreateArtifactModal(primaryKind)}
+        title={addLabel}
+        tutorialTarget="create-document-button"
+      />
 
       <div className={`table-shell ${artifactFilterMotionClass}`}>
         <div
