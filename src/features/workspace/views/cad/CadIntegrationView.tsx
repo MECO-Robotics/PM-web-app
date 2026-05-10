@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 
 import type { MechanismRecord, PartDefinitionRecord, SubsystemRecord } from "@/types/records";
 import {
@@ -11,15 +11,6 @@ import {
   finalizeCadSnapshot,
   uploadCadStepFile,
 } from "./api/cadStepApi";
-import {
-  createOnshapeDocumentRef,
-  fetchOnshapeImportEstimate,
-  fetchOnshapeOverview,
-  runOnshapeImport,
-} from "./api/onshapeCadApi";
-import { CadDataPanels } from "./components/CadDataPanels";
-import { CadLinkSyncPanel } from "./components/CadLinkSyncPanel";
-import { CadStatusPanels } from "./components/CadStatusPanels";
 import { CadStepReviewPanels } from "./components/CadStepReviewPanels";
 import { CadStepUploadPanel } from "./components/CadStepUploadPanel";
 import type {
@@ -29,42 +20,9 @@ import type {
   CadStepSnapshotRecord,
   CadStepTreeNode,
   CadStepWarningRecord,
-  OnshapeOverview,
-  OnshapeSyncEstimate,
-  SyncLevel,
 } from "./model/cadIntegrationTypes";
-import { parseOnshapeUrl } from "./model/onshapeUrlParser";
 import "./cadIntegration.css";
 import "./cadStepWorkflow.css";
-
-const defaultOverview: OnshapeOverview = {
-  connection: {
-    authMode: "api_key",
-    baseUrl: "https://cad.onshape.com",
-    configured: false,
-    credentialReference: null,
-    lastError: null,
-  },
-  documentRefs: [],
-  importRuns: [],
-  snapshots: [],
-  latestSnapshot: null,
-  assemblyNodes: [],
-  partDefinitions: [],
-  partInstances: [],
-  warnings: [],
-  budget: {
-    planType: "education",
-    dailySoftBudget: 100,
-    perSyncSoftBudget: 25,
-    callsUsedToday: 0,
-    callsUsedThisMonth: 0,
-    callsUsedThisYear: 0,
-    warningThresholdPercent: 70,
-    hardStopThresholdPercent: 90,
-    lastRateLimitRemaining: null,
-  },
-};
 
 export function CadIntegrationView({
   mechanisms = [],
@@ -79,7 +37,6 @@ export function CadIntegrationView({
   seasonId?: string | null;
   subsystems?: SubsystemRecord[];
 }) {
-  const [overview, setOverview] = useState<OnshapeOverview>(defaultOverview);
   const [stepFile, setStepFile] = useState<File | null>(null);
   const [stepLabel, setStepLabel] = useState("Robot STEP iteration");
   const [cadSnapshots, setCadSnapshots] = useState<CadStepSnapshotRecord[]>([]);
@@ -89,36 +46,12 @@ export function CadIntegrationView({
   const [stepMappings, setStepMappings] = useState<CadStepMappingRecord[]>([]);
   const [stepWarnings, setStepWarnings] = useState<CadStepWarningRecord[]>([]);
   const [stepDiff, setStepDiff] = useState<CadStepDiff | null>(null);
-  const [url, setUrl] = useState("");
-  const [label, setLabel] = useState("Robot master assembly");
-  const [selectedDocumentRefId, setSelectedDocumentRefId] = useState("");
-  const [syncLevel, setSyncLevel] = useState<SyncLevel>("bom");
   const [message, setMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [isUploadingStep, setIsUploadingStep] = useState(false);
   const [isSavingMapping, setIsSavingMapping] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
-  const [syncEstimate, setSyncEstimate] = useState<OnshapeSyncEstimate | null>(null);
 
-  const parsedUrl = useMemo(() => (url.trim() ? parseOnshapeUrl(url.trim()) : null), [url]);
-  const selectedDocumentRef = overview.documentRefs.find((ref) => ref.id === selectedDocumentRefId) ?? null;
-  const selectedReferenceType = selectedDocumentRef?.referenceType ?? parsedUrl?.referenceType ?? "unknown";
   const selectedCadSnapshot = cadSnapshots.find((snapshot) => snapshot.id === selectedCadSnapshotId) ?? null;
-
-  const loadOverview = async () => {
-    setIsLoading(true);
-    try {
-      const nextOverview = await fetchOnshapeOverview();
-      setOverview(nextOverview);
-      setSelectedDocumentRefId((current) => current || nextOverview.documentRefs[0]?.id || "");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const loadCadSnapshotDetails = useCallback(async (snapshotId: string) => {
     const [summaryResponse, treeResponse, mappingsResponse, diffResponse] = await Promise.all([
@@ -151,81 +84,8 @@ export function CadIntegrationView({
   }, [loadCadSnapshotDetails, projectId, seasonId]);
 
   useEffect(() => {
-    void loadOverview();
     void loadCadSnapshots();
   }, [loadCadSnapshots]);
-
-  useEffect(() => {
-    if (!selectedDocumentRefId) {
-      setSyncEstimate(null);
-      return;
-    }
-
-    let isCurrent = true;
-    fetchOnshapeImportEstimate({ documentRefId: selectedDocumentRefId, syncLevel })
-      .then((response) => {
-        if (isCurrent) {
-          setSyncEstimate(response.item);
-        }
-      })
-      .catch(() => {
-        if (isCurrent) {
-          setSyncEstimate(null);
-        }
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [selectedDocumentRefId, syncLevel]);
-
-  const handleSave = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!parsedUrl?.ok) {
-      setMessage("Paste a valid Onshape document URL first.");
-      return;
-    }
-
-    setIsSaving(true);
-    setMessage(null);
-    try {
-      const response = await createOnshapeDocumentRef({
-        url: parsedUrl.originalUrl,
-        label,
-        projectId,
-        seasonId,
-      });
-      await loadOverview();
-      setSelectedDocumentRefId(response.item.id);
-      setMessage(response.warnings.length ? response.warnings.join(" ") : "Onshape link saved without API calls.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSync = async () => {
-    if (!selectedDocumentRefId) {
-      setMessage("Select a saved Onshape reference first.");
-      return;
-    }
-
-    setIsSyncing(true);
-    setMessage(null);
-    try {
-      const response = await runOnshapeImport({ documentRefId: selectedDocumentRefId, syncLevel });
-      await loadOverview();
-      setMessage(
-        `Sync ${response.result.status}: ${response.result.partDefinitionCount} part definitions, ${response.result.partInstanceCount} instances, ${response.result.warningCount} warnings.`,
-      );
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : String(error));
-      await loadOverview().catch(() => undefined);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const handleStepUpload = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -306,13 +166,13 @@ export function CadIntegrationView({
     <section className="panel dense-panel cad-integration-shell">
       <div className="panel-header compact-header cad-header">
         <div className="queue-section-header">
-          <h2>CAD / STEP mapper</h2>
+          <h2>STEP import</h2>
           <p className="section-copy">
-            Detect STEP assembly structure, review mappings, and carry confirmed rules forward across iterations.
+            Upload STEP exports, review detected structure, and carry confirmed mappings forward across iterations.
           </p>
         </div>
         <div className="cad-header-meta">
-          <span>{isLoading ? "Refreshing CAD cache..." : "STEP-first workflow"}</span>
+          <span>STEP load workflow</span>
           <span>{selectedCadSnapshot ? `Last import ${new Date(selectedCadSnapshot.createdAt).toLocaleString()}` : "No STEP snapshot yet"}</span>
         </div>
       </div>
@@ -361,32 +221,6 @@ export function CadIntegrationView({
         tree={stepTree}
         warnings={stepWarnings}
       />
-
-      <CadStatusPanels
-        overview={overview}
-        selectedReferenceType={selectedReferenceType}
-        selectedSyncLevel={syncLevel}
-        syncEstimate={syncEstimate}
-      />
-
-      <CadLinkSyncPanel
-        documentRefs={overview.documentRefs}
-        isSaving={isSaving}
-        isSyncing={isSyncing}
-        label={label}
-        onLabelChange={setLabel}
-        onSave={handleSave}
-        onSelectDocumentRef={setSelectedDocumentRefId}
-        onSync={handleSync}
-        onSyncLevelChange={setSyncLevel}
-        onUrlChange={setUrl}
-        parsedUrl={parsedUrl}
-        selectedDocumentRefId={selectedDocumentRefId}
-        syncLevel={syncLevel}
-        url={url}
-      />
-
-      <CadDataPanels overview={overview} />
     </section>
   );
 }

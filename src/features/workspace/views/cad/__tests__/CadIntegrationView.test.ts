@@ -5,9 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { CadIntegrationView } from "../CadIntegrationView";
 import { uploadCadStepFile } from "../api/cadStepApi";
-import { createOnshapeDocumentRef, fetchOnshapeImportEstimate, runOnshapeImport } from "../api/onshapeCadApi";
 import { CadStepReviewPanels } from "../components/CadStepReviewPanels";
-import { CadStatusPanels } from "../components/CadStatusPanels";
 import { parseOnshapeUrl } from "../model/onshapeUrlParser";
 
 jest.mock("../api/cadStepApi", () => ({
@@ -21,14 +19,7 @@ jest.mock("../api/cadStepApi", () => ({
   finalizeCadSnapshot: jest.fn(),
 }));
 
-jest.mock("../api/onshapeCadApi", () => ({
-  fetchOnshapeOverview: jest.fn(),
-  fetchOnshapeImportEstimate: jest.fn(),
-  createOnshapeDocumentRef: jest.fn(),
-  runOnshapeImport: jest.fn(),
-}));
-
-describe("CAD / Onshape integration view", () => {
+describe("CAD STEP mapper view", () => {
   it("parses common Onshape references for preview without network calls", () => {
     const workspace = parseOnshapeUrl(
       "https://cad.onshape.com/documents/0123456789abcdef01234567/w/abcdefabcdefabcdefabcdef/e/111111111111111111111111?renderMode=0",
@@ -60,43 +51,17 @@ describe("CAD / Onshape integration view", () => {
     expect(parseOnshapeUrl("not-a-url").ok).toBe(false);
   });
 
-  it("does not trigger Onshape sync actions during page render", () => {
+  it("renders only the STEP import workflow", () => {
     const markup = renderToStaticMarkup(React.createElement(CadIntegrationView, {}));
 
-    expect(markup).toContain("CAD / STEP mapper");
+    expect(markup).toContain("STEP import");
     expect(markup).toContain("Export from the master assembly");
     expect(markup).toContain("MECH - Shooter - Flywheel");
+    expect(markup).not.toContain("Link Onshape");
+    expect(markup).not.toContain("Manual sync");
+    expect(markup).not.toContain("Onshape status");
+    expect(markup).not.toContain("API budget");
     expect(uploadCadStepFile).not.toHaveBeenCalled();
-    expect(createOnshapeDocumentRef).not.toHaveBeenCalled();
-    expect(fetchOnshapeImportEstimate).not.toHaveBeenCalled();
-    expect(runOnshapeImport).not.toHaveBeenCalled();
-  });
-
-  it("renders backend sync estimates when available", () => {
-    const markup = renderToStaticMarkup(
-      React.createElement(CadStatusPanels, {
-        overview: null,
-        selectedReferenceType: "version",
-        selectedSyncLevel: "bom",
-        syncEstimate: {
-          documentRefId: "onshape-ref-1",
-          syncLevel: "bom",
-          callsEstimated: 2,
-          allowCached: true,
-          requireFresh: false,
-          immutableReference: true,
-          referenceType: "version",
-          cacheStatus: "hit",
-          perSyncSoftBudget: 25,
-          budgetAllowsSync: true,
-          warnings: [],
-        },
-      }),
-    );
-
-    expect(markup).toContain("2 calls");
-    expect(markup).toContain("cache hit");
-    expect(markup).toContain("within budget");
   });
 
   it("renders mapping review state with carry-forward scope and finalize guard", () => {
