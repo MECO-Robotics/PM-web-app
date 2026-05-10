@@ -19,6 +19,7 @@ interface RobotMapCanvasProps {
   onSelectSubsystem: (subsystemId: string) => void;
   onToggleLayoutEdit: () => void;
   referenceImageUrl: string | null;
+  referenceImageStorageNotice: string | null;
   selectedSubsystemId: string | null;
   subsystems: RobotConfigurationSubsystemModel[];
 }
@@ -60,6 +61,7 @@ export function RobotMapCanvas({
   onSelectSubsystem,
   onToggleLayoutEdit,
   referenceImageUrl,
+  referenceImageStorageNotice,
   selectedSubsystemId,
   subsystems,
 }: RobotMapCanvasProps) {
@@ -278,6 +280,12 @@ export function RobotMapCanvas({
             </span>
           </button>
         </div>
+
+        {referenceImageStorageNotice ? (
+          <p className="robot-config-map-storage-notice" role="status">
+            {referenceImageStorageNotice}
+          </p>
+        ) : null}
 
         {!hasUnplacedSubsystems ? (
           <div className="robot-config-map-actions-overlay">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { BootstrapPayload } from "@/types/bootstrap";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model/workspaceTypes";
@@ -35,6 +35,9 @@ interface RobotMapViewProps {
     >,
   ) => Promise<boolean>;
 }
+
+const REFERENCE_IMAGE_STORAGE_ERROR_MESSAGE =
+  "Image loaded for this session, but local browser storage is unavailable.";
 
 function buildReferenceImageStorageKey(bootstrap: BootstrapPayload) {
   const primaryProjectId = bootstrap.projects[0]?.id ?? "default";
@@ -78,13 +81,22 @@ export function RobotMapView({
   >({});
   const [isLayoutEditEnabled, setIsLayoutEditEnabled] = useState(false);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [referenceImageStorageNotice, setReferenceImageStorageNotice] = useState<string | null>(null);
+  const layoutPersistVersionBySubsystemIdRef = useRef<Record<string, number>>({});
 
   const referenceImageStorageKey = useMemo(() => buildReferenceImageStorageKey(bootstrap), [bootstrap]);
   const viewModel = useMemo(() => buildRobotConfigurationViewModel(bootstrap, search), [bootstrap, search]);
 
   useEffect(() => {
-    const storedImage = window.localStorage.getItem(referenceImageStorageKey);
-    setReferenceImageUrl(storedImage);
+    try {
+      const storedImage = window.localStorage.getItem(referenceImageStorageKey);
+      setReferenceImageUrl(storedImage);
+      setReferenceImageStorageNotice(null);
+    } catch (error) {
+      setReferenceImageUrl(null);
+      setReferenceImageStorageNotice(REFERENCE_IMAGE_STORAGE_ERROR_MESSAGE);
+      console.warn("Failed to read robot reference image from local storage.", error);
+    }
   }, [referenceImageStorageKey]);
 
   useEffect(() => {
@@ -148,17 +160,30 @@ export function RobotMapView({
     nextLayouts: Record<string, SubsystemLayoutFields>,
     rollbackLayoutsBySubsystemId: Record<string, SubsystemLayoutFields>,
   ) => {
+    const requestVersionBySubsystemId = Object.fromEntries(
+      Object.keys(nextLayouts).map((subsystemId) => {
+        const nextVersion = (layoutPersistVersionBySubsystemIdRef.current[subsystemId] ?? 0) + 1;
+        layoutPersistVersionBySubsystemIdRef.current[subsystemId] = nextVersion;
+        return [subsystemId, nextVersion] as const;
+      }),
+    );
+
     const saveResults = await Promise.all(
       Object.entries(nextLayouts).map(async ([subsystemId, layout]) => ({
         subsystemId,
         didPersist: await saveSubsystemLayout(subsystemId, layout).catch(() => false),
+        requestVersion: requestVersionBySubsystemId[subsystemId] ?? 0,
       })),
     );
 
     const failedRollbackLayouts: Record<string, SubsystemLayoutFields> = {};
-    saveResults.forEach(({ subsystemId, didPersist }) => {
+    saveResults.forEach(({ subsystemId, didPersist, requestVersion }) => {
       if (!didPersist) {
-        failedRollbackLayouts[subsystemId] = rollbackLayoutsBySubsystemId[subsystemId] ?? buildUnplacedLayout(null);
+        const latestVersion = layoutPersistVersionBySubsystemIdRef.current[subsystemId] ?? 0;
+        if (latestVersion === requestVersion) {
+          failedRollbackLayouts[subsystemId] =
+            rollbackLayoutsBySubsystemId[subsystemId] ?? buildUnplacedLayout(null);
+        }
       }
     });
 
@@ -202,7 +227,9 @@ export function RobotMapView({
     setReferenceImageUrl(nextImage);
     try {
       window.localStorage.setItem(referenceImageStorageKey, nextImage);
+      setReferenceImageStorageNotice(null);
     } catch (error) {
+      setReferenceImageStorageNotice(REFERENCE_IMAGE_STORAGE_ERROR_MESSAGE);
       console.warn("Failed to persist robot reference image locally.", error);
     }
   };
@@ -239,6 +266,7 @@ export function RobotMapView({
                 onSelectSubsystem={setSelectedSubsystemId}
                 onToggleLayoutEdit={() => setIsLayoutEditEnabled((current) => !current)}
                 referenceImageUrl={referenceImageUrl}
+                referenceImageStorageNotice={referenceImageStorageNotice}
                 selectedSubsystemId={selectedSubsystemId}
                 subsystems={subsystems}
               />
