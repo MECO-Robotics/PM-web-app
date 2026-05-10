@@ -2,6 +2,7 @@
 
 import {
   createOnshapeDocumentRef,
+  createOnshapeOAuthAuthorizationUrl,
   fetchOnshapeImportEstimate,
   fetchOnshapeOverview,
   runOnshapeImport,
@@ -16,10 +17,18 @@ import "./cadIntegrationData.css";
 
 const defaultOverview: OnshapeOverview = {
   connection: {
-    authMode: "api_key",
+    authMode: "oauth",
     baseUrl: "https://cad.onshape.com",
     configured: false,
     credentialReference: null,
+    oauth: {
+      clientConfigured: false,
+      connected: false,
+      authorizationUrlAvailable: false,
+      scopes: [],
+      tokenExpiresAt: null,
+      credentialSource: "none",
+    },
     lastError: null,
   },
   documentRefs: [],
@@ -59,6 +68,7 @@ export function CadIntegrationView({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isConnectingOAuth, setIsConnectingOAuth] = useState(false);
   const [syncEstimate, setSyncEstimate] = useState<OnshapeSyncEstimate | null>(null);
 
   const parsedUrl = useMemo(() => (url.trim() ? parseOnshapeUrl(url.trim()) : null), [url]);
@@ -154,6 +164,20 @@ export function CadIntegrationView({
     }
   };
 
+  const handleConnectOAuth = async () => {
+    setIsConnectingOAuth(true);
+    setMessage(null);
+    try {
+      const response = await createOnshapeOAuthAuthorizationUrl();
+      window.open(response.authorizationUrl, "_blank", "noopener,noreferrer");
+      setMessage("Onshape OAuth2 authorization opened in a new tab. Return here after approving access.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsConnectingOAuth(false);
+    }
+  };
+
   return (
     <section className="panel dense-panel cad-integration-shell">
       <div className="panel-header compact-header cad-header">
@@ -173,6 +197,8 @@ export function CadIntegrationView({
 
       <CadStatusPanels
         overview={overview}
+        isConnectingOAuth={isConnectingOAuth}
+        onConnectOAuth={handleConnectOAuth}
         selectedReferenceType={selectedReferenceType}
         selectedSyncLevel={syncLevel}
         syncEstimate={syncEstimate}

@@ -4,7 +4,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { CadIntegrationView } from "../CadIntegrationView";
-import { createOnshapeDocumentRef, fetchOnshapeImportEstimate, runOnshapeImport } from "../api/onshapeCadApi";
+import {
+  createOnshapeDocumentRef,
+  createOnshapeOAuthAuthorizationUrl,
+  fetchOnshapeImportEstimate,
+  runOnshapeImport,
+} from "../api/onshapeCadApi";
 import { CadStatusPanels } from "../components/CadStatusPanels";
 import { parseOnshapeUrl } from "../model/onshapeUrlParser";
 
@@ -12,6 +17,7 @@ jest.mock("../api/onshapeCadApi", () => ({
   fetchOnshapeOverview: jest.fn(),
   fetchOnshapeImportEstimate: jest.fn(),
   createOnshapeDocumentRef: jest.fn(),
+  createOnshapeOAuthAuthorizationUrl: jest.fn(),
   runOnshapeImport: jest.fn(),
 }));
 
@@ -52,8 +58,61 @@ describe("CAD / Onshape integration view", () => {
 
     expect(markup).toContain("CAD / Onshape integration");
     expect(createOnshapeDocumentRef).not.toHaveBeenCalled();
+    expect(createOnshapeOAuthAuthorizationUrl).not.toHaveBeenCalled();
     expect(fetchOnshapeImportEstimate).not.toHaveBeenCalled();
     expect(runOnshapeImport).not.toHaveBeenCalled();
+  });
+
+  it("renders OAuth2 connection state without exposing token values", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CadStatusPanels, {
+        overview: {
+          connection: {
+            authMode: "oauth",
+            baseUrl: "https://cad.onshape.com",
+            configured: true,
+            credentialReference: "onshape-oauth",
+            lastError: null,
+            oauth: {
+              clientConfigured: true,
+              connected: true,
+              authorizationUrlAvailable: true,
+              scopes: ["OAuth2Read"],
+              tokenExpiresAt: "2026-05-10T12:00:00.000Z",
+              credentialSource: "runtime",
+            },
+          },
+          documentRefs: [],
+          importRuns: [],
+          snapshots: [],
+          latestSnapshot: null,
+          assemblyNodes: [],
+          partDefinitions: [],
+          partInstances: [],
+          warnings: [],
+          budget: {
+            planType: "education",
+            dailySoftBudget: 100,
+            perSyncSoftBudget: 25,
+            callsUsedToday: 0,
+            callsUsedThisMonth: 0,
+            callsUsedThisYear: 0,
+            warningThresholdPercent: 70,
+            hardStopThresholdPercent: 90,
+            lastRateLimitRemaining: null,
+          },
+        },
+        selectedReferenceType: "version",
+        selectedSyncLevel: "bom",
+        syncEstimate: null,
+        onConnectOAuth: jest.fn(),
+      }),
+    );
+
+    expect(markup).toContain("OAuth2 connected");
+    expect(markup).toContain("runtime token");
+    expect(markup).toContain("OAuth2Read");
+    expect(markup).not.toContain("oauth-access-token");
   });
 
   it("renders backend sync estimates when available", () => {
