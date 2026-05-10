@@ -204,6 +204,7 @@ describe("TimelineView", () => {
         subsystemColumnIndex: 2,
         subsystemIndex: 1,
         subsystemStickyLeft: 112,
+        rowIndex: 1,
         taskDependencyCountsById: {},
         taskStatusSignalsById: {},
         timelineDayHeaderCells: [
