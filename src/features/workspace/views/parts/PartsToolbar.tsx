@@ -1,4 +1,3 @@
-import { Plus } from "lucide-react";
 import { IconManufacturing, IconTasks } from "@/components/shared/Icons";
 import { CompactFilterMenu } from "@/features/workspace/shared/filters/workspaceCompactFilterMenu";
 import { FilterDropdown } from "@/features/workspace/shared/filters/FilterDropdown";
@@ -9,7 +8,6 @@ import type { BootstrapPayload } from "@/types/bootstrap";
 
 interface PartsToolbarProps {
   bootstrap: BootstrapPayload;
-  openCreatePartDefinitionModal: () => void;
   partSearch: string;
   partStatus: FilterSelection;
   partSubsystem: FilterSelection;
@@ -30,7 +28,6 @@ const ARCHIVED_LABEL_STYLE = {
 
 export function PartsToolbar({
   bootstrap,
-  openCreatePartDefinitionModal,
   partSearch,
   partStatus,
   partSubsystem,
@@ -96,16 +93,6 @@ export function PartsToolbar({
         ]}
       />
 
-      <button
-        aria-label="Add part definition"
-        className="primary-action queue-toolbar-action queue-toolbar-action-round part-manager-toolbar-action"
-        data-tutorial-target="create-part-button"
-        onClick={openCreatePartDefinitionModal}
-        title="Add part definition"
-        type="button"
-      >
-        <Plus size={14} strokeWidth={2} />
-      </button>
     </div>
   );
 }

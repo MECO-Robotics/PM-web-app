@@ -1,7 +1,6 @@
 import { SearchToolbarInput } from "@/features/workspace/shared/filters/workspaceSearchToolbarInput";
 
 interface SubsystemsToolbarProps {
-  openCreateSubsystemModal: () => void;
   search: string;
   setSearch: (value: string) => void;
   setShowArchivedMechanisms: (value: boolean) => void;
@@ -19,7 +18,6 @@ const LABEL_STYLE = {
 } as const;
 
 export function SubsystemsToolbar({
-  openCreateSubsystemModal,
   search,
   setSearch,
   setShowArchivedMechanisms,
@@ -54,15 +52,6 @@ export function SubsystemsToolbar({
         Show archived mechanisms
       </label>
 
-      <button
-        aria-label="Add subsystem"
-        className="primary-action queue-toolbar-action subsystem-manager-toolbar-action"
-        data-tutorial-target="create-subsystem-button"
-        onClick={openCreateSubsystemModal}
-        type="button"
-      >
-        Add subsystem
-      </button>
     </div>
   );
 }

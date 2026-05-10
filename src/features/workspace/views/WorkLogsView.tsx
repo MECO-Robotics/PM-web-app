@@ -4,6 +4,8 @@ import type { WorklogsViewTab } from "@/lib/workspaceNavigation";
 import type { FilterSelection } from "@/features/workspace/shared/filters/workspaceFilterUtils";
 import type { MembersById, SubsystemsById } from "@/features/workspace/shared/model/workspaceTypes";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model/workspaceTypes";
+import { AppTopbarSlotPortal } from "@/components/layout/AppTopbarSlotPortal";
+import { WorkspaceFloatingAddButton } from "@/features/workspace/shared/ui";
 
 import { useWorkLogsViewState } from "./workLogs/workLogsViewState";
 import { WorkLogsActivitySection } from "./workLogs/WorkLogsActivitySection";
@@ -39,15 +41,11 @@ export function WorkLogsView({
 
   return (
     <section className={`panel dense-panel ${WORKSPACE_PANEL_CLASS}`}>
-      <div className="panel-header compact-header">
-        <div className="queue-section-header">
-          <h2>{view === "activity" ? "Activity" : view === "summary" ? "Work log summary" : "Work logs"}</h2>
-        </div>
-
-        {view === "logs" ? (
+      {view === "logs" ? (
+        <AppTopbarSlotPortal slot="controls">
           <WorkLogsToolbar
             bootstrap={bootstrap}
-            openCreateWorkLogModal={openCreateWorkLogModal}
+            renderMode="topbar"
             search={workLogsView.search}
             setSearch={workLogsView.setSearch}
             setSortMode={workLogsView.setSortMode}
@@ -56,8 +54,23 @@ export function WorkLogsView({
             sortOptions={workLogsView.sortOptions}
             subsystemFilter={workLogsView.subsystemFilter}
           />
-        ) : null}
+        </AppTopbarSlotPortal>
+      ) : null}
+
+      <div className="panel-header compact-header">
+        <div className="queue-section-header">
+          <h2>{view === "activity" ? "Activity" : view === "summary" ? "Work log summary" : "Work logs"}</h2>
+        </div>
       </div>
+
+      {view === "logs" ? (
+        <WorkspaceFloatingAddButton
+          ariaLabel="Add work log"
+          onClick={openCreateWorkLogModal}
+          title="Add work log"
+          tutorialTarget="create-worklog-button"
+        />
+      ) : null}
 
       {view === "activity" ? (
         <WorkLogsActivitySection
@@ -76,7 +89,6 @@ export function WorkLogsView({
         />
       ) : (
         <WorkLogsTableSection
-          bootstrap={bootstrap}
           membersById={membersById}
           openEditTaskModal={openEditTaskModal}
           subsystemsById={subsystemsById}
@@ -84,8 +96,6 @@ export function WorkLogsView({
           workLogFilterMotionClass={workLogsView.workLogFilterMotionClass}
           workLogPagination={workLogsView.workLogPagination}
           workLogs={workLogsView.workLogs}
-          setSubsystemFilter={workLogsView.setSubsystemFilter}
-          subsystemFilter={workLogsView.subsystemFilter}
         />
       )}
     </section>
