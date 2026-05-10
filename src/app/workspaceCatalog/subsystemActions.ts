@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
 import { buildEmptySubsystemPayload } from "@/lib/appUtils/payloadBuilders";
 import { splitList, toErrorMessage } from "@/lib/appUtils/common";
@@ -12,6 +12,8 @@ import type { SubsystemRecord } from "@/types/recordsOrganization";
 export type SubsystemActions = ReturnType<typeof useSubsystemActions>;
 
 export function useSubsystemActions(model: AppWorkspaceModel) {
+  const updateRequestVersionBySubsystemIdRef = useRef<Record<string, number>>({});
+
   const openCreateSubsystemModal = useCallback(() => {
     model.setActiveSubsystemId(null);
     model.setSubsystemDraft(buildEmptySubsystemPayload(model.scopedBootstrap));
@@ -101,6 +103,8 @@ export function useSubsystemActions(model: AppWorkspaceModel) {
     if (!previousSubsystem) {
       return false;
     }
+    const requestVersion = (updateRequestVersionBySubsystemIdRef.current[subsystemId] ?? 0) + 1;
+    updateRequestVersionBySubsystemIdRef.current[subsystemId] = requestVersion;
 
     const hasLayoutPatch = [
       "layoutX",
@@ -162,24 +166,30 @@ export function useSubsystemActions(model: AppWorkspaceModel) {
         model.handleUnauthorized,
       );
 
-      model.setBootstrap((current) => ({
-        ...current,
-        subsystems: current.subsystems.map((subsystem) =>
-          subsystem.id === subsystemId ? { ...subsystem, ...updatedSubsystem } : subsystem,
-        ),
-      }));
+      const latestVersion = updateRequestVersionBySubsystemIdRef.current[subsystemId] ?? 0;
+      if (latestVersion === requestVersion) {
+        model.setBootstrap((current) => ({
+          ...current,
+          subsystems: current.subsystems.map((subsystem) =>
+            subsystem.id === subsystemId ? { ...subsystem, ...updatedSubsystem } : subsystem,
+          ),
+        }));
+      }
       return true;
     } catch (error) {
-      model.setBootstrap((current) => ({
-        ...current,
-        subsystems: current.subsystems.map((subsystem) =>
-          subsystem.id === subsystemId ? previousSubsystem : subsystem,
-        ),
-      }));
-      model.setDataMessage(toErrorMessage(error));
+      const latestVersion = updateRequestVersionBySubsystemIdRef.current[subsystemId] ?? 0;
+      if (latestVersion === requestVersion) {
+        model.setBootstrap((current) => ({
+          ...current,
+          subsystems: current.subsystems.map((subsystem) =>
+            subsystem.id === subsystemId ? previousSubsystem : subsystem,
+          ),
+        }));
+        model.setDataMessage(toErrorMessage(error));
+      }
       return false;
     }
-  }, [model]);
+  }, [model, updateRequestVersionBySubsystemIdRef]);
 
   const saveSubsystemLayout = useCallback(async (
     subsystemId: string,

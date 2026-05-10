@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { BootstrapPayload } from "@/types/bootstrap";
 import { WORKSPACE_PANEL_CLASS } from "@/features/workspace/shared/model/workspaceTypes";
-import type { SubsystemLayoutFields } from "@/lib/appUtils/subsystemLayout";
+import { normalizeSubsystemLayoutFields, type SubsystemLayoutFields } from "@/lib/appUtils/subsystemLayout";
 
 import { RobotConfigurationToolbar } from "./RobotConfigurationToolbar";
 import { RobotMapCanvas } from "./RobotMapCanvas";
@@ -119,11 +119,11 @@ export function RobotMapView({
   );
   const persistedLayoutBySubsystemId = useMemo(() => {
     const nextLayouts: Record<string, SubsystemLayoutFields> = {};
-    viewModel.subsystems.forEach((subsystem) => {
-      nextLayouts[subsystem.id] = { ...subsystem.layout };
+    bootstrap.subsystems.forEach((subsystem) => {
+      nextLayouts[subsystem.id] = normalizeSubsystemLayoutFields(subsystem);
     });
     return nextLayouts;
-  }, [viewModel.subsystems]);
+  }, [bootstrap.subsystems]);
 
   useEffect(() => {
     if (subsystems.length === 0) {
@@ -215,7 +215,7 @@ export function RobotMapView({
 
   const handleResetLayout = async () => {
     const resetLayouts = Object.fromEntries(
-      subsystems.map((subsystem, index) => [subsystem.id, buildUnplacedLayout(index)] as const),
+      bootstrap.subsystems.map((subsystem, index) => [subsystem.id, buildUnplacedLayout(index)] as const),
     );
     setLayoutDraftBySubsystemId((current) => ({ ...current, ...resetLayouts }));
 
