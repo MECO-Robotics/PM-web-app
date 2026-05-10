@@ -22,6 +22,7 @@ import type {
   CadStepWarningRecord,
 } from "./model/cadIntegrationTypes";
 import "./cadIntegration.css";
+import "./cadIntegrationData.css";
 import "./cadStepWorkflow.css";
 
 export function CadIntegrationView({
