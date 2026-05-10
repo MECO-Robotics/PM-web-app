@@ -33,10 +33,10 @@ export function TopbarResponsiveSearch({
   const [isDynamicIconMode, setIsDynamicIconMode] = useState(false);
   const [searchWidth, setSearchWidth] = useState<number | null>(null);
   const compactRef = useRef<HTMLDivElement>(null);
-  const resolvedMode = mode ?? "multi-state";
+  const resolvedMode = mode ?? "dynamic-label";
   const isActive = value.trim() !== "";
   const compactLabel =
-    compactPlaceholder && compactPlaceholder.trim().length > 0 ? compactPlaceholder.trim() : placeholder;
+    compactPlaceholder && compactPlaceholder.trim().length > 0 ? compactPlaceholder.trim() : "Search";
   const hasCompactLabelVariant = compactLabel !== placeholder;
   const switchWidth = compactSwitchWidth ?? 132;
   const iconWidth = iconSwitchWidth ?? 86;

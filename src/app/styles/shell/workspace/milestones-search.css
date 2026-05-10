@@ -12,6 +12,7 @@
 .milestones-toolbar .milestones-search-slot > .topbar-responsive-search,
 .milestones-toolbar .milestones-search-slot > .milestones-search-control,
 .milestones-search-control > .topbar-responsive-search {
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
 }
