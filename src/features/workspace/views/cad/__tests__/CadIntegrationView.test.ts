@@ -508,9 +508,24 @@ describe("CAD STEP mapper view", () => {
           sourceId: "cad-part-inst-1",
           sourceIds: ["cad-part-inst-1", "cad-part-inst-2", "cad-part-inst-3", "cad-part-inst-4"],
           sourceName: "PRT - Shooter - Flywheel - Spacer",
+          parentAssemblyName: "MECH - Shooter - Flywheel",
           quantity: 4,
           hasMixedMappings: true,
           warning: "Repeated instances have mixed mappings. Review before finalizing.",
+          targetKind: "UNMAPPED",
+          targetId: null,
+          confidence: "LOW",
+          status: "NEEDS_REVIEW",
+          rule: null,
+          updatedAt: "2026-05-10T00:00:00.000Z",
+        }, {
+          id: "mapping-singleton-plate",
+          snapshotId: "cad-snapshot-grouped",
+          mappingRuleId: null,
+          sourceKind: "PART_INSTANCE",
+          sourceId: "cad-part-inst-plate",
+          sourceName: "Mounting Plate <1>",
+          parentAssemblyName: "MECH - Shooter - Flywheel",
           targetKind: "UNMAPPED",
           targetId: null,
           confidence: "LOW",
@@ -581,6 +596,19 @@ describe("CAD STEP mapper view", () => {
             hasMixedMappings: false,
             hasMixedMetadata: false,
             representativeInstanceId: "cad-part-inst-1",
+          }, {
+            id: "cad-part-inst-plate",
+            snapshotId: "cad-snapshot-grouped",
+            sourceId: "inst-plate-1",
+            partDefinitionId: "part-plate",
+            parentAssemblyNodeId: "root",
+            instancePath: "/MAIN ASSEMBLY/Mounting Plate <1>",
+            quantity: 1,
+            stableSignature: "inst:path:/MAIN ASSEMBLY/Mounting Plate <1>",
+            metadataJson: {},
+            createdAt: "2026-05-10T00:00:00.000Z",
+            mapping: null,
+            partDefinition: { id: "part-plate", name: "PRT - Shooter - Mounting Plate", partNumber: "SHR-002" },
           }],
           children: [],
         }],
@@ -594,8 +622,13 @@ describe("CAD STEP mapper view", () => {
     expect(markup).toContain("×4");
     expect(markup).toContain("Expand PRT - Shooter - Flywheel - Spacer repeated instances");
     expect(markup).toContain("Quantity");
+    expect(markup).toContain("Parent assembly");
+    expect(markup).toContain("MECH - Shooter - Flywheel");
     expect(markup).toContain("Mixed mappings");
     expect(markup).toContain("Applies to 4 repeated instances");
+    expect(markup).toContain("Mounting Plate &lt;1&gt;");
+    expect(markup).not.toContain("Applies to 1 repeated instances");
+    expect(markup).not.toContain("×1");
     expect(markup).toContain("quantity changed");
     expect(markup).toContain("3 → 4");
   });

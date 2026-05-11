@@ -106,7 +106,7 @@ export function CadStepMappingReviewTable({
       <div className="cad-table-wrap">
         <table className="cad-table cad-mapping-table">
           <thead>
-            <tr><th>Detected item</th><th>Type</th><th>Quantity</th><th>Suggested target</th><th>Confidence</th><th>Status</th><th>Action</th></tr>
+            <tr><th>Detected item</th><th>Type</th><th>Quantity</th><th>Parent assembly</th><th>Suggested target</th><th>Confidence</th><th>Status</th><th>Action</th></tr>
           </thead>
           <tbody>
             {mappings.length ? mappings.map((mapping) => {
@@ -125,6 +125,7 @@ export function CadStepMappingReviewTable({
                   </td>
                   <td>{mapping.sourceKind.replace(/_/g, " ").toLowerCase()}</td>
                   <td>{isGroupedRow ? <span className="cad-quantity-pill">{"\u00d7"}{instanceQuantity}</span> : "1"}</td>
+                  <td>{mapping.parentAssemblyName ?? "None"}</td>
                   <td>
                     <select
                       value={draft.targetKind}
@@ -212,7 +213,7 @@ export function CadStepMappingReviewTable({
                   </td>
                 </tr>
               );
-            }) : <tr><td colSpan={7}>No mappings yet.</td></tr>}
+            }) : <tr><td colSpan={8}>No mappings yet.</td></tr>}
           </tbody>
         </table>
       </div>

@@ -246,9 +246,15 @@ export interface CadStepTreeNode {
 
 export type CadStepTreePartInstanceRecord = {
     id: string;
+    snapshotId?: string;
     sourceId: string;
+    partDefinitionId?: string | null;
+    parentAssemblyNodeId?: string | null;
     instancePath: string;
     quantity: number;
+    stableSignature?: string;
+    metadataJson?: Record<string, unknown>;
+    createdAt?: string;
     mapping: CadStepMappingRecord | null;
     partDefinition: { id: string; name: string; partNumber: string | null } | null;
   } | {
@@ -279,6 +285,7 @@ export interface CadStepMappingRecord {
   sourceId: string;
   sourceIds?: string[];
   sourceName: string;
+  parentAssemblyName?: string | null;
   targetKind: "SUBSYSTEM" | "MECHANISM" | "PART_DEFINITION" | "PART_INSTANCE" | "IGNORE" | "REFERENCE_GEOMETRY" | "UNMAPPED";
   targetId: string | null;
   confidence: "HIGH" | "MEDIUM" | "LOW" | "MANUAL";
