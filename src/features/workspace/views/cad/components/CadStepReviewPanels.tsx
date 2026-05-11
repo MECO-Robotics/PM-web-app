@@ -220,7 +220,7 @@ export function CadStepReviewPanels({
                       <div className="cad-row-actions">
                         <button
                           className="secondary-button compact-action"
-                          disabled={isSavingMapping}
+                          disabled={isSavingMapping || usesPlaceholderParser}
                           onClick={() => onConfirmMapping({
                             mappingId: mapping.id,
                             targetKind: draft.targetKind,
@@ -233,7 +233,7 @@ export function CadStepReviewPanels({
                         </button>
                         <button
                           className="ghost-button compact-action"
-                          disabled={isSavingMapping}
+                          disabled={isSavingMapping || usesPlaceholderParser}
                           onClick={() => onConfirmMapping({
                             mappingId: mapping.id,
                             targetKind: "IGNORE",
@@ -246,7 +246,7 @@ export function CadStepReviewPanels({
                         </button>
                         <button
                           className="ghost-button compact-action"
-                          disabled={isSavingMapping}
+                          disabled={isSavingMapping || usesPlaceholderParser}
                           onClick={() => onConfirmMapping({
                             mappingId: mapping.id,
                             targetKind: "REFERENCE_GEOMETRY",
