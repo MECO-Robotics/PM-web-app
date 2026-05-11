@@ -40,10 +40,10 @@ export function CadStepUploadPanel({
         </label>
         <div className="cad-step-guidance">
           <strong>Naming conventions</strong>
-          <span>SUB - Shooter</span>
-          <span>MECH - Shooter - Flywheel</span>
-          <span>ASM - Shooter - Flywheel</span>
-          <span>PRT - Shooter - Flywheel - Spacer</span>
+          <span>SUB - Drivetrain</span>
+          <span>MECH - Drivetrain - Swerve Module</span>
+          <span>ASM - Intake</span>
+          <span>PRT - Drivetrain - Bearing Block</span>
         </div>
         <button className="primary-button" disabled={!fileName || isUploading} type="submit">
           {isUploading ? "Uploading STEP..." : "Upload STEP"}

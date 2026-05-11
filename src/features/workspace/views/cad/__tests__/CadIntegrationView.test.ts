@@ -57,7 +57,7 @@ describe("CAD STEP mapper view", () => {
 
     expect(markup).toContain("STEP import");
     expect(markup).toContain("Export from the master assembly");
-    expect(markup).toContain("MECH - Shooter - Flywheel");
+    expect(markup).toContain("MECH - Drivetrain - Swerve Module");
     expect(markup).not.toContain("Link Onshape");
     expect(markup).not.toContain("Manual sync");
     expect(markup).not.toContain("Onshape status");
