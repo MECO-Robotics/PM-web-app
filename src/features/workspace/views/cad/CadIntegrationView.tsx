@@ -36,6 +36,25 @@ import "./cadStepHierarchy.css";
 import "./cadStepTree.css";
 import "./cadStepWorkflow.css";
 
+function hasApiStatus(error: unknown): error is { statusCode: number } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "statusCode" in error &&
+    typeof (error as { statusCode?: unknown }).statusCode === "number"
+  );
+}
+
+export function isMissingCadHierarchyReviewRoute(error: unknown) {
+  return (
+    hasApiStatus(error) &&
+    error.statusCode === 404 &&
+    error instanceof Error &&
+    error.message.includes("Route GET:") &&
+    error.message.includes("/hierarchy-review")
+  );
+}
+
 export function CadIntegrationView({
   mechanisms = [],
   partDefinitions = [],
@@ -81,7 +100,12 @@ export function CadIntegrationView({
       fetchCadSnapshotSummary(snapshotId),
       fetchCadSnapshotTree(snapshotId, { groupInstances: shouldGroupInstances }),
       fetchCadSnapshotMappings(snapshotId, { groupInstances: shouldGroupInstances }),
-      fetchCadHierarchyReview(snapshotId),
+      fetchCadHierarchyReview(snapshotId).catch((error) => {
+        if (isMissingCadHierarchyReviewRoute(error)) {
+          return null;
+        }
+        throw error;
+      }),
       fetchCadPartMatchProposals(snapshotId).catch(() => null),
       fetchCadSnapshotDiff(snapshotId).catch(() => null),
     ]);
@@ -89,7 +113,7 @@ export function CadIntegrationView({
     setStepTree(treeResponse.rootNodes);
     setStepMappings(mappingsResponse.items);
     setHierarchyReview(hierarchyResponse);
-    setPartMatchProposals(proposalsResponse?.items ?? hierarchyResponse.partMatchProposals ?? []);
+    setPartMatchProposals(proposalsResponse?.items ?? hierarchyResponse?.partMatchProposals ?? []);
     setStepWarnings(diffResponse?.warnings ?? []);
     setStepDiff(diffResponse);
   }, [groupRepeatedInstances]);

@@ -3,7 +3,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { CadIntegrationView } from "../CadIntegrationView";
+import { CadIntegrationView, isMissingCadHierarchyReviewRoute } from "../CadIntegrationView";
 import { uploadCadStepFile } from "../api/cadStepApi";
 import { CadStepReviewPanels } from "../components/CadStepReviewPanels";
 import { parseOnshapeUrl } from "../model/onshapeUrlParser";
@@ -13,9 +13,12 @@ jest.mock("../api/cadStepApi", () => ({
   fetchCadSnapshotSummary: jest.fn(),
   fetchCadSnapshotTree: jest.fn(),
   fetchCadSnapshotMappings: jest.fn(),
+  fetchCadHierarchyReview: jest.fn(),
+  fetchCadPartMatchProposals: jest.fn(),
   fetchCadSnapshotDiff: jest.fn(),
   fetchCadStepImportRuns: jest.fn(),
   uploadCadStepFile: jest.fn(),
+  applyCadHierarchyReview: jest.fn(),
   applyCadSnapshotMappings: jest.fn(),
   finalizeCadSnapshot: jest.fn(),
 }));
@@ -63,6 +66,19 @@ describe("CAD STEP mapper view", () => {
     expect(markup).not.toContain("Onshape status");
     expect(markup).not.toContain("API budget");
     expect(uploadCadStepFile).not.toHaveBeenCalled();
+  });
+
+  it("treats only the missing hierarchy route response as optional", () => {
+    const routeError = Object.assign(
+      new Error("Route GET:/api/cad/snapshots/cad-snapshot-0003/hierarchy-review not found"),
+      { statusCode: 404 },
+    );
+    const snapshotError = Object.assign(new Error("CAD snapshot was not found."), { statusCode: 404 });
+    const serverError = Object.assign(new Error("Server Error"), { statusCode: 500 });
+
+    expect(isMissingCadHierarchyReviewRoute(routeError)).toBe(true);
+    expect(isMissingCadHierarchyReviewRoute(snapshotError)).toBe(false);
+    expect(isMissingCadHierarchyReviewRoute(serverError)).toBe(false);
   });
 
   it("renders mapping review state with carry-forward scope and finalize guard", () => {
