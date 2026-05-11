@@ -242,6 +242,17 @@ describe("MilestonesView", () => {
     expect(toolbarSource).toContain('aria-label="Toggle milestone sort direction"');
   });
 
+  it("closes milestone suggestions when keyboard focus moves into search actions", () => {
+    const searchControlSource = readFileSync(
+      join(process.cwd(), "src/features/workspace/views/milestones/MilestonesSearchControl.tsx"),
+      "utf8",
+    );
+
+    expect(searchControlSource).toMatch(
+      /target\.closest\("\.topbar-responsive-search-actions"\)\) \{[\s\S]*setIsSuggestionsOpen\(false\);[\s\S]*return;/,
+    );
+  });
+
   it("filters milestones to the active person via linked tasks", () => {
     const bootstrap = createBootstrap();
     const markup = renderToStaticMarkup(

@@ -46,6 +46,7 @@ export function MilestonesSearchControl({
       onFocus={(event) => {
         const target = event.target;
         if (target instanceof Element && target.closest(".topbar-responsive-search-actions")) {
+          setIsSuggestionsOpen(false);
           return;
         }
 
