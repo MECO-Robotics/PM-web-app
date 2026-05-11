@@ -1,3 +1,6 @@
+import { useState } from "react";
+
+import { IconChevronRight } from "@/components/shared/Icons";
 import type {
   CadStepImportRunRecord,
   CadStepTreeNode,
@@ -17,15 +20,65 @@ function formatDate(value?: string | null) {
   return value ? new Date(value).toLocaleString() : "not available";
 }
 
+function pluralize(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+type TreeCounts = {
+  assemblies: number;
+  parts: number;
+};
+
+function treeCounts(node: CadStepTreeNode): TreeCounts {
+  return node.children.reduce(
+    (counts, child) => {
+      const childCounts = treeCounts(child);
+      return {
+        assemblies: counts.assemblies + 1 + childCounts.assemblies,
+        parts: counts.parts + childCounts.parts,
+      };
+    },
+    {
+      assemblies: 0,
+      parts: node.partInstances.reduce((total, instance) => total + Math.max(instance.quantity, 1), 0),
+    },
+  );
+}
+
 function TreeNode({ node }: { node: CadStepTreeNode }) {
+  const [isExpanded, setIsExpanded] = useState(node.depth === 0);
+  const counts = treeCounts(node);
+  const hasNestedItems = node.children.length > 0 || node.partInstances.length > 0;
+  const toggleLabel = `${isExpanded ? "Collapse" : "Expand"} ${node.name} branch`;
+
   return (
     <li className="cad-tree-node" data-mapping={mappingTone(node.mapping)}>
       <div className="cad-tree-node-main">
-        <strong>{node.name}</strong>
+        <div className="cad-tree-node-title-row">
+          {hasNestedItems ? (
+            <button
+              aria-expanded={isExpanded}
+              aria-label={toggleLabel}
+              className="cad-tree-fold-button"
+              onClick={() => setIsExpanded(!isExpanded)}
+              title={toggleLabel}
+              type="button"
+            >
+              <span data-expanded={isExpanded}>
+                <IconChevronRight />
+              </span>
+            </button>
+          ) : <span className="cad-tree-fold-spacer" />}
+          <strong>{node.name}</strong>
+        </div>
+        <div className="cad-tree-counts">
+          <span>{pluralize(counts.assemblies, "assembly", "assemblies")}</span>
+          <span>{pluralize(counts.parts, "part", "parts")}</span>
+        </div>
         <span>{node.inferredType.replace(/_/g, " ").toLowerCase()}</span>
         <code>{node.instancePath}</code>
       </div>
-      {node.partInstances.length ? (
+      {isExpanded && node.partInstances.length ? (
         <ul className="cad-tree-parts">
           {node.partInstances.map((instance) => (
             <li data-mapping={mappingTone(instance.mapping)} key={instance.id}>
@@ -35,7 +88,7 @@ function TreeNode({ node }: { node: CadStepTreeNode }) {
           ))}
         </ul>
       ) : null}
-      {node.children.length ? (
+      {isExpanded && node.children.length ? (
         <ul className="cad-tree-children">
           {node.children.map((child) => <TreeNode key={child.id} node={child} />)}
         </ul>

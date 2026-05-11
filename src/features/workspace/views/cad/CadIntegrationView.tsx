@@ -26,6 +26,7 @@ import type {
 import "./cadIntegration.css";
 import "./cadIntegrationData.css";
 import "./cadStepDiagnostics.css";
+import "./cadStepTree.css";
 import "./cadStepWorkflow.css";
 
 export function CadIntegrationView({
