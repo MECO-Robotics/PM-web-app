@@ -171,9 +171,13 @@ export function RisksView({
             <RiskFilterToolbar
               onSearchChange={viewModel.setSearch}
               onSeverityFilterChange={viewModel.setSeverityFilter}
+              onSortFieldChange={viewModel.setSortField}
+              onSortOrderChange={viewModel.setSortOrder}
               onSourceFilterChange={viewModel.setSourceFilter}
               search={viewModel.search}
               severityFilter={viewModel.severityFilter}
+              sortField={viewModel.sortField}
+              sortOrder={viewModel.sortOrder}
               sourceFilter={viewModel.sourceFilter}
             />
           </AppTopbarSlotPortal>
