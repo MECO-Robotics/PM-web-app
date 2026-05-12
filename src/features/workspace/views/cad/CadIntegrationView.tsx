@@ -69,11 +69,16 @@ export function CadIntegrationView({
   const [isFinalizing, setIsFinalizing] = useState(false);
   const selectedCadSnapshotIdRef = useRef("");
   const snapshotDetailsRequestRef = useRef(0);
+  const groupRepeatedInstancesRef = useRef(groupRepeatedInstances);
 
   const selectCadSnapshot = useCallback((snapshotId: string) => {
     selectedCadSnapshotIdRef.current = snapshotId;
     setSelectedCadSnapshotId(snapshotId);
   }, []);
+
+  useEffect(() => {
+    groupRepeatedInstancesRef.current = groupRepeatedInstances;
+  }, [groupRepeatedInstances]);
 
   const selectedCadSnapshot = cadSnapshots.find((snapshot) => snapshot.id === selectedCadSnapshotId) ?? null;
   const selectedCadImportRun = selectedCadSnapshot
@@ -86,7 +91,7 @@ export function CadIntegrationView({
   const loadCadSnapshotDetails = useCallback(async (snapshotId: string, options?: { groupRepeatedInstances?: boolean }) => {
     const requestId = snapshotDetailsRequestRef.current + 1;
     snapshotDetailsRequestRef.current = requestId;
-    const shouldGroupInstances = options?.groupRepeatedInstances ?? groupRepeatedInstances;
+    const shouldGroupInstances = options?.groupRepeatedInstances ?? groupRepeatedInstancesRef.current;
     const [summaryResponse, treeResponse, mappingsResponse, hierarchyResponse, proposalsResponse, diffResponse] = await Promise.all([
       fetchCadSnapshotSummary(snapshotId),
       fetchCadSnapshotTree(snapshotId, { groupInstances: shouldGroupInstances }),
@@ -121,7 +126,7 @@ export function CadIntegrationView({
     setStepWarnings(diffResponse?.warnings ?? []);
     setStepDiff(diffResponse);
     return true;
-  }, [groupRepeatedInstances]);
+  }, []);
 
   const loadCadSnapshots = useCallback(async (preferredSnapshotId?: string) => {
     const [snapshotsResponse, importRunsResponse] = await Promise.all([
@@ -237,6 +242,7 @@ export function CadIntegrationView({
   };
 
   const handleGroupRepeatedInstancesChange = (value: boolean) => {
+    groupRepeatedInstancesRef.current = value;
     setGroupRepeatedInstances(value);
     if (selectedCadSnapshotId) {
       void loadCadSnapshotDetails(selectedCadSnapshotId, { groupRepeatedInstances: value });
