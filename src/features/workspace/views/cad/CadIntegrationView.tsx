@@ -177,6 +177,12 @@ export function CadIntegrationView({
     setStepDiff(null);
   }, []);
 
+  const handleCadSnapshotDetailsError = useCallback((snapshotId: string, error: unknown) => {
+    if (selectedCadSnapshotIdRef.current === snapshotId) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    }
+  }, []);
+
   useEffect(() => {
     let isActive = true;
     void loadCadSnapshots().catch((error) => {
@@ -279,14 +285,20 @@ export function CadIntegrationView({
     groupRepeatedInstancesRef.current = value;
     setGroupRepeatedInstances(value);
     if (selectedCadSnapshotId) {
-      void loadCadSnapshotDetails(selectedCadSnapshotId, { groupRepeatedInstances: value });
+      setMessage(null);
+      void loadCadSnapshotDetails(selectedCadSnapshotId, { groupRepeatedInstances: value }).catch((error) => {
+        handleCadSnapshotDetailsError(selectedCadSnapshotId, error);
+      });
     }
   };
 
   const handleSnapshotChange = (snapshotId: string) => {
     selectCadSnapshot(snapshotId);
     if (snapshotId) {
-      void loadCadSnapshotDetails(snapshotId);
+      setMessage(null);
+      void loadCadSnapshotDetails(snapshotId).catch((error) => {
+        handleCadSnapshotDetailsError(snapshotId, error);
+      });
     } else {
       clearCadSnapshotDetails();
     }
