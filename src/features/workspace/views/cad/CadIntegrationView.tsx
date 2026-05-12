@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import type { MechanismRecord, PartDefinitionRecord, SubsystemRecord } from "@/types/records";
 import {
@@ -85,6 +85,13 @@ export function CadIntegrationView({
   const [isUploadingStep, setIsUploadingStep] = useState(false);
   const [isSavingMapping, setIsSavingMapping] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
+  const selectedCadSnapshotIdRef = useRef("");
+  const snapshotDetailsRequestRef = useRef(0);
+
+  const selectCadSnapshot = useCallback((snapshotId: string) => {
+    selectedCadSnapshotIdRef.current = snapshotId;
+    setSelectedCadSnapshotId(snapshotId);
+  }, []);
 
   const selectedCadSnapshot = cadSnapshots.find((snapshot) => snapshot.id === selectedCadSnapshotId) ?? null;
   const selectedCadImportRun = selectedCadSnapshot
@@ -95,6 +102,8 @@ export function CadIntegrationView({
     .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0] ?? null;
 
   const loadCadSnapshotDetails = useCallback(async (snapshotId: string, options?: { groupRepeatedInstances?: boolean }) => {
+    const requestId = snapshotDetailsRequestRef.current + 1;
+    snapshotDetailsRequestRef.current = requestId;
     const shouldGroupInstances = options?.groupRepeatedInstances ?? groupRepeatedInstances;
     const [summaryResponse, treeResponse, mappingsResponse, hierarchyResponse, proposalsResponse, diffResponse] = await Promise.all([
       fetchCadSnapshotSummary(snapshotId),
@@ -109,6 +118,9 @@ export function CadIntegrationView({
       fetchCadPartMatchProposals(snapshotId).catch(() => null),
       fetchCadSnapshotDiff(snapshotId).catch(() => null),
     ]);
+    if (snapshotDetailsRequestRef.current !== requestId || selectedCadSnapshotIdRef.current !== snapshotId) {
+      return false;
+    }
     setStepSummary(summaryResponse.summary);
     setStepTree(treeResponse.rootNodes);
     setStepMappings(mappingsResponse.items);
@@ -116,6 +128,7 @@ export function CadIntegrationView({
     setPartMatchProposals(proposalsResponse?.items ?? hierarchyResponse?.partMatchProposals ?? []);
     setStepWarnings(diffResponse?.warnings ?? []);
     setStepDiff(diffResponse);
+    return true;
   }, [groupRepeatedInstances]);
 
   const loadCadSnapshots = useCallback(async (preferredSnapshotId?: string) => {
@@ -126,10 +139,11 @@ export function CadIntegrationView({
     setCadSnapshots(snapshotsResponse.items);
     setCadImportRuns(importRunsResponse.items);
     const nextSnapshotId = preferredSnapshotId || snapshotsResponse.items[0]?.id || "";
-    setSelectedCadSnapshotId(nextSnapshotId);
+    selectCadSnapshot(nextSnapshotId);
     if (nextSnapshotId) {
       await loadCadSnapshotDetails(nextSnapshotId);
     } else {
+      snapshotDetailsRequestRef.current += 1;
       setStepSummary(null);
       setStepTree([]);
       setStepMappings([]);
@@ -138,7 +152,7 @@ export function CadIntegrationView({
       setStepWarnings([]);
       setStepDiff(null);
     }
-  }, [loadCadSnapshotDetails, projectId, seasonId]);
+  }, [loadCadSnapshotDetails, projectId, seasonId, selectCadSnapshot]);
 
   useEffect(() => {
     void loadCadSnapshots();
@@ -163,7 +177,7 @@ export function CadIntegrationView({
       await loadCadSnapshots(response.snapshot.id);
       setCadImportRuns((current) => [response.importRun, ...current.filter((run) => run.id !== response.importRun.id)]);
       setCadSnapshots((current) => [response.snapshot, ...current.filter((snapshot) => snapshot.id !== response.snapshot.id)]);
-      setSelectedCadSnapshotId(response.snapshot.id);
+      selectCadSnapshot(response.snapshot.id);
       setMessage(
         `STEP import ready for review: ${response.summary.assemblyCount} assemblies, ${response.summary.partDefinitionCount} part definitions, ${response.summary.warningCount} warnings.`,
       );
@@ -200,8 +214,10 @@ export function CadIntegrationView({
           applyToFuture: input.applyToFuture,
         }],
       });
-      await loadCadSnapshotDetails(selectedCadSnapshotId);
-      setMessage(input.applyToFuture ? "Mapping confirmed and saved for future STEP imports." : "Mapping confirmed for this snapshot.");
+      const didLoadSelectedSnapshot = await loadCadSnapshotDetails(selectedCadSnapshotId);
+      if (didLoadSelectedSnapshot) {
+        setMessage(input.applyToFuture ? "Mapping confirmed and saved for future STEP imports." : "Mapping confirmed for this snapshot.");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -217,8 +233,10 @@ export function CadIntegrationView({
     setMessage(null);
     try {
       await applyCadHierarchyReview(selectedCadSnapshotId, { decisions: [decision] });
-      await loadCadSnapshotDetails(selectedCadSnapshotId);
-      setMessage("Hierarchy decision applied.");
+      const didLoadSelectedSnapshot = await loadCadSnapshotDetails(selectedCadSnapshotId);
+      if (didLoadSelectedSnapshot) {
+        setMessage("Hierarchy decision applied.");
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
@@ -272,9 +290,18 @@ export function CadIntegrationView({
           <span>Snapshot</span>
           <select
             onChange={(event) => {
-              setSelectedCadSnapshotId(event.target.value);
+              selectCadSnapshot(event.target.value);
               if (event.target.value) {
                 void loadCadSnapshotDetails(event.target.value);
+              } else {
+                snapshotDetailsRequestRef.current += 1;
+                setStepSummary(null);
+                setStepTree([]);
+                setStepMappings([]);
+                setHierarchyReview(null);
+                setPartMatchProposals([]);
+                setStepWarnings([]);
+                setStepDiff(null);
               }
             }}
             value={selectedCadSnapshotId}

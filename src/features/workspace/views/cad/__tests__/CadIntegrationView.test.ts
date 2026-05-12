@@ -163,6 +163,8 @@ describe("CAD STEP mapper view", () => {
 
     expect(markup).toContain("MECH - Shooter - Flywheel");
     expect(markup).toContain("This snapshot and future imports");
+    expect(markup).toContain("Select a target before confirming.");
+    expect(markup).toContain("<button class=\"secondary-button compact-action\" disabled=\"\" type=\"button\">Confirm</button>");
     expect(markup).toContain("Finalize with unresolved warnings");
     expect(markup).toContain("Added assemblies: 1");
     expect(markup).toContain("step_unmapped_assembly");

@@ -59,6 +59,10 @@ function defaultTargetKind(mapping: CadStepMappingRecord): TargetKind {
   return "SUBSYSTEM";
 }
 
+function targetKindRequiresTarget(kind: TargetKind) {
+  return kind === "SUBSYSTEM" || kind === "MECHANISM" || kind === "PART_DEFINITION";
+}
+
 function repeatedInstanceQuantity(mapping: CadStepMappingRecord) {
   return mapping.quantity ?? mapping.sourceIds?.length ?? 1;
 }
@@ -115,6 +119,7 @@ export function CadStepMappingReviewTable({
               const instanceQuantity = repeatedInstanceQuantity(mapping);
               const isGroupedRow = mapping.kind === "part_instance_group" || instanceQuantity > 1;
               const sourceIds = isGroupedRow ? mapping.sourceIds ?? [mapping.sourceId] : undefined;
+              const isConfirmBlocked = targetKindRequiresTarget(draft.targetKind) && !draft.targetId;
               return (
                 <tr data-status={mapping.status} key={mapping.id}>
                   <td>
@@ -165,7 +170,7 @@ export function CadStepMappingReviewTable({
                     <div className="cad-row-actions">
                       <button
                         className="secondary-button compact-action"
-                        disabled={isSavingMapping || usesPlaceholderParser}
+                        disabled={isSavingMapping || usesPlaceholderParser || isConfirmBlocked}
                         onClick={() => onConfirmMapping({
                           mappingId: isGroupedRow ? undefined : mapping.id,
                           sourceKind: isGroupedRow ? mapping.sourceKind : undefined,
@@ -209,6 +214,7 @@ export function CadStepMappingReviewTable({
                         Reference
                       </button>
                     </div>
+                    {isConfirmBlocked ? <small>Select a target before confirming.</small> : null}
                     {isGroupedRow ? <small>Applies to {instanceQuantity} repeated instances</small> : null}
                   </td>
                 </tr>
