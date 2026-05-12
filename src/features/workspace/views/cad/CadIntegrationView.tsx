@@ -68,8 +68,11 @@ export function CadIntegrationView({
   const [isSavingMapping, setIsSavingMapping] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
   const selectedCadSnapshotIdRef = useRef("");
+  const snapshotListRequestRef = useRef(0);
   const snapshotDetailsRequestRef = useRef(0);
   const groupRepeatedInstancesRef = useRef(groupRepeatedInstances);
+  const latestCadSnapshotScopeRef = useRef({ projectId, seasonId });
+  latestCadSnapshotScopeRef.current = { projectId, seasonId };
 
   const selectCadSnapshot = useCallback((snapshotId: string) => {
     selectedCadSnapshotIdRef.current = snapshotId;
@@ -129,10 +132,21 @@ export function CadIntegrationView({
   }, []);
 
   const loadCadSnapshots = useCallback(async (preferredSnapshotId?: string) => {
+    const requestId = snapshotListRequestRef.current + 1;
+    snapshotListRequestRef.current = requestId;
+    const requestedProjectId = projectId;
+    const requestedSeasonId = seasonId;
     const [snapshotsResponse, importRunsResponse] = await Promise.all([
       fetchCadSnapshots({ projectId, seasonId }),
       fetchCadStepImportRuns({ projectId, seasonId }),
     ]);
+    if (
+      snapshotListRequestRef.current !== requestId
+      || latestCadSnapshotScopeRef.current.projectId !== requestedProjectId
+      || latestCadSnapshotScopeRef.current.seasonId !== requestedSeasonId
+    ) {
+      return;
+    }
     setCadSnapshots(snapshotsResponse.items);
     setCadImportRuns(importRunsResponse.items);
     const nextSnapshotId = preferredSnapshotId || snapshotsResponse.items[0]?.id || "";
