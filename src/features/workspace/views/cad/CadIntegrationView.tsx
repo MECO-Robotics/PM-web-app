@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import {
   createOnshapeDocumentRef,
@@ -52,6 +52,14 @@ const defaultOverview: OnshapeOverview = {
   },
 };
 
+export function resolveSelectedDocumentRefId(current: string, documentRefs: OnshapeOverview["documentRefs"]) {
+  if (current && documentRefs.some((ref) => ref.id === current)) {
+    return current;
+  }
+
+  return documentRefs[0]?.id || "";
+}
+
 export function CadIntegrationView({
   projectId,
   seasonId,
@@ -75,22 +83,22 @@ export function CadIntegrationView({
   const selectedDocumentRef = overview.documentRefs.find((ref) => ref.id === selectedDocumentRefId) ?? null;
   const selectedReferenceType = selectedDocumentRef?.referenceType ?? parsedUrl?.referenceType ?? "unknown";
 
-  const loadOverview = async () => {
+  const loadOverview = useCallback(async () => {
     setIsLoading(true);
     try {
       const nextOverview = await fetchOnshapeOverview();
       setOverview(nextOverview);
-      setSelectedDocumentRefId((current) => current || nextOverview.documentRefs[0]?.id || "");
+      setSelectedDocumentRefId((current) => resolveSelectedDocumentRefId(current, nextOverview.documentRefs));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadOverview();
-  }, []);
+  }, [loadOverview, projectId, seasonId]);
 
   useEffect(() => {
     if (!selectedDocumentRefId) {
