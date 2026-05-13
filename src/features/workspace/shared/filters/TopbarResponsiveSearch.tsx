@@ -1,7 +1,35 @@
-import { Children, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Search } from "lucide-react";
 
 import { SearchToolbarInput } from "./workspaceSearchToolbarInput";
+
+function countActionNodes(actions: ReactNode): number {
+  let count = 0;
+
+  Children.forEach(actions, (child) => {
+    if (child === null || child === undefined || typeof child === "boolean") {
+      return;
+    }
+
+    if (isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment) {
+      count += countActionNodes(child.props.children);
+      return;
+    }
+
+    count += 1;
+  });
+
+  return count;
+}
 
 export function TopbarResponsiveSearch({
   actionCount,
@@ -44,7 +72,7 @@ export function TopbarResponsiveSearch({
   const compactLabel =
     compactPlaceholder && compactPlaceholder.trim().length > 0 ? compactPlaceholder.trim() : "Search";
   const hasCompactLabelVariant = compactLabel !== placeholder;
-  const resolvedActionCount = actions ? Math.max(1, actionCount ?? Children.count(actions)) : 0;
+  const resolvedActionCount = actions ? Math.max(1, actionCount ?? countActionNodes(actions)) : 0;
   const actionOverlayWidthPx = resolvedActionCount * 32;
   const switchWidth = compactSwitchWidth ?? 132 + actionOverlayWidthPx;
   const iconWidth = iconSwitchWidth ?? 86 + actionOverlayWidthPx;
