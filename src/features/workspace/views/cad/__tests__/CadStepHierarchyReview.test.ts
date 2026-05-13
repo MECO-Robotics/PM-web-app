@@ -4,9 +4,15 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { applyCadHierarchyReview } from "../api/cadStepApi";
+import { CadStepHierarchyNodeCard } from "../components/CadStepHierarchyNodeCard";
 import { CadStepReviewPanels } from "../components/CadStepReviewPanels";
 import type { CadHierarchyStage } from "../components/CadStepHierarchyReviewPanel";
-import type { CadHierarchyReview, CadHierarchyReviewDecision } from "../model/cadIntegrationTypes";
+import type {
+  CadHierarchyNode,
+  CadHierarchyReview,
+  CadHierarchyReviewDecision,
+  CadHierarchyTargetKind,
+} from "../model/cadIntegrationTypes";
 
 const requestApiMock = jest.fn();
 
@@ -190,6 +196,25 @@ function baseHierarchyReview(overrides: Partial<CadHierarchyReview> = {}): CadHi
   };
 }
 
+function baseHierarchyTargets() {
+  return {
+    subsystems: [{ id: "subsystem-drive", projectId: "project-robot", name: "Drivebase", description: "", iteration: 1, isCore: true, parentSubsystemId: null, responsibleEngineerId: null, mentorIds: [], risks: [] }],
+    mechanisms: [{ id: "mechanism-module", subsystemId: "subsystem-drive", name: "Swerve Module", description: "", iteration: 1 }],
+    partDefinitions: [{ id: "part-wheel", seasonId: "season-2026", name: "Wheel tread", partNumber: "WHD-001", revision: "A", iteration: 1, type: "custom", source: "cad", materialId: null, description: "" }],
+  };
+}
+
+function renderNodeCardMarkup(node: CadHierarchyNode, targetKind: CadHierarchyTargetKind) {
+  return renderToStaticMarkup(
+    React.createElement(CadStepHierarchyNodeCard, {
+      node,
+      onConfirm: jest.fn(),
+      targets: baseHierarchyTargets(),
+      targetKind,
+    }),
+  );
+}
+
 function renderHierarchyMarkup(stage: CadHierarchyStage = "subsystems", hierarchyReview = baseHierarchyReview()) {
   return renderToStaticMarkup(
     React.createElement(CadStepReviewPanels, {
@@ -220,11 +245,7 @@ function renderHierarchyMarkup(stage: CadHierarchyStage = "subsystems", hierarch
       onFinalize: jest.fn(),
       snapshot: null,
       summary: null,
-      targets: {
-        subsystems: [{ id: "subsystem-drive", projectId: "project-robot", name: "Drivebase", description: "", iteration: 1, isCore: true, parentSubsystemId: null, responsibleEngineerId: null, mentorIds: [], risks: [] }],
-        mechanisms: [{ id: "mechanism-module", subsystemId: "subsystem-drive", name: "Swerve Module", description: "", iteration: 1 }],
-        partDefinitions: [{ id: "part-wheel", seasonId: "season-2026", name: "Wheel tread", partNumber: "WHD-001", revision: "A", iteration: 1, type: "custom", source: "cad", materialId: null, description: "" }],
-      },
+      targets: baseHierarchyTargets(),
       tree: [],
       warnings: [],
     }),
@@ -255,6 +276,33 @@ describe("CAD STEP hierarchy review workflow", () => {
     expect(markup).toContain("Component assembly");
     expect(markup).toContain("Drivebase");
     expect(markup).toContain("Swerve Module");
+  });
+
+  it("blocks target-backed hierarchy confirmations until a target is selected", () => {
+    const hierarchyReview = baseHierarchyReview();
+    const unresolvedSubsystem = hierarchyReview.root?.children.find((node) => node.id === "subsystem-intake");
+
+    if (!unresolvedSubsystem) {
+      throw new Error("Missing unresolved subsystem fixture");
+    }
+
+    const markup = renderNodeCardMarkup(unresolvedSubsystem, "SUBSYSTEM");
+
+    expect(markup).toContain('<button class="secondary-button compact-action" disabled="" type="button">Confirm</button>');
+  });
+
+  it("keeps component assembly confirmations available without a hierarchy target", () => {
+    const hierarchyReview = baseHierarchyReview();
+    const mechanismNode = hierarchyReview.root?.children[0]?.children[0];
+    const componentNode = mechanismNode?.children.find((node) => node.id === "component-gearbox");
+
+    if (!componentNode) {
+      throw new Error("Missing component assembly fixture");
+    }
+
+    const markup = renderNodeCardMarkup(componentNode, "COMPONENT_ASSEMBLY");
+
+    expect(markup).toContain('<button class="secondary-button compact-action" type="button">Confirm</button>');
   });
 
   it("summarizes grouped parts without rendering every raw STEP instance and exposes ambiguous matches", () => {
