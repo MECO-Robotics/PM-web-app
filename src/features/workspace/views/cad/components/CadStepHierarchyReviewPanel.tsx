@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type {
   CadHierarchyReview,
@@ -70,6 +70,10 @@ export function CadStepHierarchyReviewPanel({
   targets: CadHierarchyTargets;
 }) {
   const [stage, setStage] = useState<CadHierarchyStage>(initialStage);
+  useEffect(() => {
+    setStage(initialStage);
+  }, [hierarchyReview.snapshotId, initialStage]);
+
   const allNodes = useMemo(() => flattenHierarchyNodes(hierarchyReview.root), [hierarchyReview.root]);
   const subsystemNodes = hierarchyReview.root?.children ?? [];
   const mechanismNodes = allNodes.filter(
