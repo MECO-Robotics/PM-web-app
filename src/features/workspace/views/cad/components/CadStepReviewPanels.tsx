@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { MechanismRecord, PartDefinitionRecord, SubsystemRecord } from "@/types/records";
 import type {
@@ -65,6 +65,7 @@ export function CadStepReviewPanels({
 }) {
   const [allowUnresolved, setAllowUnresolved] = useState(false);
   const [showAdvancedFlatView, setShowAdvancedFlatView] = useState(false);
+  const snapshotId = snapshot?.id ?? null;
   const unresolvedCount = useMemo(
     () => hierarchyReview?.unresolved.length
       ?? mappings.filter((mapping) => mapping.status === "NEEDS_REVIEW" || mapping.targetKind === "UNMAPPED").length,
@@ -72,6 +73,10 @@ export function CadStepReviewPanels({
   );
   const usesPlaceholderParser = stepUsesPlaceholderParser({ importRun, summary, warnings });
   const isViewingOlderSnapshot = Boolean(snapshot && latestImportRunId && snapshot.importRunId !== latestImportRunId);
+
+  useEffect(() => {
+    setAllowUnresolved(false);
+  }, [snapshotId]);
 
   return (
     <div className="cad-step-review-stack">
