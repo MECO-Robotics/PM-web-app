@@ -17,14 +17,18 @@ const estimatedCalls: Record<SyncLevel, string> = {
 export function CadStatusPanels({
   overview,
   isConnectingOAuth = false,
+  isRefreshingEstimate = false,
   onConnectOAuth,
+  onRefreshEstimate,
   selectedSyncLevel,
   selectedReferenceType,
   syncEstimate,
 }: {
   overview: OnshapeOverview | null;
   isConnectingOAuth?: boolean;
+  isRefreshingEstimate?: boolean;
   onConnectOAuth?: () => void;
+  onRefreshEstimate?: () => void;
   selectedSyncLevel: SyncLevel;
   selectedReferenceType: string;
   syncEstimate?: OnshapeSyncEstimate | null;
@@ -81,6 +85,11 @@ export function CadStatusPanels({
           <p className="cad-warning-copy">
             This reference points to a workspace. For review/release, create an Onshape version and sync that version instead.
           </p>
+        ) : null}
+        {onRefreshEstimate ? (
+          <button className="secondary-button cad-oauth-button" disabled={isRefreshingEstimate} onClick={onRefreshEstimate} type="button">
+            {isRefreshingEstimate ? "Refreshing estimate..." : "Refresh estimate"}
+          </button>
         ) : null}
       </article>
 
