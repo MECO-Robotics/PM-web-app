@@ -23,6 +23,10 @@ function buildDecisionDraft(node: CadHierarchyNode, targetKind: CadHierarchyTarg
   };
 }
 
+function targetKindRequiresTarget(targetKind: CadHierarchyTargetKind) {
+  return targetKind === "SUBSYSTEM" || targetKind === "MECHANISM" || targetKind === "PART_DEFINITION";
+}
+
 function DecisionControls({
   node,
   onConfirm,
@@ -59,6 +63,7 @@ function DecisionControls({
           ];
   const [draft, setDraft] = useState(() => buildDecisionDraft(node, targetKind));
   const options = hierarchyTargetOptions(draft.targetKind, targets);
+  const isConfirmDisabled = targetKindRequiresTarget(draft.targetKind) && !draft.targetId;
 
   useEffect(() => {
     setDraft(buildDecisionDraft(node, targetKind));
@@ -124,6 +129,7 @@ function DecisionControls({
       ) : null}
       <button
         className="secondary-button compact-action"
+        disabled={isConfirmDisabled}
         onClick={() => onConfirm({
           nodeId: node.id,
           sourceId: node.sourceId,
