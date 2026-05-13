@@ -265,6 +265,8 @@ describe("CAD STEP hierarchy review workflow", () => {
     expect(markup).toContain("18 grouped parts");
     expect(markup).toContain("4 ambiguous");
     expect(markup).not.toContain("part 600");
+    expect(markup).not.toContain("SUB - Intake");
+    expect(markup).not.toContain("COMP - Gearbox");
     expect(markup).toContain("Ambiguous matches");
     expect(markup).toContain("Wheel tread");
     expect(markup).toContain("WHD-001 - Wheel tread");
