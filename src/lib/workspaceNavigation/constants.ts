@@ -150,6 +150,12 @@ export const NAVIGATION_SUB_ITEMS: readonly NavigationSubItem[] = [
     target: { tab: "tasks", taskView: "robot-map" },
   },
   {
+    id: "config-cad",
+    label: "CAD / Onshape",
+    section: "config",
+    target: { tab: "cad" },
+  },
+  {
     id: "config-part-mappings",
     label: "Part mappings",
     section: "config",
@@ -249,6 +255,7 @@ export const BASE_SECTION_LABELS: Record<ViewTab, string> = {
   reports: "Reports",
   manufacturing: "Manufacturing",
   inventory: "Inventory",
+  cad: "CAD / Onshape",
   subsystems: "Subsystems",
   roster: "Roster",
   help: "Help",
