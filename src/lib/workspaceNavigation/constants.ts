@@ -151,7 +151,7 @@ export const NAVIGATION_SUB_ITEMS: readonly NavigationSubItem[] = [
   },
   {
     id: "config-cad",
-    label: "CAD / Onshape",
+    label: "STEP import",
     section: "config",
     target: { tab: "cad" },
   },
@@ -255,7 +255,7 @@ export const BASE_SECTION_LABELS: Record<ViewTab, string> = {
   reports: "Reports",
   manufacturing: "Manufacturing",
   inventory: "Inventory",
-  cad: "CAD / Onshape",
+  cad: "STEP import",
   subsystems: "Subsystems",
   roster: "Roster",
   help: "Help",

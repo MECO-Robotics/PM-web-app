@@ -1,235 +1,42 @@
-/// <reference types="jest" />
+﻿/// <reference types="jest" />
 
 import React from "react";
-import { act } from "react";
-import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { CadIntegrationView, getScopedDocumentRefs, resolveSelectedDocumentRefId } from "../CadIntegrationView";
 import {
-  createOnshapeDocumentRef,
-  createOnshapeOAuthAuthorizationUrl,
-  fetchOnshapeOverview,
-  fetchOnshapeImportEstimate,
-  runOnshapeImport,
-} from "../api/onshapeCadApi";
+  CadIntegrationView,
+} from "../CadIntegrationView";
+import { isMissingCadHierarchyReviewRoute, isMissingCadOptionalRoute } from "../cadOptionalRoutes";
+import { uploadCadStepFile } from "../api/cadStepApi";
 import { CadStatusPanels } from "../components/CadStatusPanels";
+import { CadStepReviewPanels } from "../components/CadStepReviewPanels";
 import type { OnshapeOverview } from "../model/cadIntegrationTypes";
 import { parseOnshapeUrl } from "../model/onshapeUrlParser";
 
+jest.mock("../api/cadStepApi", () => ({
+  fetchCadSnapshots: jest.fn(),
+  fetchCadSnapshotSummary: jest.fn(),
+  fetchCadSnapshotTree: jest.fn(),
+  fetchCadSnapshotMappings: jest.fn(),
+  fetchCadHierarchyReview: jest.fn(),
+  fetchCadPartMatchProposals: jest.fn(),
+  fetchCadSnapshotDiff: jest.fn(),
+  fetchCadStepImportRuns: jest.fn(),
+  uploadCadStepFile: jest.fn(),
+  applyCadHierarchyReview: jest.fn(),
+  applyCadSnapshotMappings: jest.fn(),
+  finalizeCadSnapshot: jest.fn(),
+}));
+
 jest.mock("../api/onshapeCadApi", () => ({
-  fetchOnshapeOverview: jest.fn(),
-  fetchOnshapeImportEstimate: jest.fn(),
   createOnshapeDocumentRef: jest.fn(),
   createOnshapeOAuthAuthorizationUrl: jest.fn(),
+  fetchOnshapeImportEstimate: jest.fn(),
+  fetchOnshapeOverview: jest.fn(),
   runOnshapeImport: jest.fn(),
 }));
 
-class MinimalDomNode {
-  nodeType: number;
-  nodeName: string;
-  tagName: string;
-  namespaceURI = "http://www.w3.org/1999/xhtml";
-  ownerDocument: MinimalDomDocument;
-  parentNode: MinimalDomNode | null = null;
-  childNodes: MinimalDomNode[] = [];
-  style: Record<string, string> = {};
-  attributes: Record<string, string> = {};
-  nodeValue = "";
-
-  constructor(nodeType: number, nodeName: string, ownerDocument: MinimalDomDocument) {
-    this.nodeType = nodeType;
-    this.nodeName = nodeName;
-    this.tagName = nodeName;
-    this.ownerDocument = ownerDocument;
-  }
-
-  appendChild(child: MinimalDomNode) {
-    this.childNodes.push(child);
-    child.parentNode = this;
-    return child;
-  }
-
-  insertBefore(child: MinimalDomNode, before: MinimalDomNode) {
-    const index = this.childNodes.indexOf(before);
-    if (index === -1) {
-      return this.appendChild(child);
-    }
-
-    this.childNodes.splice(index, 0, child);
-    child.parentNode = this;
-    return child;
-  }
-
-  removeChild(child: MinimalDomNode) {
-    this.childNodes = this.childNodes.filter((item) => item !== child);
-    child.parentNode = null;
-    return child;
-  }
-
-  setAttribute(name: string, value: string) {
-    this.attributes[name] = value;
-  }
-
-  removeAttribute(name: string) {
-    delete this.attributes[name];
-  }
-
-  addEventListener() {
-    return undefined;
-  }
-
-  removeEventListener() {
-    return undefined;
-  }
-
-  get options() {
-    return this.childNodes.filter((child) => child.nodeName === "OPTION");
-  }
-}
-
-class MinimalTextNode extends MinimalDomNode {
-  constructor(text: string, ownerDocument: MinimalDomDocument) {
-    super(3, "#text", ownerDocument);
-    this.nodeValue = text;
-  }
-}
-
-class MinimalDomDocument extends MinimalDomNode {
-  defaultView: Record<string, unknown>;
-  documentElement: MinimalDomNode;
-  activeElement: MinimalDomNode | null = null;
-
-  constructor(defaultView: Record<string, unknown>) {
-    super(9, "#document", undefined as unknown as MinimalDomDocument);
-    this.ownerDocument = this;
-    this.defaultView = defaultView;
-    this.documentElement = new MinimalDomNode(1, "HTML", this);
-  }
-
-  createElement(tagName: string) {
-    return new MinimalDomNode(1, tagName.toUpperCase(), this);
-  }
-
-  createElementNS(namespaceURI: string, tagName: string) {
-    const node = this.createElement(tagName);
-    node.namespaceURI = namespaceURI;
-    return node;
-  }
-
-  createTextNode(text: string) {
-    return new MinimalTextNode(text, this);
-  }
-}
-
-function installMinimalDom() {
-  const originalWindow = globalThis.window;
-  const originalDocument = globalThis.document;
-  const originalNode = globalThis.Node;
-  const originalElement = globalThis.Element;
-  const originalHTMLElement = globalThis.HTMLElement;
-  const originalHTMLIFrameElement = globalThis.HTMLIFrameElement;
-  const originalActEnvironment = (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
-    .IS_REACT_ACT_ENVIRONMENT;
-  const fakeWindow: Record<string, unknown> = {
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-  };
-  const fakeDocument = new MinimalDomDocument(fakeWindow);
-  fakeWindow.document = fakeDocument;
-  fakeWindow.Node = MinimalDomNode;
-  fakeWindow.Element = MinimalDomNode;
-  fakeWindow.HTMLElement = MinimalDomNode;
-  fakeWindow.HTMLIFrameElement = class MinimalIFrame {};
-
-  Object.assign(globalThis, {
-    document: fakeDocument,
-    window: fakeWindow,
-    Node: MinimalDomNode,
-    Element: MinimalDomNode,
-    HTMLElement: MinimalDomNode,
-    HTMLIFrameElement: fakeWindow.HTMLIFrameElement,
-    IS_REACT_ACT_ENVIRONMENT: true,
-  });
-
-  return () => {
-    Object.assign(globalThis, {
-      document: originalDocument,
-      window: originalWindow,
-      Node: originalNode,
-      Element: originalElement,
-      HTMLElement: originalHTMLElement,
-      HTMLIFrameElement: originalHTMLIFrameElement,
-      IS_REACT_ACT_ENVIRONMENT: originalActEnvironment,
-    });
-  };
-}
-
-function createOverview(overrides: Partial<OnshapeOverview> = {}): OnshapeOverview {
-  return {
-    connection: {
-      authMode: "oauth",
-      baseUrl: "https://cad.onshape.com",
-      configured: false,
-      credentialReference: null,
-      lastError: null,
-      oauth: {
-        clientConfigured: false,
-        connected: false,
-        authorizationUrlAvailable: false,
-        scopes: [],
-        tokenExpiresAt: null,
-        credentialSource: "none",
-      },
-    },
-    documentRefs: [],
-    importRuns: [],
-    snapshots: [],
-    latestSnapshot: null,
-    assemblyNodes: [],
-    partDefinitions: [],
-    partInstances: [],
-    warnings: [],
-    budget: {
-      planType: "education",
-      dailySoftBudget: 100,
-      perSyncSoftBudget: 25,
-      callsUsedToday: 0,
-      callsUsedThisMonth: 0,
-      callsUsedThisYear: 0,
-      warningThresholdPercent: 70,
-      hardStopThresholdPercent: 90,
-      lastRateLimitRemaining: null,
-    },
-    ...overrides,
-  };
-}
-
-describe("CAD / Onshape integration view", () => {
-  it("keeps document selection constrained to the refreshed overview refs", () => {
-    const documentRefs = [
-      { id: "ref-a", label: "Assembly A" },
-      { id: "ref-b", label: "Assembly B" },
-    ] as OnshapeOverview["documentRefs"];
-
-    expect(resolveSelectedDocumentRefId("ref-b", documentRefs)).toBe("ref-b");
-    expect(resolveSelectedDocumentRefId("stale-ref", documentRefs)).toBe("ref-a");
-    expect(resolveSelectedDocumentRefId("stale-ref", [])).toBe("");
-  });
-
-  it("scopes saved CAD refs to the active project and season", () => {
-    const documentRefs = [
-      { id: "current", label: "Current", projectId: "project-a", seasonId: "season-2026" },
-      { id: "other-project", label: "Other project", projectId: "project-b", seasonId: "season-2026" },
-      { id: "other-season", label: "Other season", projectId: "project-a", seasonId: "season-2025" },
-      { id: "global", label: "Unscoped", projectId: null, seasonId: null },
-    ] as OnshapeOverview["documentRefs"];
-
-    expect(getScopedDocumentRefs(documentRefs, "project-a", "season-2026").map((ref) => ref.id)).toEqual(["current"]);
-    expect(getScopedDocumentRefs(documentRefs, "project-a").map((ref) => ref.id)).toEqual(["current", "other-season"]);
-    expect(getScopedDocumentRefs(documentRefs).map((ref) => ref.id)).toEqual(["global"]);
-  });
-
+describe("CAD STEP mapper view", () => {
   it("parses common Onshape references for preview without network calls", () => {
     const workspace = parseOnshapeUrl(
       "https://cad.onshape.com/documents/0123456789abcdef01234567/w/abcdefabcdefabcdefabcdef/e/111111111111111111111111?renderMode=0",
@@ -261,78 +68,60 @@ describe("CAD / Onshape integration view", () => {
     expect(parseOnshapeUrl("not-a-url").ok).toBe(false);
   });
 
-  it("does not trigger Onshape sync actions during server render", () => {
+  it("renders the STEP import workflow before the secondary Onshape sync section", () => {
     const markup = renderToStaticMarkup(React.createElement(CadIntegrationView, {}));
 
+    expect(markup).toContain("STEP import");
+    expect(markup).toContain("Export from the master assembly");
+    expect(markup).toContain("MECH - Drivetrain - Swerve Module");
     expect(markup).toContain("CAD / Onshape integration");
-    expect(createOnshapeDocumentRef).not.toHaveBeenCalled();
-    expect(createOnshapeOAuthAuthorizationUrl).not.toHaveBeenCalled();
-    expect(fetchOnshapeImportEstimate).not.toHaveBeenCalled();
-    expect(runOnshapeImport).not.toHaveBeenCalled();
-  });
-
-  it("does not trigger Onshape sync actions when mounted", async () => {
-    const restoreDom = installMinimalDom();
-    (fetchOnshapeOverview as jest.Mock).mockResolvedValue(createOverview());
-    const root = createRoot(document.createElement("div"));
-
-    try {
-      await act(async () => {
-        root.render(React.createElement(CadIntegrationView, {}));
-      });
-
-      expect(fetchOnshapeOverview).toHaveBeenCalledTimes(1);
-      expect(createOnshapeDocumentRef).not.toHaveBeenCalled();
-      expect(createOnshapeOAuthAuthorizationUrl).not.toHaveBeenCalled();
-      expect(fetchOnshapeImportEstimate).not.toHaveBeenCalled();
-      expect(runOnshapeImport).not.toHaveBeenCalled();
-    } finally {
-      await act(async () => {
-        root.unmount();
-      });
-      restoreDom();
-    }
+    expect(markup).toContain("Onshape status");
+    expect(markup).toContain("API budget");
+    expect(markup.indexOf("STEP import")).toBeLessThan(markup.indexOf("CAD / Onshape integration"));
+    expect(uploadCadStepFile).not.toHaveBeenCalled();
   });
 
   it("renders OAuth2 connection state without exposing token values", () => {
+    const overview: OnshapeOverview = {
+      connection: {
+        authMode: "oauth",
+        baseUrl: "https://cad.onshape.com",
+        configured: true,
+        credentialReference: "onshape-oauth",
+        lastError: null,
+        oauth: {
+          clientConfigured: true,
+          connected: true,
+          authorizationUrlAvailable: true,
+          scopes: ["OAuth2Read"],
+          tokenExpiresAt: "2026-05-10T12:00:00.000Z",
+          credentialSource: "runtime",
+        },
+      },
+      documentRefs: [],
+      importRuns: [],
+      snapshots: [],
+      latestSnapshot: null,
+      assemblyNodes: [],
+      partDefinitions: [],
+      partInstances: [],
+      warnings: [],
+      budget: {
+        planType: "education",
+        dailySoftBudget: 100,
+        perSyncSoftBudget: 25,
+        callsUsedToday: 0,
+        callsUsedThisMonth: 0,
+        callsUsedThisYear: 0,
+        warningThresholdPercent: 70,
+        hardStopThresholdPercent: 90,
+        lastRateLimitRemaining: null,
+      },
+    };
+
     const markup = renderToStaticMarkup(
       React.createElement(CadStatusPanels, {
-        overview: {
-          connection: {
-            authMode: "oauth",
-            baseUrl: "https://cad.onshape.com",
-            configured: true,
-            credentialReference: "onshape-oauth",
-            lastError: null,
-            oauth: {
-              clientConfigured: true,
-              connected: true,
-              authorizationUrlAvailable: true,
-              scopes: ["OAuth2Read"],
-              tokenExpiresAt: "2026-05-10T12:00:00.000Z",
-              credentialSource: "runtime",
-            },
-          },
-          documentRefs: [],
-          importRuns: [],
-          snapshots: [],
-          latestSnapshot: null,
-          assemblyNodes: [],
-          partDefinitions: [],
-          partInstances: [],
-          warnings: [],
-          budget: {
-            planType: "education",
-            dailySoftBudget: 100,
-            perSyncSoftBudget: 25,
-            callsUsedToday: 0,
-            callsUsedThisMonth: 0,
-            callsUsedThisYear: 0,
-            warningThresholdPercent: 70,
-            hardStopThresholdPercent: 90,
-            lastRateLimitRemaining: null,
-          },
-        },
+        overview,
         selectedReferenceType: "version",
         selectedSyncLevel: "bom",
         syncEstimate: null,
@@ -346,30 +135,677 @@ describe("CAD / Onshape integration view", () => {
     expect(markup).not.toContain("oauth-access-token");
   });
 
-  it("renders backend sync estimates when available", () => {
+  it("treats only the missing hierarchy route response as optional", () => {
+    const routeError = Object.assign(
+      new Error("Route GET:/api/cad/snapshots/cad-snapshot-0003/hierarchy-review not found"),
+      { statusCode: 404 },
+    );
+    const proposalsRouteError = Object.assign(
+      new Error("Route GET:/api/cad/snapshots/cad-snapshot-0003/part-match-proposals not found"),
+      { statusCode: 404 },
+    );
+    const diffRouteError = Object.assign(
+      new Error("Route GET:/api/cad/snapshots/cad-snapshot-0003/diff not found"),
+      { statusCode: 404 },
+    );
+    const snapshotError = Object.assign(new Error("CAD snapshot was not found."), { statusCode: 404 });
+    const serverError = Object.assign(new Error("Server Error"), { statusCode: 500 });
+
+    expect(isMissingCadHierarchyReviewRoute(routeError)).toBe(true);
+    expect(isMissingCadOptionalRoute(proposalsRouteError, "/part-match-proposals")).toBe(true);
+    expect(isMissingCadOptionalRoute(diffRouteError, "/diff")).toBe(true);
+    expect(isMissingCadHierarchyReviewRoute(snapshotError)).toBe(false);
+    expect(isMissingCadOptionalRoute(snapshotError, "/diff")).toBe(false);
+    expect(isMissingCadHierarchyReviewRoute(serverError)).toBe(false);
+    expect(isMissingCadOptionalRoute(serverError, "/part-match-proposals")).toBe(false);
+  });
+
+  it("renders mapping review state with carry-forward scope and finalize guard", () => {
     const markup = renderToStaticMarkup(
-      React.createElement(CadStatusPanels, {
-        overview: null,
-        selectedReferenceType: "version",
-        selectedSyncLevel: "bom",
-        syncEstimate: {
-          documentRefId: "onshape-ref-1",
-          syncLevel: "bom",
-          callsEstimated: 2,
-          allowCached: true,
-          requireFresh: false,
-          immutableReference: true,
-          referenceType: "version",
-          cacheStatus: "hit",
-          perSyncSoftBudget: 25,
-          budgetAllowsSync: true,
+      React.createElement(CadStepReviewPanels, {
+        diff: {
+          previousSnapshotId: "cad-snapshot-1",
+          addedAssemblies: [{ id: "asm-intake", name: "MECH - Intake", instancePath: "/Robot/MECH - Intake" }],
+          removedAssemblies: [],
+          movedAssemblies: [],
+          addedParts: [],
+          removedParts: [],
+          movedPartInstances: [],
+          mappingChanges: [],
           warnings: [],
         },
+        importRun: null,
+        isFinalizing: false,
+        isSavingMapping: false,
+        latestImportRunId: "cad-import-2",
+        mappings: [{
+          id: "mapping-1",
+          snapshotId: "cad-snapshot-2",
+          mappingRuleId: null,
+          sourceKind: "ASSEMBLY_NODE",
+          sourceId: "cad-assembly-1",
+          sourceName: "MECH - Shooter - Flywheel",
+          targetKind: "UNMAPPED",
+          targetId: null,
+          confidence: "LOW",
+          status: "NEEDS_REVIEW",
+          rule: null,
+          updatedAt: "2026-05-10T00:00:00.000Z",
+        }],
+        onConfirmMapping: jest.fn(),
+        onFinalize: jest.fn(),
+        snapshot: {
+          id: "cad-snapshot-2",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          importRunId: "cad-import-2",
+          source: "STEP_UPLOAD",
+          label: "Iteration 2",
+          uploadedFileHash: "hash",
+          previousSnapshotId: "cad-snapshot-1",
+          status: "mapping_review",
+          createdBy: null,
+          createdAt: "2026-05-10T00:00:00.000Z",
+          finalizedBy: null,
+          finalizedAt: null,
+          notes: null,
+        },
+        summary: {
+          assemblyCount: 2,
+          partDefinitionCount: 1,
+          partInstanceCount: 1,
+          maxDepth: 2,
+          parserVersion: "mock-step-parser-json-1",
+          warningCount: 1,
+          mappingCount: 3,
+        },
+        targets: {
+          subsystems: [{ id: "subsystem-shooter", projectId: "project-robot-2026", name: "Shooter", description: "", iteration: 1, isCore: false, parentSubsystemId: null, responsibleEngineerId: null, mentorIds: [], risks: [] }],
+          mechanisms: [{ id: "mechanism-flywheel", subsystemId: "subsystem-shooter", name: "Flywheel", description: "", iteration: 1 }],
+          partDefinitions: [{ id: "part-spacer", seasonId: "season-2026", name: "Spacer", partNumber: "SHR-001", revision: "A", iteration: 1, type: "custom", source: "cad", materialId: null, description: "" }],
+        },
+        tree: [],
+        warnings: [{
+          id: "warning-1",
+          importRunId: "cad-import-2",
+          snapshotId: "cad-snapshot-2",
+          severity: "WARNING",
+          code: "step_unmapped_assembly",
+          title: "Assembly is unmapped",
+          message: "MECH - Shooter - Flywheel needs review.",
+          sourceKind: "ASSEMBLY_NODE",
+          sourceId: "cad-assembly-1",
+          createdAt: "2026-05-10T00:00:00.000Z",
+        }],
       }),
     );
 
-    expect(markup).toContain("2 calls");
-    expect(markup).toContain("cache hit");
-    expect(markup).toContain("within budget");
+    expect(markup).toContain("MECH - Shooter - Flywheel");
+    expect(markup).toContain("This snapshot and future imports");
+    expect(markup).toContain("Select a target before confirming.");
+    expect(markup).toContain("<button class=\"secondary-button compact-action\" disabled=\"\" type=\"button\">Confirm</button>");
+    expect(markup).toContain("Finalize with unresolved warnings");
+    expect(markup).toContain("Added assemblies: 1");
+    expect(markup).toContain("step_unmapped_assembly");
+  });
+
+  it("surfaces parser mode and critical parser warnings in the import summary", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CadStepReviewPanels, {
+        diff: null,
+        importRun: null,
+        isFinalizing: false,
+        isSavingMapping: false,
+        latestImportRunId: "cad-import-parser",
+        mappings: [],
+        onConfirmMapping: jest.fn(),
+        onFinalize: jest.fn(),
+        snapshot: {
+          id: "cad-snapshot-parser",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          importRunId: "cad-import-parser",
+          source: "STEP_UPLOAD",
+          label: "Parser verification",
+          uploadedFileHash: "hash",
+          previousSnapshotId: null,
+          status: "parsed",
+          createdBy: null,
+          createdAt: "2026-05-10T00:00:00.000Z",
+          finalizedBy: null,
+          finalizedAt: null,
+          notes: null,
+        },
+        summary: {
+          assemblyCount: 0,
+          partDefinitionCount: 0,
+          partInstanceCount: 0,
+          maxDepth: 0,
+          parserVersion: "step-text-assembly-parser-1",
+          warningCount: 4,
+          mappingCount: 0,
+        },
+        targets: {
+          subsystems: [],
+          mechanisms: [],
+          partDefinitions: [],
+        },
+        tree: [],
+        warnings: [
+          {
+            id: "warning-placeholder",
+            importRunId: "cad-import-parser",
+            snapshotId: "cad-snapshot-parser",
+            severity: "ERROR",
+            code: "step_parser_placeholder_used",
+            title: "Placeholder parser used",
+            message: "The STEP import fell back to placeholder output.",
+            sourceKind: null,
+            sourceId: null,
+            createdAt: "2026-05-10T00:00:00.000Z",
+          },
+          {
+            id: "warning-hierarchy",
+            importRunId: "cad-import-parser",
+            snapshotId: "cad-snapshot-parser",
+            severity: "WARNING",
+            code: "step_hierarchy_missing",
+            title: "STEP hierarchy missing",
+            message: "No assembly hierarchy was detected.",
+            sourceKind: null,
+            sourceId: null,
+            createdAt: "2026-05-10T00:00:00.000Z",
+          },
+          {
+            id: "warning-flattened",
+            importRunId: "cad-import-parser",
+            snapshotId: "cad-snapshot-parser",
+            severity: "WARNING",
+            code: "step_flattened_file",
+            title: "Flattened STEP file",
+            message: "The upload appears to be flattened.",
+            sourceKind: null,
+            sourceId: null,
+            createdAt: "2026-05-10T00:00:00.000Z",
+          },
+          {
+            id: "warning-partial",
+            importRunId: "cad-import-parser",
+            snapshotId: "cad-snapshot-parser",
+            severity: "WARNING",
+            code: "step_parser_partial",
+            title: "Partial STEP parse",
+            message: "Only part of the STEP file was parsed.",
+            sourceKind: null,
+            sourceId: null,
+            createdAt: "2026-05-10T00:00:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    const carryForwardIndex = markup.indexOf("Carry-forward");
+
+    expect(markup).toContain("step-text-assembly-parser-1");
+    expect(markup.indexOf("Placeholder parser output. This is not from your uploaded STEP file.")).toBeGreaterThan(-1);
+    expect(markup.indexOf("Placeholder parser output. This is not from your uploaded STEP file.")).toBeLessThan(carryForwardIndex);
+    expect(markup.indexOf("step_hierarchy_missing")).toBeLessThan(carryForwardIndex);
+    expect(markup.indexOf("step_flattened_file")).toBeLessThan(carryForwardIndex);
+    expect(markup.indexOf("step_parser_partial")).toBeLessThan(carryForwardIndex);
+  });
+
+  it("renders detailed STEP parser diagnostics and import metadata near the tree", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CadStepReviewPanels, {
+        diff: null,
+        importRun: {
+          id: "cad-import-diagnostics",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          source: "STEP_UPLOAD",
+          status: "MAPPING_REVIEW",
+          originalFilename: "competition-robot.step",
+          uploadedFileHash: "hash",
+          parserVersion: "step-text-assembly-parser-2",
+          parseStartedAt: "2026-05-10T00:00:00.000Z",
+          parseCompletedAt: "2026-05-10T00:00:01.000Z",
+          rawSummaryJson: {
+            parserMode: "auto",
+            productCount: 12,
+            assemblyUsageCount: 7,
+            nextAssemblyUsageOccurrenceCount: 7,
+            rootName: "ASM - Robot",
+            rootNames: ["ASM - Robot", "ASM - Practice Bot"],
+            topLevelAssemblies: ["SUB - Drivebase", "SUB - Shooter"],
+            parserUsedPlaceholder: false,
+          },
+          createdAt: "2026-05-10T00:00:00.000Z",
+          updatedAt: "2026-05-10T00:00:01.000Z",
+        },
+        isFinalizing: false,
+        isSavingMapping: false,
+        latestImportRunId: "cad-import-newer",
+        mappings: [],
+        onConfirmMapping: jest.fn(),
+        onFinalize: jest.fn(),
+        snapshot: {
+          id: "cad-snapshot-diagnostics",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          importRunId: "cad-import-diagnostics",
+          source: "STEP_UPLOAD",
+          label: "Diagnostics snapshot",
+          uploadedFileHash: "hash",
+          previousSnapshotId: null,
+          status: "mapping_review",
+          createdBy: null,
+          createdAt: "2026-05-10T00:00:02.000Z",
+          finalizedBy: null,
+          finalizedAt: null,
+          notes: null,
+        },
+        summary: {
+          assemblyCount: 3,
+          partDefinitionCount: 2,
+          partInstanceCount: 4,
+          maxDepth: 2,
+          parserVersion: "step-text-assembly-parser-2",
+          parserMode: "auto",
+          productCount: 12,
+          assemblyUsageCount: 7,
+          nextAssemblyUsageOccurrenceCount: 7,
+          rootName: "ASM - Robot",
+          rootNames: ["ASM - Robot", "ASM - Practice Bot"],
+          topLevelAssemblies: ["SUB - Drivebase", "SUB - Shooter"],
+          parserUsedPlaceholder: false,
+          warningCount: 0,
+          mappingCount: 0,
+        },
+        targets: {
+          subsystems: [],
+          mechanisms: [],
+          partDefinitions: [],
+        },
+        tree: [],
+        warnings: [],
+      }),
+    );
+
+    expect(markup).toContain("Parser mode");
+    expect(markup).toContain("auto");
+    expect(markup).toContain("Product count");
+    expect(markup).toContain("12");
+    expect(markup).toContain("NEXT_ASSEMBLY_USAGE_OCCURRENCE");
+    expect(markup).toContain("7");
+    expect(markup).toContain("Root names");
+    expect(markup).toContain("ASM - Robot, ASM - Practice Bot");
+    expect(markup).toContain("Top-level detected assemblies");
+    expect(markup).toContain("SUB - Drivebase, SUB - Shooter");
+    expect(markup).toContain("Placeholder used");
+    expect(markup).toContain("No");
+    expect(markup).toContain("competition-robot.step");
+    expect(markup).toContain("You are viewing an older CAD snapshot.");
+  });
+
+  it("renders assembly tree item counts with folded child branches", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CadStepReviewPanels, {
+        diff: null,
+        importRun: {
+          id: "cad-import-tree",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          source: "STEP_UPLOAD",
+          status: "MAPPING_REVIEW",
+          originalFilename: "tree.step",
+          uploadedFileHash: "hash",
+          parserVersion: "step-text-assembly-parser-1",
+          parseStartedAt: "2026-05-10T00:00:00.000Z",
+          parseCompletedAt: "2026-05-10T00:00:01.000Z",
+          rawSummaryJson: {},
+          createdAt: "2026-05-10T00:00:00.000Z",
+          updatedAt: "2026-05-10T00:00:01.000Z",
+        },
+        isFinalizing: false,
+        isSavingMapping: false,
+        latestImportRunId: "cad-import-tree",
+        mappings: [],
+        onConfirmMapping: jest.fn(),
+        onFinalize: jest.fn(),
+        snapshot: {
+          id: "cad-snapshot-tree",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          importRunId: "cad-import-tree",
+          source: "STEP_UPLOAD",
+          label: "Tree snapshot",
+          uploadedFileHash: "hash",
+          previousSnapshotId: null,
+          status: "mapping_review",
+          createdBy: null,
+          createdAt: "2026-05-10T00:00:02.000Z",
+          finalizedBy: null,
+          finalizedAt: null,
+          notes: null,
+        },
+        summary: {
+          assemblyCount: 3,
+          partDefinitionCount: 2,
+          partInstanceCount: 4,
+          maxDepth: 2,
+          parserVersion: "step-text-assembly-parser-1",
+          warningCount: 0,
+          mappingCount: 0,
+        },
+        targets: {
+          subsystems: [],
+          mechanisms: [],
+          partDefinitions: [],
+        },
+        tree: [{
+          id: "root",
+          sourceId: "root",
+          name: "MAIN ASSEMBLY",
+          inferredType: "ROOT",
+          instancePath: "/MAIN ASSEMBLY",
+          depth: 0,
+          mapping: null,
+          partInstances: [{
+            id: "root-part",
+            sourceId: "root-part",
+            instancePath: "/MAIN ASSEMBLY/Intake Cheese",
+            quantity: 1,
+            mapping: null,
+            partDefinition: { id: "intake", name: "Intake Cheese", partNumber: null },
+          }],
+          children: [{
+            id: "child",
+            sourceId: "child",
+            name: "Shooter Main Assembly <1>",
+            inferredType: "SUBSYSTEM_CANDIDATE",
+            instancePath: "/MAIN ASSEMBLY/Shooter Main Assembly <1>",
+            depth: 1,
+            mapping: null,
+            partInstances: [{
+              id: "shooter-part",
+              sourceId: "shooter-part",
+              instancePath: "/MAIN ASSEMBLY/Shooter Main Assembly <1>/Wheel Spacer",
+              quantity: 2,
+              mapping: null,
+              partDefinition: { id: "spacer", name: "Wheel Spacer", partNumber: null },
+            }],
+            children: [{
+              id: "grandchild",
+              sourceId: "grandchild",
+              name: "Flywheel Assembly <1>",
+              inferredType: "MECHANISM_CANDIDATE",
+              instancePath: "/MAIN ASSEMBLY/Shooter Main Assembly <1>/Flywheel Assembly <1>",
+              depth: 2,
+              mapping: null,
+              partInstances: [{
+                id: "flywheel-part",
+                sourceId: "flywheel-part",
+                instancePath: "/MAIN ASSEMBLY/Shooter Main Assembly <1>/Flywheel Assembly <1>/Pulley",
+                quantity: 1,
+                mapping: null,
+                partDefinition: { id: "pulley", name: "Pulley", partNumber: null },
+              }],
+              children: [],
+            }],
+          }],
+        }],
+        warnings: [],
+      }),
+    );
+
+    expect(markup).toContain("Collapse MAIN ASSEMBLY branch");
+    expect(markup).toContain("Expand Shooter Main Assembly &lt;1&gt; branch");
+    expect(markup).toContain("2 assemblies");
+    expect(markup).toContain("4 parts");
+    expect(markup).toContain("1 assembly");
+    expect(markup).toContain("3 parts");
+    expect(markup).toContain("Shooter Main Assembly &lt;1&gt;");
+    expect(markup).not.toContain("Wheel Spacer");
+    expect(markup).not.toContain("Flywheel Assembly &lt;1&gt;");
+  });
+
+  it("renders grouped repeated part instances in the tree and mapping review", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CadStepReviewPanels, {
+        diff: {
+          previousSnapshotId: "cad-snapshot-previous",
+          addedAssemblies: [],
+          removedAssemblies: [],
+          movedAssemblies: [],
+          addedParts: [],
+          removedParts: [],
+          movedPartInstances: [],
+          quantityChangedPartGroups: [{
+            parentAssemblyName: "MECH - Shooter - Flywheel",
+            partName: "PRT - Shooter - Flywheel - Spacer",
+            previousQuantity: 3,
+            currentQuantity: 4,
+            addedInstancePaths: ["/Robot/MECH - Shooter - Flywheel/Spacer <4>"],
+            removedInstancePaths: [],
+          }],
+          mappingChanges: [],
+          warnings: [],
+        },
+        groupRepeatedInstances: true,
+        importRun: null,
+        isFinalizing: false,
+        isSavingMapping: false,
+        latestImportRunId: "cad-import-grouped",
+        mappings: [{
+          id: "part-instance-group:spacer",
+          kind: "part_instance_group",
+          snapshotId: "cad-snapshot-grouped",
+          mappingRuleId: null,
+          sourceKind: "PART_INSTANCE",
+          sourceId: "cad-part-inst-1",
+          sourceIds: ["cad-part-inst-1", "cad-part-inst-2", "cad-part-inst-3", "cad-part-inst-4"],
+          sourceName: "PRT - Shooter - Flywheel - Spacer",
+          parentAssemblyName: "MECH - Shooter - Flywheel",
+          quantity: 4,
+          hasMixedMappings: true,
+          warning: "Repeated instances have mixed mappings. Review before finalizing.",
+          targetKind: "UNMAPPED",
+          targetId: null,
+          confidence: "LOW",
+          status: "NEEDS_REVIEW",
+          rule: null,
+          updatedAt: "2026-05-10T00:00:00.000Z",
+        }, {
+          id: "mapping-singleton-plate",
+          snapshotId: "cad-snapshot-grouped",
+          mappingRuleId: null,
+          sourceKind: "PART_INSTANCE",
+          sourceId: "cad-part-inst-plate",
+          sourceName: "Mounting Plate <1>",
+          parentAssemblyName: "MECH - Shooter - Flywheel",
+          targetKind: "UNMAPPED",
+          targetId: null,
+          confidence: "LOW",
+          status: "NEEDS_REVIEW",
+          rule: null,
+          updatedAt: "2026-05-10T00:00:00.000Z",
+        }],
+        onConfirmMapping: jest.fn(),
+        onFinalize: jest.fn(),
+        onGroupRepeatedInstancesChange: jest.fn(),
+        snapshot: {
+          id: "cad-snapshot-grouped",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          importRunId: "cad-import-grouped",
+          source: "STEP_UPLOAD",
+          label: "Grouped snapshot",
+          uploadedFileHash: "hash",
+          previousSnapshotId: "cad-snapshot-previous",
+          status: "mapping_review",
+          createdBy: null,
+          createdAt: "2026-05-10T00:00:02.000Z",
+          finalizedBy: null,
+          finalizedAt: null,
+          notes: null,
+        },
+        summary: {
+          assemblyCount: 1,
+          partDefinitionCount: 1,
+          partInstanceCount: 4,
+          maxDepth: 1,
+          parserVersion: "step-text-assembly-parser-1",
+          warningCount: 0,
+          mappingCount: 4,
+        },
+        targets: {
+          subsystems: [],
+          mechanisms: [],
+          partDefinitions: [{ id: "part-spacer", seasonId: "season-2026", name: "Spacer", partNumber: "SHR-001", revision: "A", iteration: 1, type: "custom", source: "cad", materialId: null, description: "" }],
+        },
+        tree: [{
+          id: "root",
+          sourceId: "root",
+          name: "MAIN ASSEMBLY",
+          inferredType: "ROOT",
+          instancePath: "/MAIN ASSEMBLY",
+          depth: 0,
+          mapping: null,
+          partInstances: [{
+            kind: "part_instance_group",
+            groupId: "part-instance-group:spacer",
+            parentAssemblyNodeId: "root",
+            partDefinitionId: "part-spacer",
+            partDefinition: { id: "part-spacer", name: "PRT - Shooter - Flywheel - Spacer", partNumber: "SHR-001" },
+            displayName: "PRT - Shooter - Flywheel - Spacer",
+            quantity: 4,
+            instanceIds: ["cad-part-inst-1", "cad-part-inst-2", "cad-part-inst-3", "cad-part-inst-4"],
+            sourceIds: ["cad-part-inst-1", "cad-part-inst-2", "cad-part-inst-3", "cad-part-inst-4"],
+            instancePaths: [
+              "/MAIN ASSEMBLY/Spacer <1>",
+              "/MAIN ASSEMBLY/Spacer <2>",
+              "/MAIN ASSEMBLY/Spacer <3>",
+              "/MAIN ASSEMBLY/Spacer <4>",
+            ],
+            stableSignatures: ["inst:path:/1", "inst:path:/2", "inst:path:/3", "inst:path:/4"],
+            mapping: null,
+            mappings: [],
+            hasMixedMappings: false,
+            hasMixedMetadata: false,
+            representativeInstanceId: "cad-part-inst-1",
+          }, {
+            id: "cad-part-inst-plate",
+            snapshotId: "cad-snapshot-grouped",
+            sourceId: "inst-plate-1",
+            partDefinitionId: "part-plate",
+            parentAssemblyNodeId: "root",
+            instancePath: "/MAIN ASSEMBLY/Mounting Plate <1>",
+            quantity: 1,
+            stableSignature: "inst:path:/MAIN ASSEMBLY/Mounting Plate <1>",
+            metadataJson: {},
+            createdAt: "2026-05-10T00:00:00.000Z",
+            mapping: null,
+            partDefinition: { id: "part-plate", name: "PRT - Shooter - Mounting Plate", partNumber: "SHR-002" },
+          }],
+          children: [],
+        }],
+        warnings: [],
+      }),
+    );
+
+    expect(markup).toContain("Group repeated instances");
+    expect(markup).toContain("checked=\"\"");
+    expect(markup).toContain("PRT - Shooter - Flywheel - Spacer");
+    expect(markup).toContain("×4");
+    expect(markup).toContain("Expand PRT - Shooter - Flywheel - Spacer repeated instances");
+    expect(markup).toContain("Quantity");
+    expect(markup).toContain("Parent assembly");
+    expect(markup).toContain("MECH - Shooter - Flywheel");
+    expect(markup).toContain("Mixed mappings");
+    expect(markup).toContain("Applies to 4 repeated instances");
+    expect(markup).toContain("Mounting Plate &lt;1&gt;");
+    expect(markup).not.toContain("Applies to 1 repeated instances");
+    expect(markup).not.toContain("×1");
+    expect(markup).toContain("quantity changed");
+    expect(markup).toContain("3 → 4");
+  });
+
+  it("blocks finalize and future mapping rules for placeholder STEP output", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(CadStepReviewPanels, {
+        diff: null,
+        importRun: null,
+        isFinalizing: false,
+        isSavingMapping: false,
+        latestImportRunId: "cad-import-placeholder",
+        mappings: [{
+          id: "mapping-placeholder",
+          snapshotId: "cad-snapshot-placeholder",
+          mappingRuleId: null,
+          sourceKind: "ASSEMBLY_NODE",
+          sourceId: "cad-assembly-placeholder",
+          sourceName: "MECH - Placeholder",
+          targetKind: "UNMAPPED",
+          targetId: null,
+          confidence: "LOW",
+          status: "NEEDS_REVIEW",
+          rule: null,
+          updatedAt: "2026-05-10T00:00:00.000Z",
+        }],
+        onConfirmMapping: jest.fn(),
+        onFinalize: jest.fn(),
+        snapshot: {
+          id: "cad-snapshot-placeholder",
+          projectId: "project-robot-2026",
+          seasonId: "season-2026",
+          importRunId: "cad-import-placeholder",
+          source: "STEP_UPLOAD",
+          label: "Placeholder snapshot",
+          uploadedFileHash: "hash",
+          previousSnapshotId: null,
+          status: "mapping_review",
+          createdBy: null,
+          createdAt: "2026-05-10T00:00:00.000Z",
+          finalizedBy: null,
+          finalizedAt: null,
+          notes: null,
+        },
+        summary: {
+          assemblyCount: 2,
+          partDefinitionCount: 1,
+          partInstanceCount: 1,
+          maxDepth: 1,
+          parserVersion: "mock-step-parser-placeholder-1",
+          parserUsedPlaceholder: true,
+          warningCount: 1,
+          mappingCount: 1,
+        },
+        targets: {
+          subsystems: [],
+          mechanisms: [],
+          partDefinitions: [],
+        },
+        tree: [],
+        warnings: [{
+          id: "warning-placeholder",
+          importRunId: "cad-import-placeholder",
+          snapshotId: "cad-snapshot-placeholder",
+          severity: "ERROR",
+          code: "step_parser_placeholder_used",
+          title: "Placeholder parser used",
+          message: "The STEP import fell back to placeholder output.",
+          sourceKind: null,
+          sourceId: null,
+          createdAt: "2026-05-10T00:00:00.000Z",
+        }],
+      }),
+    );
+
+    expect(markup).toContain("Placeholder parser output. This is not from your uploaded STEP file.");
+    expect(markup).toContain("Finalize is blocked for placeholder STEP output.");
+    expect(markup).toContain("disabled=\"\"");
+    expect(markup).toContain("<button class=\"secondary-button compact-action\" disabled=\"\" type=\"button\">Confirm</button>");
+    expect(markup).toContain("Placeholder output cannot be saved as future mapping rules.");
+    expect(markup).not.toContain("This snapshot and future imports");
   });
 });

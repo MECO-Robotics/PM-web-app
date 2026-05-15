@@ -11,8 +11,11 @@ export function WorkspaceCadSection(props: WorkspaceContentPanelsViewProps) {
     >
       <WorkspaceSubPanel disableAnimations={props.disablePanelAnimations} isActive>
         <CadIntegrationView
+          mechanisms={Object.values(props.mechanismsById)}
+          partDefinitions={Object.values(props.partDefinitionsById)}
           projectId={props.selectedProject?.id ?? null}
           seasonId={props.selectedSeasonId}
+          subsystems={Object.values(props.subsystemsById)}
         />
       </WorkspaceSubPanel>
     </WorkspaceSectionPanel>
