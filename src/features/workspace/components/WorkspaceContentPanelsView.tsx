@@ -13,6 +13,7 @@ import {
   WorkspaceRosterSection,
   WorkspaceHelpSection,
 } from "./WorkspaceInventoryAndAdminSections";
+import { WorkspaceCadSection } from "./sections/WorkspaceCadSection";
 import { WorkspaceManufacturingSection } from "./WorkspaceManufacturingSection";
 import { groupWorkspaceContentPanelProps } from "./workspaceContentPanelsGrouping";
 type SwipeDirection = "left" | "right" | null;
@@ -70,6 +71,7 @@ export function WorkspaceContentPanelsView(props: WorkspaceContentPanelsViewProp
       <WorkspaceReportsSection {...props} />
       <WorkspaceManufacturingSection {...props} />
       <WorkspaceInventorySection {...props} />
+      <WorkspaceCadSection {...props} />
       <WorkspaceSubsystemsSection {...props} />
       <WorkspaceRosterSection shell={groupedProps.shell} roster={groupedProps.roster} />
       <WorkspaceHelpSection {...props} />
