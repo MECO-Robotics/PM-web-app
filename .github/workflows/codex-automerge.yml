@@ -39,14 +39,19 @@ jobs:
       - name: Enable auto-merge when Codex review and checks are green
         uses: actions/github-script@v7
         env:
-          CODEX_REVIEWER_REGEX: "(codex|chatgpt)"
+          CODEX_REVIEWER_LOGINS: "chatgpt-codex-connector[bot],chatgpt-codex-connector,codex[bot]"
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const targetBaseRefs = new Set(['development', 'main']);
             const passingConclusions = new Set(['success', 'neutral', 'skipped']);
-            const codexReviewerRegex = new RegExp(process.env.CODEX_REVIEWER_REGEX || 'codex', 'i');
+            const trustedCodexReviewerLogins = new Set(
+              (process.env.CODEX_REVIEWER_LOGINS || '')
+                .split(',')
+                .map((login) => login.trim().toLowerCase())
+                .filter(Boolean)
+            );
 
             if (context.eventName === 'workflow_run') {
               const conclusion = context.payload?.workflow_run?.conclusion;
@@ -119,7 +124,7 @@ jobs:
               }
 
               const codexReviewers = [...latestReviewStateByUser.entries()]
-                .filter(([login]) => codexReviewerRegex.test(login))
+                .filter(([login]) => trustedCodexReviewerLogins.has(login.toLowerCase()))
                 .map(([login, state]) => ({ login, state }));
 
               if (codexReviewers.length === 0) {
@@ -156,13 +161,19 @@ jobs:
                 per_page: 100,
               });
               const checkRuns = checkRunsPayload.check_runs ?? [];
+              const relevantCheckRuns = checkRuns.filter((checkRun) => {
+                const isCurrentRun = String(checkRun.details_url ?? '').includes(
+                  `/actions/runs/${context.runId}`,
+                );
+                return checkRun.name !== 'enable-automerge' && !isCurrentRun;
+              });
 
-              if (checkRuns.length === 0) {
+              if (relevantCheckRuns.length === 0) {
                 core.info(`PR #${pullNumber} has no check runs yet; waiting.`);
                 return;
               }
 
-              const blockingCheckRuns = checkRuns.filter((checkRun) => {
+              const blockingCheckRuns = relevantCheckRuns.filter((checkRun) => {
                 if (checkRun.status !== 'completed') {
                   return true;
                 }
