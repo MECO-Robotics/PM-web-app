@@ -142,17 +142,6 @@ jobs:
                 return;
               }
 
-              const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
-                owner,
-                repo,
-                ref: pr.head.sha,
-              });
-
-              if (combinedStatus.state !== 'success') {
-                core.info(`PR #${pullNumber} combined status is ${combinedStatus.state}; waiting.`);
-                return;
-              }
-
               const { data: checkRunsPayload } = await github.rest.checks.listForRef({
                 owner,
                 repo,
